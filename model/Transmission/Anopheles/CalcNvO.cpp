@@ -95,6 +95,7 @@ struct SvDiffParams
 	gsl_vector* SvfromEIR;
 	gsl_matrix** Upsilon;
 	gsl_matrix* inv1Xtp;
+	double initNv0FromSv;
 	int eta;
 	int mt;
 	int thetap;
@@ -343,7 +344,7 @@ double CalcInitMosqEmergeRate(double* FMosqEmergeRateVector, int* daysInYearPtr,
 				double* mosqSeekingDurationPtr, double* mosqProbBitingPtr,
 				double* mosqProbFindRestSitePtr, double* mosqProbRestingPtr,
 				double* mosqProbOvipositingPtr, double* FHumanInfectivityInitVector,
-				double* FEIRInitVector, double* FMosqEmergeRateInitEstimateVector){
+				double* FEIRInitVector, double* FMosqEmergeRateInitEstimateVector, double initNv0FromSv){
 
 
 
@@ -521,14 +522,14 @@ double CalcInitMosqEmergeRate(double* FMosqEmergeRateVector, int* daysInYearPtr,
 	// Set Booleans.
 	int ifRootFind = 1;
 
-	int ifprintparameters = 1;
-	int ifprintXtp = 1;
-	int ifprintinv1Xtp = 1;
-	int ifprintSv = 1;
-	int ifprintSvDiff = 1;
-	int ifprintfinalNv0 = 1;
-	int ifprintfinalSvDiff = 1;
-	int ifprintPO = 1;
+	int ifprintparameters = 0;
+	int ifprintXtp = 0;
+	int ifprintinv1Xtp = 0;
+	int ifprintSv = 0;
+	int ifprintSvDiff = 0;
+	int ifprintfinalNv0 = 0;
+	int ifprintfinalSvDiff = 0;
+	int ifprintPO = 0;
 
 	// File names
 	// File where entomological parameters are printed out.
@@ -705,7 +706,7 @@ double CalcInitMosqEmergeRate(double* FMosqEmergeRateVector, int* daysInYearPtr,
 		// We first test CalcSvDiff(). - It works.
 
 		CalcSvDiff(SvDiff, SvfromEIR, Upsilon, Nv0guess, inv1Xtp, 
-			eta, mt, thetap, fnametestentopar);
+			eta, mt, thetap, fnametestentopar, initNv0FromSv);
 		if (ifprintSvDiff){
 			PrintVector(fnametestentopar, SvDiffname, SvDiff, thetap);
 		}
@@ -726,11 +727,12 @@ double CalcInitMosqEmergeRate(double* FMosqEmergeRateVector, int* daysInYearPtr,
 		pararootfind.eta = eta;
 		pararootfind.mt = mt;
 		pararootfind.thetap = thetap;
+		pararootfind.initNv0FromSv = initNv0FromSv;
 
 		// Set root-finding function.
 		// frootfind = {&CalcSvDiff_rf, thetap, &pararootfind};
 		frootfind.f = &CalcSvDiff_rf;
-		frootfind.n = 1;//thetap;
+		frootfind.n = thetap;
 		frootfind.params = &pararootfind;
 
 		// Input vector for root-finding.
@@ -1096,6 +1098,7 @@ int CalcSvDiff_rf(const gsl_vector* x, void* p, gsl_vector* f){
 	int eta = (params->eta);
 	int mt = (params->mt);
 	int thetap = (params->thetap);
+	double initNv0FromSv = (params->initNv0FromSv);
 
 	// It would be cleaner to read in the name of this file as an input
 	// parameter but for now, we leave it out of the root-finding
@@ -1113,7 +1116,7 @@ int CalcSvDiff_rf(const gsl_vector* x, void* p, gsl_vector* f){
 	// To set f, we simply call CalcSvDiff. It's probably easier than rewriting
 	// this code.
 	CalcSvDiff(f, SvfromEIR, Upsilon, Nv0, inv1Xtp, 
-			eta, mt, thetap, fnametestentopar);
+			eta, mt, thetap, fnametestentopar, initNv0FromSv);
 
 	SvDiff1norm = gsl_blas_dasum(f);
 	
@@ -1148,7 +1151,7 @@ int CalcSvDiff_rf(const gsl_vector* x, void* p, gsl_vector* f){
  */  
 void CalcSvDiff(gsl_vector* SvDiff, gsl_vector* SvfromEIR, 
 			gsl_matrix** Upsilon, gsl_vector* Nv0, gsl_matrix* inv1Xtp, 
-			int eta, int mt, int thetap, char fntestentopar[]){
+			int eta, int mt, int thetap, char fntestentopar[], double initNv0FromSv){
 
 
 	int i;
@@ -1185,7 +1188,7 @@ void CalcSvDiff(gsl_vector* SvDiff, gsl_vector* SvfromEIR,
 	indexSv = 2*mt;
 	for (i=0; i<thetap; i++){
 		temp = gsl_vector_get(xp[i], indexSv);
-		gsl_vector_set(SvfromNv0, i, temp);
+		gsl_vector_set(SvfromNv0, i, temp / 2000.0);// / initNv0FromSv);//* initNv0FromSv);
 	}
 
 	if(ifprintSvfromNv0){
@@ -1297,7 +1300,7 @@ void CalcXP(gsl_vector** xp, gsl_matrix** Upsilon,
 	
 	// Prints results in calculating the periodic orbit.
 	int ifPrintx0p = 0;
-	int ifPrintXP = 0; 
+	int ifPrintXP = 1; 
 
 	char x0pname[15] = "x0p";
 	
@@ -1324,23 +1327,38 @@ void CalcXP(gsl_vector** xp, gsl_matrix** Upsilon,
 	// xp[0] will refer to xp(1): because Upsilon[0] refers to Upsilon(1).
 	// Thus, xp[thetap-1] = x0p. We can check this to make sure.
 
-	for(t=0; t<thetap; t++){
-		if(t==100 || t==200 || t==300){
-			printf("t=%d \n", t);
-		}
-		xp[t] = gsl_vector_calloc(eta);
-		// gsl_vector_set_zero(vtemp);
-		// gsl_vector_set_zero(vtempsum);
-		FuncX(mtemp, Upsilon, t+1, 0, eta);
-		gsl_blas_dgemv(CblasNoTrans, 1.0, mtemp, x0p, 1.0, xp[t]);
-		for(i=0; i<=t; i++){
-			// printf("t=%d i=%d \n", t, i);
-			FuncX(mtemp, Upsilon, t+1, i+1, eta);
-			gsl_blas_dgemv(CblasNoTrans, 1.0, mtemp, Lambda[i], 1.0, xp[t]);
-		}
-	}
-		
+	// for(t=0; t<thetap; t++){
+	// 	if(t==100 || t==200 || t==300){
+	// 		printf("t=%d \n", t);
+	// 	}
+	// 	xp[t] = gsl_vector_calloc(eta);
+	// 	// gsl_vector_set_zero(vtemp);
+	// 	// gsl_vector_set_zero(vtempsum);
+	// 	FuncX(mtemp, Upsilon, t+1, 0, eta);
+	// 	gsl_blas_dgemv(CblasNoTrans, 1.0, mtemp, x0p, 1.0, xp[t]);
+	// 	for(i=0; i<=t; i++){
+	// 		// printf("t=%d i=%d \n", t, i);
+	// 		FuncX(mtemp, Upsilon, t+1, i+1, eta);
+	// 		gsl_blas_dgemv(CblasNoTrans, 1.0, mtemp, Lambda[i], 1.0, xp[t]);
+	// 	}
+	// }
 
+	// gsl_matrix* X = gsl_matrix_calloc(eta, eta); 
+	// gsl_matrix* temp = gsl_matrix_calloc(eta, eta); 
+	// gsl_matrix_set_identity(X);
+
+	xp[0] = gsl_vector_calloc(eta);
+	FuncX(mtemp, Upsilon, 0, 0, eta);
+	gsl_blas_dgemv(CblasNoTrans, 1.0, mtemp, x0p, 1.0, xp[0]);
+
+	// x(t+1) = Upsilon(t)*x(t) + Lambda(t)
+	for(t=1; t<thetap; t++){
+		xp[t] = gsl_vector_calloc(eta);
+		gsl_blas_dgemv(CblasNoTrans, 1.0, Upsilon[t-1], xp[t-1], 1.0, xp[t]);
+		gsl_vector_add(xp[t], Lambda[t-1]);
+	}
+
+	//gsl_matrix_free(temp);
 
 	printf("Calculated periodic orbit. \n");
 
@@ -1348,6 +1366,26 @@ void CalcXP(gsl_vector** xp, gsl_matrix** Upsilon,
 	if (ifPrintXP){
 		PrintXP(xp, eta, thetap, fntestentopar);		
 	}
+
+	/*
+	t=0
+		X(0,1)
+		i=0
+			X(1,1)
+	t=1
+		X(0,2)
+		i=0
+			X(1,2)
+		i=1
+			X(2,2)
+	t=2
+		X(0,3) 
+	t
+		X(t+1) = X(t) * Upsilon(t)
+		xp[t] = X(t+1) * Lambda[t]
+
+	*/
+
 
 	gsl_vector_free(vtemp);
 	// gsl_vector_free(vtempsum);
