@@ -366,8 +366,8 @@ unique_ptr<DecayFunction> DecayFunction::makeObject(
         return make_unique<OperatorDecayFunction<std::divides<double>>>( elt );
     else if( func == "multiplies" )
         return make_unique<OperatorDecayFunction<std::multiplies<double>>>( elt );
-    else if( func == "Emax" ){
-        eturn make_unique<EmaxFunction>( elt );
+    else if( func == "Emax" )
+        return make_unique<EmaxFunction>( elt );
     else
         throw xml_scenario_error("decay function type " + string(func) + " of " + string(eltName) + " unrecognized");
 }
