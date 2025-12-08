@@ -226,26 +226,30 @@ Licence: GNU General Public Licence version 2 or later (see COPYING) -->
         </xs:documentation>
    </xs:annotation>
   </xs:attribute>
-  <xs:attribute name="rho" type="xs:double" use="optional">
+  <xs:attribute name="initialConcentration" type="xs:double" use="optional">
    <xs:annotation>
     <xs:documentation>
           biphasic: Proportion between 0 and 1, proportion of the response that is short-lived.</xs:documentation>
    </xs:annotation>
   </xs:attribute>
-  <xs:attribute name="halflife_short" type="xs:string" use="optional">
+  <xs:attribute name="Emax" type="xs:double" use="optional">
    <xs:annotation>
     <xs:documentation>
-          biphasic: halflife of short lived component (default to years).
-
-        </xs:documentation>
+          maximum efficacy (between 0 and 1)</xs:documentation>
    </xs:annotation>
   </xs:attribute>
-  <xs:attribute name="halflife_long" type="xs:string" use="optional">
+  <xs:attribute name="slope" type="xs:double" use="optional">
    <xs:annotation>
     <xs:documentation>
-          biphasic: halflife of long lived component (default to years).
-
-        </xs:documentation>
+          steepness of the sigmoidal curve
+</xs:documentation>
+   </xs:annotation>
+  </xs:attribute>
+  <xs:attribute name="IC50" type="xs:double" use="optional">
+   <xs:annotation>
+    <xs:documentation>
+          IC 50
+</xs:documentation>
    </xs:annotation>
   </xs:attribute>
  </xs:complexType>
