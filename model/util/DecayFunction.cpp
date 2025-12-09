@@ -313,13 +313,13 @@ public:
 
     double compute(double effectiveAge) const {
         double fcomp = pow(initialConcentration * f->eval(effectiveAge), slope);
-        cout << "t: " << effectiveAge << endl;
-        cout << "AB(t): " << f->eval(effectiveAge) << endl;
-        cout << "rho: " << initialConcentration << endl;
-        cout << "slope: " << slope << endl;
-        cout << "IC50^slope: " << IC50 << endl;
-        cout << "rho * AB(t)^slope: " << fcomp << endl;
-        cout << "Emax(t) = " << Emax * fcomp / (fcomp + IC50) << endl;
+        // cout << "t: " << effectiveAge << endl;
+        // cout << "AB(t): " << f->eval(effectiveAge) << endl;
+        // cout << "rho: " << initialConcentration << endl;
+        // cout << "slope: " << slope << endl;
+        // cout << "IC50^slope: " << IC50 << endl;
+        // cout << "rho * AB(t)^slope: " << fcomp << endl;
+        // cout << "Emax(t) = " << Emax * fcomp / (fcomp + IC50) << endl;
         return max(min(Emax * fcomp / (fcomp + IC50), 1.0), 0.0);
     }
     
@@ -366,10 +366,10 @@ unique_ptr<DecayFunction> DecayFunction::makeObject(
         return make_unique<OperatorDecayFunction<std::divides<double>>>( elt );
     else if( func == "multiplies" )
         return make_unique<OperatorDecayFunction<std::multiplies<double>>>( elt );
-    else if( func == "Emax" )
+    else if( func == "emax" )
         return make_unique<EmaxFunction>( elt );
     else
-        throw xml_scenario_error("decay function type " + string(func) + " of " + string(eltName) + " unrecognized");
+        throw xml_scenario_error("decay function " + string(func) + " unrecognized");
 }
 
 } }

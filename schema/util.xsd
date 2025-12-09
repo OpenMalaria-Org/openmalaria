@@ -165,6 +165,7 @@ Licence: GNU General Public Licence version 2 or later (see COPYING) -->
      <xs:enumeration value="minus"/>
      <xs:enumeration value="divides"/>
      <xs:enumeration value="multiplies"/>
+     <xs:enumeration value="emax"/>
     </xs:restriction>
    </xs:simpleType>
   </xs:attribute>
