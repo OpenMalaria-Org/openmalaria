@@ -47,7 +47,7 @@ public:
     
     void testBad() {
         dfElt.setFunction( "unknown" );
-        string errMsg = "decay function type unknown of DecayFunctionSuite unrecognized";
+        string errMsg = "decay function DecayFunctionSuite unrecognized";
         TS_ASSERT_THROWS_EQUALS( df = DecayFunction::makeObject( dfElt, "DecayFunctionSuite" ),
                           const std::runtime_error &e, e.what(), errMsg );
     }

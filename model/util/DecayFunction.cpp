@@ -320,6 +320,7 @@ public:
         // cout << "IC50^slope: " << IC50 << endl;
         // cout << "rho * AB(t)^slope: " << fcomp << endl;
         // cout << "Emax(t) = " << Emax * fcomp / (fcomp + IC50) << endl;
+        // cout << "Emax(t) = " << Emax * fcomp / (fcomp + IC50) << "\t" << max(min(Emax * fcomp / (fcomp + IC50), 1.0), 0.0) << endl;
         return max(min(Emax * fcomp / (fcomp + IC50), 1.0), 0.0);
     }
     
