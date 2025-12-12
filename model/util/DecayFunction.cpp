@@ -370,7 +370,7 @@ unique_ptr<DecayFunction> DecayFunction::makeObject(
     else if( func == "emax" )
         return make_unique<EmaxFunction>( elt );
     else
-        throw xml_scenario_error("decay function " + string(func) + " unrecognized");
+        throw xml_scenario_error("decay function " + string(eltName) + " of type " + string(func) + " unrecognized");
 }
 
 } }
