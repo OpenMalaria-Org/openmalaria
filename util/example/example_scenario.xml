@@ -194,10 +194,27 @@ Boston, MA 02110-1301, USA. -->
                 Note that if monthly values are used, OpenMalaria will anyway smooth the values
                 using fourier coefficients. -->
                 <seasonality annualEIR="24.826144381650714" input="EIR">
+                    <!-- 2015 P.f. passively detected cases in Bataraza, Brooke's Point and Rizal -->
+                    <!-- https://swisstph.github.io/openmalaria/fourier -->
                     <fourierSeries EIRRotateAngle="0">
-                        <coeffic a="-0.2072" b="0.8461"/>
-                        <coeffic a="0.0906" b="-0.0425"/>
+                        <coeffic a="-1.0313715140024822" b="0.5474993785222372"/>
+                        <coeffic a="-0.005155722300211589" b="-0.19769509633382162"/>
                     </fourierSeries>
+                    <!-- Or, equivalent specification via monthly values -->
+                    <!-- <monthlyValues smoothing="fourier">
+                        <value>98</value>
+                        <value>132</value>
+                        <value>223</value>
+                        <value>403</value>
+                        <value>1156</value>
+                        <value>953</value>
+                        <value>755</value>
+                        <value>403</value>
+                        <value>293</value>
+                        <value>149</value>
+                        <value>116</value>
+                        <value>107</value>
+                    </monthlyValues> -->
                 </seasonality>
                 <mosq>
                     <mosqRestDuration value="3"/>
