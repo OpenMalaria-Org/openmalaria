@@ -1291,7 +1291,9 @@ void CalcXP(gsl_vector** xp, gsl_matrix** Upsilon,
 
 	gsl_vector* vtemp = gsl_vector_calloc(eta);
 	// gsl_vector* vtempsum = gsl_vector_calloc(eta);
-	gsl_matrix* mtemp = gsl_matrix_calloc(eta, eta);
+	gsl_matrix* mtemp = gsl_matrix_calloc(eta, eta);   // scratch
+    gsl_matrix* tail  = gsl_matrix_calloc(eta, eta);   // tail product
+    gsl_matrix* mmul  = gsl_matrix_calloc(eta, eta);   // scratch for tail update
 
 	// Initial condition for periodic orbit.
 	gsl_vector* x0p = gsl_vector_calloc(eta);
@@ -1307,14 +1309,28 @@ void CalcXP(gsl_vector** xp, gsl_matrix** Upsilon,
 
 	printf("Entered CalcXP() \n");
 
-	// Evaluate the initial condition of the periodic orbit.
-	// Please refer to paper [add reference to paper and equation
-	// number here] for the expression for $x_0$.
-	for(i=0; i < thetap; i++){
-		FuncX(mtemp, Upsilon, thetap, i+1, eta);
-		gsl_blas_dgemv(CblasNoTrans, 1.0, mtemp, Lambda[i], 1.0, vtemp);
-		// gsl_vector_add(vtempsum, vtemp);
-	}
+	/*
+     * Evaluate the initial condition x0p.
+     *
+     * Original code:
+     *   sum_{i=0..thetap-1} X(thetap, i+1) * Lambda[i]
+     * where X(t,s) = Upsilon[s] * ... * Upsilon[t-1].
+     *
+     * This loop called FuncX() thetap times, each doing O(thetap) matrix products.
+     * Replace with a backward pass maintaining a tail product:
+     *   tail_i = prod_{k=i+1..thetap-1} Upsilon[k]
+     * so X(thetap, i+1) == tail_i.
+     */
+    gsl_matrix_set_identity(tail);   // tail for i=thetap-1 is empty product = I
+    gsl_vector_set_zero(vtemp);
+    for (i = thetap - 1; i >= 0; --i) {
+        // vtemp += tail * Lambda[i]
+        gsl_blas_dgemv(CblasNoTrans, 1.0, tail, Lambda[i], 1.0, vtemp);
+
+        // Update tail for next iteration (i-1): tail = Upsilon[i] * tail
+        gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1.0, Upsilon[i], tail, 0.0, mmul);
+        gsl_matrix_memcpy(tail, mmul);
+    }
 	gsl_blas_dgemv(CblasNoTrans, 1.0, inv1Xtp, vtemp, 0.0, x0p);
 
 	printf("Calculated initial condition for periodic orbit. \n");
@@ -1391,6 +1407,8 @@ void CalcXP(gsl_vector** xp, gsl_matrix** Upsilon,
 	// gsl_vector_free(vtempsum);
 	gsl_vector_free(x0p);
 	gsl_matrix_free(mtemp);
+	gsl_matrix_free(tail);
+    gsl_matrix_free(mmul);
 }
 /********************************************************************/
 
