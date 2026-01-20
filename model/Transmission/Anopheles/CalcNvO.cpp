@@ -711,7 +711,7 @@ double CalcInitMosqEmergeRate(double* FMosqEmergeRateVector, int* daysInYearPtr,
 			PrintVector(fnametestentopar, SvDiffname, SvDiff, thetap);
 		}
 		SvDiff1norm = gsl_blas_dasum(SvDiff);
-		printf("The $l^1$ norm of SvDiff is %e \n", SvDiff1norm);
+		printf("The $l^1$ norm of SvDiff is %.17e \n", SvDiff1norm);
 
 
 
@@ -1122,7 +1122,7 @@ int CalcSvDiff_rf(const gsl_vector* x, void* p, gsl_vector* f){
 	
 	// gsl_vector_set_all(f, 2.3);
 
-	printf("The $l^1$ norm of SvDiff is %e \n", SvDiff1norm);
+	printf("The $l^1$ norm of SvDiff is %.17e \n", SvDiff1norm);
 	
 	gsl_vector_free(Nv0);
 	return GSL_SUCCESS;
@@ -1188,7 +1188,7 @@ void CalcSvDiff(gsl_vector* SvDiff, gsl_vector* SvfromEIR,
 	indexSv = 2*mt;
 	for (i=0; i<thetap; i++){
 		temp = gsl_vector_get(xp[i], indexSv);
-		gsl_vector_set(SvfromNv0, i, temp / 2000.0);// / initNv0FromSv);//* initNv0FromSv);
+		gsl_vector_set(SvfromNv0, i, temp / initNv0FromSv);// / initNv0FromSv);//* initNv0FromSv);
 	}
 
 	if(ifprintSvfromNv0){

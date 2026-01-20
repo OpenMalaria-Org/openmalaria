@@ -189,13 +189,13 @@ const string &reverseLookup(const map<string, size_t> &m, size_t i)
 }
 
 VectorModel::VectorModel(vector<double> initEIR, int interventionMode, vector<std::unique_ptr<Anopheles::AnophelesModel>> speciesList,
-                         vector<std::unique_ptr<Anopheles::AnophelesModelFitter>> speciesFittersList, map<string, size_t> speciesIndexList,
+                         vector<std::unique_ptr<Anopheles::EmergenceRateEstimator>> emergenceRateEstimatorsList, map<string, size_t> speciesIndexList,
                          int populationSize)
     : TransmissionModel(std::move(initEIR), interventionMode, WithinHost::Genotypes::N())
     , m_rng(util::master_RNG)
     , initIterations(0)
     , species(std::move(speciesList))
-    , speciesFitters(std::move(speciesFittersList))
+    , emergenceRateEstimators(std::move(emergenceRateEstimatorsList))
     , speciesIndex(std::move(speciesIndexList))
 {
     // set VACCINE_GENOTYPE option
@@ -268,10 +268,9 @@ void VectorModel::init2(const vector<Host::Human> &population)
     }
     int popSize = population.size();
     // value should be unimportant when no humans are available, though inf/nan is not acceptable
-    double meanPopAvail = 1.0;
     if (popSize > 0)
     {
-        meanPopAvail = sumRelativeAvailability / popSize; // mean-rel-avail
+        meanAvail = sumRelativeAvailability / popSize; // mean-rel-avail
     }
 
     for (size_t i = 0; i < speciesIndex.size(); ++i)
@@ -292,7 +291,7 @@ void VectorModel::init2(const vector<Host::Human> &population)
             sigma_dff += prod * host.probMosqResting(i) * host.relMosqFecundity(i);
         }
 
-        species[i]->init2(population.size(), meanPopAvail, sum_avail, sigma_f, sigma_df, sigma_dff);
+        species[i]->init2(population.size(), meanAvail, sum_avail, sigma_f, sigma_df, sigma_dff);
     }
     simulationMode = forcedEIR; // now we should be ready to start
 }
@@ -352,7 +351,7 @@ SimTime VectorModel::initIterate()
     bool needIterate = false;
     for (size_t i = 0; i < speciesIndex.size(); ++i)
     {
-        needIterate = speciesFitters[i]->fit(*species[i]);
+        needIterate = emergenceRateEstimators[i]->estimate(*species[i], laggedKappa, meanAvail);
         species[i]->initIterate();
         if (needIterate) break;
     }

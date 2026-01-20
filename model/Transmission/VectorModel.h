@@ -26,7 +26,7 @@
 #include "Global.h"
 #include "Transmission/TransmissionModel.h"
 #include "Transmission/Anopheles/AnophelesModel.h"
-#include "Transmission/Anopheles/AnophelesModelFitter.h"
+#include "Transmission/Anopheles/EmergenceRateEstimator.h"
 #include "Host/Human.h"
 
 namespace scnXml
@@ -51,7 +51,7 @@ public:
     const map<string, size_t> &getSpeciesIndexMap() { return speciesIndex; }
 
     VectorModel(vector<double> initEIR, int interventionMode, vector<std::unique_ptr<Anopheles::AnophelesModel>> speciesList,
-                vector<std::unique_ptr<Anopheles::AnophelesModelFitter>> speciesFittersList, map<string, size_t> speciesIndexList,
+                vector<std::unique_ptr<Anopheles::EmergenceRateEstimator>> emergenceRateEstimatorsList, map<string, size_t> speciesIndexList,
                 int populationSize);
 
     virtual ~VectorModel();
@@ -115,12 +115,14 @@ public:
     /// initialisation.
     int initIterations;
 
+    double meanAvail = 1.0;
+
     /** Per anopheles species data.
      *
      * Array will be recreated by constructor, but some members of AnophelesModel
      * need to be checkpointed. */
     vector<std::unique_ptr<Anopheles::AnophelesModel>> species;
-    vector<std::unique_ptr<Anopheles::AnophelesModelFitter>> speciesFitters;
+    vector<std::unique_ptr<Anopheles::EmergenceRateEstimator>> emergenceRateEstimators;
 
     /** A map of anopheles species/variant name to an index in species.
      *

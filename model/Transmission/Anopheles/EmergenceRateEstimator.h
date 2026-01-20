@@ -20,8 +20,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  */
 
-#ifndef Hmod_AnophelesModelFitter
-#define Hmod_AnophelesModelFitter
+#ifndef Hmod_EmergenceRateEstimator
+#define Hmod_EmergenceRateEstimator
 
 #include "Global.h"
 #include "Transmission/PerHost.h"
@@ -29,6 +29,8 @@
 #include "util/vectors.h"
 #include "util/CommandLine.h"
 #include "util/errors.h"
+
+#include "CalcNvO.h"
 
 #include <vector>
 #include <limits>
@@ -98,16 +100,25 @@ inline double findAngle(const double EIRRotageAngle, const vector<double> & FSCo
     return minAngle;
 }
 
-class AnophelesModelFitter
+class EmergenceRateEstimator
 {
 public:
-    AnophelesModelFitter(AnophelesModel &m) : scaleFactor(1.0), rotated(false), scaled(false)
+    virtual ~EmergenceRateEstimator() = default;
+
+    // Interface: returns true if further fitting iterations are needed.
+    virtual bool estimate(AnophelesModel& m, const vector<double> &laggedKappa, double meanAvail) = 0;
+};
+
+class EmergenceRateAdaptiveFitter final : public EmergenceRateEstimator
+{
+public:
+    EmergenceRateAdaptiveFitter(AnophelesModel &m) : scaleFactor(1.0), rotated(false), scaled(false)
     {
         // usually around 20 days; no real analysis for effect of changing EIPDuration or mosqRestDuration
         shiftAngle = m.EIRRotateAngle - (m.mosq.EIPDuration + 10) / 365. * 2. *M_PI; 
     }
 
-    bool fit(AnophelesModel &m)
+    bool estimate(AnophelesModel &m, const vector<double> &laggedKappa, double meanAvail) override
     {
         std::vector<double> avgAnnualS_v(sim::oneYear(), 0.0);
         for (SimTime i = sim::fromYearsI(4); i < sim::fromYearsI(5); i = i + sim::oneDay())
@@ -171,6 +182,82 @@ public:
 private:
     double scaleFactor, shiftAngle;
     bool rotated, scaled;
+};
+
+class EmergenceRateRootFindingSolver final : public EmergenceRateEstimator
+{
+public:
+    EmergenceRateRootFindingSolver(AnophelesModel &m, int populationSize) : populationSize(populationSize) {}
+
+    bool estimate(AnophelesModel &m, const vector<double> &laggedKappa, double meanAvail) override
+    {
+        double *mosqEmergerateVector = m.mosqEmergeRate.data();//transmission.emergence->getEmergenceRate().internal().data();
+        int daysInYear = 365; //transmission.emergence->getEmergenceRate().internal().size(); // 365? 73? stepsInYear?
+        int EIPDuration = m.mosq.EIPDuration; //.inDays();
+        int nHostTypesInit = 1; // + types of non human hosts NOT USED in calcUpsionOneHost
+        int nMalHostTypesInit = 1; // NOT USED in calcUpsionOneHost
+        double popSize = populationSize;
+        double hostAvailabilityRateInit = meanAvail; // ?
+
+        vector<double> Kvi(daysInYear, laggedKappa[0]);
+        double *FHumanInfectivityInitVector = Kvi.data();
+        double *FEIRInitVector = m.speciesEIR.data();
+
+        std::vector<double> NvOguess(m.mosqEmergeRate.begin(), m.mosqEmergeRate.end());
+        double *FMosqEmergeRateInitEstimateVector = NvOguess.data();
+
+        cout << "(not used) EIRRotateAngle: " << m.EIRRotateAngle << endl;
+
+        cout << "daysInYear: " << daysInYear << endl;
+        cout << "EIPDuration: " << EIPDuration << endl;
+        cout << "nHostTypesInit: " << nHostTypesInit << endl;
+        cout << "nMalHostTypesInit: " << nMalHostTypesInit << endl;
+        cout << "popSizeInit: " << popSize << endl;
+        cout << "hostAvailabilityRateInit: " << hostAvailabilityRateInit << endl;
+
+        cout << "mosqSeekingDeathRate: " << m.mosq.seekingDeathRate << endl;
+        cout << "mosqRestDuration: " << m.mosq.restDuration << endl;
+        cout << "mosqSeekingDuration: " << m.mosq.seekingDuration << endl;
+        cout << "mosqProbBiting: " << m.mosq.probBiting << endl;
+        cout << "mosqProbFindRestSite: " << m.mosq.probFindRestSite << endl;
+        cout << "mosqProbResting: " << m.mosq.probResting << endl;
+        cout << "mosqProbOvipositing: " << m.mosq.probOvipositing << endl;
+
+        cout << "FHumanInfectivityInitVector: " << Kvi.size() << endl;
+        cout << "FEIRInitVector: " << m.speciesEIR.size() << endl;
+        cout << "FMosqEmergeRateInitEstimateVector: " << NvOguess.size() << endl;
+
+        cout << "initNv0FromSv: " << m.initNv0FromSv << endl;
+        cout << "sum(FEIRInitVector): " << vectors::sum(m.speciesEIR) << endl;
+
+        for(int i=0; i<10; i++)
+        {
+            cout << i << "\t" << m.mosqEmergeRate[i] << "\t" << m.speciesEIR[i] << endl;
+        }
+        cout << endl;
+
+        CalcInitMosqEmergeRate(mosqEmergerateVector, &daysInYear,
+            &m.mosq.restDuration, &EIPDuration, &nHostTypesInit,
+            &nMalHostTypesInit, &popSize, 
+            &hostAvailabilityRateInit, &m.mosq.seekingDeathRate,
+            &m.mosq.seekingDuration, &m.mosq.probBiting,
+            &m.mosq.probFindRestSite, &m.mosq.probResting,
+            &m.mosq.probOvipositing, FHumanInfectivityInitVector,
+            FEIRInitVector, FMosqEmergeRateInitEstimateVector, m.initNv0FromSv);
+        
+        cout << "Done" << endl;
+        
+        for(int i=0; i<10; i++)
+        {
+            cout << i << "\t" << m.mosqEmergeRate[i] << endl;
+        }
+        cout << endl;
+
+        return false;
+    }
+
+private:
+    int populationSize;
 };
 
 }
