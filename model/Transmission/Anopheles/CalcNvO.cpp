@@ -513,7 +513,7 @@ double CalcInitMosqEmergeRate(double* FMosqEmergeRateVector, int* daysInYearPtr,
 	gsl_vector* xrootfind;
 
 	// Maximum $l^1$ distance of error of root-finding algorithm
-	double EpsAbsRF = 1.0;	
+	double EpsAbsRF = 1e-6;	
 
 	// Maximum number of iterations of root-finding algorithm.
 	size_t maxiterRF = 1000;
@@ -1111,7 +1111,7 @@ int CalcSvDiff_rf(const gsl_vector* x, void* p, gsl_vector* f){
 
 
 	counterSvDiff++;
-	printf("In CalcSvDiff_rf for the %d th time \n", counterSvDiff);
+	//printf("In CalcSvDiff_rf for the %d th time \n", counterSvDiff);
 
 	// To set f, we simply call CalcSvDiff. It's probably easier than rewriting
 	// this code.
@@ -1122,7 +1122,7 @@ int CalcSvDiff_rf(const gsl_vector* x, void* p, gsl_vector* f){
 	
 	// gsl_vector_set_all(f, 2.3);
 
-	printf("The $l^1$ norm of SvDiff is %.17e \n", SvDiff1norm);
+	//printf("The $l^1$ norm of SvDiff is %.17e \n", SvDiff1norm);
 	
 	gsl_vector_free(Nv0);
 	return GSL_SUCCESS;
@@ -1307,7 +1307,7 @@ void CalcXP(gsl_vector** xp, gsl_matrix** Upsilon,
 	char x0pname[15] = "x0p";
 	
 
-	printf("Entered CalcXP() \n");
+	//printf("Entered CalcXP() \n");
 
 	/*
      * Evaluate the initial condition x0p.
@@ -1333,7 +1333,7 @@ void CalcXP(gsl_vector** xp, gsl_matrix** Upsilon,
     }
 	gsl_blas_dgemv(CblasNoTrans, 1.0, inv1Xtp, vtemp, 0.0, x0p);
 
-	printf("Calculated initial condition for periodic orbit. \n");
+	// printf("Calculated initial condition for periodic orbit. \n");
 	if (ifPrintx0p){
 		PrintVector(fntestentopar, x0pname, x0p, eta);
 	}
@@ -1376,7 +1376,7 @@ void CalcXP(gsl_vector** xp, gsl_matrix** Upsilon,
 
 	//gsl_matrix_free(temp);
 
-	printf("Calculated periodic orbit. \n");
+	// printf("Calculated periodic orbit. \n");
 
 	// We should try to print some of these vectors out to see what they  look like.
 	if (ifPrintXP){

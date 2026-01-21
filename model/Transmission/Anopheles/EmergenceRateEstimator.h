@@ -206,35 +206,27 @@ public:
         std::vector<double> NvOguess(m.mosqEmergeRate.begin(), m.mosqEmergeRate.end());
         double *FMosqEmergeRateInitEstimateVector = NvOguess.data();
 
-        cout << "(not used) EIRRotateAngle: " << m.EIRRotateAngle << endl;
-
-        cout << "daysInYear: " << daysInYear << endl;
-        cout << "EIPDuration: " << EIPDuration << endl;
-        cout << "nHostTypesInit: " << nHostTypesInit << endl;
-        cout << "nMalHostTypesInit: " << nMalHostTypesInit << endl;
-        cout << "popSizeInit: " << popSize << endl;
+        // cout << "daysInYear: " << daysInYear << endl;
+        // cout << "EIPDuration: " << EIPDuration << endl;
+        // cout << "nHostTypesInit: " << nHostTypesInit << endl;
+        // cout << "nMalHostTypesInit: " << nMalHostTypesInit << endl;
+        // cout << "popSizeInit: " << popSize << endl;
         cout << "hostAvailabilityRateInit: " << hostAvailabilityRateInit << endl;
 
-        cout << "mosqSeekingDeathRate: " << m.mosq.seekingDeathRate << endl;
-        cout << "mosqRestDuration: " << m.mosq.restDuration << endl;
-        cout << "mosqSeekingDuration: " << m.mosq.seekingDuration << endl;
-        cout << "mosqProbBiting: " << m.mosq.probBiting << endl;
-        cout << "mosqProbFindRestSite: " << m.mosq.probFindRestSite << endl;
-        cout << "mosqProbResting: " << m.mosq.probResting << endl;
-        cout << "mosqProbOvipositing: " << m.mosq.probOvipositing << endl;
+        // cout << "mosqSeekingDeathRate: " << m.mosq.seekingDeathRate << endl;
+        // cout << "mosqRestDuration: " << m.mosq.restDuration << endl;
+        // cout << "mosqSeekingDuration: " << m.mosq.seekingDuration << endl;
+        // cout << "mosqProbBiting: " << m.mosq.probBiting << endl;
+        // cout << "mosqProbFindRestSite: " << m.mosq.probFindRestSite << endl;
+        // cout << "mosqProbResting: " << m.mosq.probResting << endl;
+        // cout << "mosqProbOvipositing: " << m.mosq.probOvipositing << endl;
 
-        cout << "FHumanInfectivityInitVector: " << Kvi.size() << endl;
-        cout << "FEIRInitVector: " << m.speciesEIR.size() << endl;
-        cout << "FMosqEmergeRateInitEstimateVector: " << NvOguess.size() << endl;
+        // cout << "FHumanInfectivityInitVector: " << Kvi.size() << endl;
+        // cout << "FEIRInitVector: " << m.speciesEIR.size() << endl;
+        // cout << "FMosqEmergeRateInitEstimateVector: " << NvOguess.size() << endl;
 
         cout << "initNv0FromSv: " << m.initNv0FromSv << endl;
         cout << "sum(FEIRInitVector): " << vectors::sum(m.speciesEIR) << endl;
-
-        for(int i=0; i<10; i++)
-        {
-            cout << i << "\t" << m.mosqEmergeRate[i] << "\t" << m.speciesEIR[i] << endl;
-        }
-        cout << endl;
 
         CalcInitMosqEmergeRate(mosqEmergerateVector, &daysInYear,
             &m.mosq.restDuration, &EIPDuration, &nHostTypesInit,
@@ -247,10 +239,12 @@ public:
         
         cout << "Done" << endl;
         
-        for(int i=0; i<10; i++)
-        {
-            cout << i << "\t" << m.mosqEmergeRate[i] << endl;
-        }
+        for(int i=0; i<5; i++)
+            cout << i << "\t" << FEIRInitVector[i] << endl;
+
+        for(int i=0; i<5; i++)
+            cout << i << "\t" << FHumanInfectivityInitVector[i] << endl;
+
         cout << endl;
 
         return false;
