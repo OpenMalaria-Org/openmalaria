@@ -53,7 +53,7 @@ double CalcInitMosqEmergeRate(double* FMosqEmergeRateVector, int* daysInYearPtr,
 				double* mosqSeekingDurationPtr, double* mosqProbBitingPtr,
 				double* mosqProbFindRestSitePtr, double* mosqProbRestingPtr,
 				double* mosqProbOvipositingPtr, double* FHumanInfectivityInitVector,
-				double* FEIRInitVector, double* FMosqEmergeRateInitEstimateVector, double initNvFromSv);
+				double* FEIRInitVector, double* FMosqEmergeRateInitEstimateVector);
 
 void CalcUpsilonOneHost(gsl_matrix** Upsilon, double* PAPtr, 
 		double* PAiPtr, int thetap, int eta, int mt, int tau, 
@@ -65,7 +65,7 @@ int CalcSvDiff_rf(const gsl_vector* x, void* p, gsl_vector* f);
 
 void CalcSvDiff(gsl_vector* SvDiff, gsl_vector* SvfromEIR, 
 			gsl_matrix** Upsilon, gsl_vector* Nv0, gsl_matrix* inv1Xtp, 
-			int eta, int mt, int thetap, char fntestentopar[], double initNv0FromSv);
+			int eta, int mt, int thetap, char fntestentopar[]);
 
 void CalcLambda(gsl_vector** Lambda, gsl_vector* Nv0, int eta,
 				int thetap, char fntestentopar[]);
