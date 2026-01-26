@@ -95,7 +95,6 @@ struct SvDiffParams
 	gsl_vector* SvfromEIR;
 	gsl_matrix** Upsilon;
 	gsl_matrix* inv1Xtp;
-	double initNv0FromSv;
 	int eta;
 	int mt;
 	int thetap;
@@ -344,7 +343,7 @@ double CalcInitMosqEmergeRate(double* FMosqEmergeRateVector, int* daysInYearPtr,
 				double* mosqSeekingDurationPtr, double* mosqProbBitingPtr,
 				double* mosqProbFindRestSitePtr, double* mosqProbRestingPtr,
 				double* mosqProbOvipositingPtr, double* FHumanInfectivityInitVector,
-				double* FEIRInitVector, double* FMosqEmergeRateInitEstimateVector, double initNv0FromSv){
+				double* FSvInitVector, double* FMosqEmergeRateInitEstimateVector){
 
 
 
@@ -525,11 +524,11 @@ double CalcInitMosqEmergeRate(double* FMosqEmergeRateVector, int* daysInYearPtr,
 	int ifprintparameters = 0;
 	int ifprintXtp = 0;
 	int ifprintinv1Xtp = 0;
-	int ifprintSv = 0;
+	int ifprintSv = 1;
 	int ifprintSvDiff = 0;
 	int ifprintfinalNv0 = 0;
 	int ifprintfinalSvDiff = 0;
-	int ifprintPO = 0;
+	int ifprintPO = 1;
 
 	// File names
 	// File where entomological parameters are printed out.
@@ -612,7 +611,8 @@ double CalcInitMosqEmergeRate(double* FMosqEmergeRateVector, int* daysInYearPtr,
 
 	// Set Kvi and Xii from Fortran arrays.
 	CalcCGSLVectorFromFortranArray(Kvi, FHumanInfectivityInitVector, thetap);
-	CalcCGSLVectorFromFortranArray(Xii, FEIRInitVector, thetap);
+	// CalcCGSLVectorFromFortranArray(Xii, FEIRInitVector, thetap);
+	CalcCGSLVectorFromFortranArray(SvfromEIR, FSvInitVector, thetap);
 	CalcCGSLVectorFromFortranArray(Nv0guess, FMosqEmergeRateInitEstimateVector, thetap);
 
 	// We now try to print these parameters to file to make sure that 
@@ -681,7 +681,7 @@ double CalcInitMosqEmergeRate(double* FMosqEmergeRateVector, int* daysInYearPtr,
 	}
 
 	// Calculate the number of infectious host-seeking mosquitoes for the given EIR.
-	CalSvfromEIRdata(SvfromEIR, PAi, PBi, Ni, Xii);
+	// CalSvfromEIRdata(SvfromEIR, PAi, PBi, Ni, Xii);
 
 	if(ifprintSv){
 		PrintVector(fnametestentopar, SvfromEIRname, SvfromEIR, thetap);
@@ -706,7 +706,7 @@ double CalcInitMosqEmergeRate(double* FMosqEmergeRateVector, int* daysInYearPtr,
 		// We first test CalcSvDiff(). - It works.
 
 		CalcSvDiff(SvDiff, SvfromEIR, Upsilon, Nv0guess, inv1Xtp, 
-			eta, mt, thetap, fnametestentopar, initNv0FromSv);
+			eta, mt, thetap, fnametestentopar);
 		if (ifprintSvDiff){
 			PrintVector(fnametestentopar, SvDiffname, SvDiff, thetap);
 		}
@@ -727,7 +727,6 @@ double CalcInitMosqEmergeRate(double* FMosqEmergeRateVector, int* daysInYearPtr,
 		pararootfind.eta = eta;
 		pararootfind.mt = mt;
 		pararootfind.thetap = thetap;
-		pararootfind.initNv0FromSv = initNv0FromSv;
 
 		// Set root-finding function.
 		// frootfind = {&CalcSvDiff_rf, thetap, &pararootfind};
@@ -1098,7 +1097,6 @@ int CalcSvDiff_rf(const gsl_vector* x, void* p, gsl_vector* f){
 	int eta = (params->eta);
 	int mt = (params->mt);
 	int thetap = (params->thetap);
-	double initNv0FromSv = (params->initNv0FromSv);
 
 	// It would be cleaner to read in the name of this file as an input
 	// parameter but for now, we leave it out of the root-finding
@@ -1115,14 +1113,13 @@ int CalcSvDiff_rf(const gsl_vector* x, void* p, gsl_vector* f){
 
 	// To set f, we simply call CalcSvDiff. It's probably easier than rewriting
 	// this code.
-	CalcSvDiff(f, SvfromEIR, Upsilon, Nv0, inv1Xtp, 
-			eta, mt, thetap, fnametestentopar, initNv0FromSv);
+	CalcSvDiff(f, SvfromEIR, Upsilon, Nv0, inv1Xtp, eta, mt, thetap, fnametestentopar);
 
 	SvDiff1norm = gsl_blas_dasum(f);
 	
 	// gsl_vector_set_all(f, 2.3);
 
-	//printf("The $l^1$ norm of SvDiff is %.17e \n", SvDiff1norm);
+	//printf("(%d) The $l^1$ norm of SvDiff is %.17e \n", counterSvDiff, SvDiff1norm);
 	
 	gsl_vector_free(Nv0);
 	return GSL_SUCCESS;
@@ -1151,7 +1148,7 @@ int CalcSvDiff_rf(const gsl_vector* x, void* p, gsl_vector* f){
  */  
 void CalcSvDiff(gsl_vector* SvDiff, gsl_vector* SvfromEIR, 
 			gsl_matrix** Upsilon, gsl_vector* Nv0, gsl_matrix* inv1Xtp, 
-			int eta, int mt, int thetap, char fntestentopar[], double initNv0FromSv){
+			int eta, int mt, int thetap, char fntestentopar[]){
 
 
 	int i;
@@ -1188,7 +1185,7 @@ void CalcSvDiff(gsl_vector* SvDiff, gsl_vector* SvfromEIR,
 	indexSv = 2*mt;
 	for (i=0; i<thetap; i++){
 		temp = gsl_vector_get(xp[i], indexSv);
-		gsl_vector_set(SvfromNv0, i, temp / initNv0FromSv);// / initNv0FromSv);//* initNv0FromSv);
+		gsl_vector_set(SvfromNv0, i, temp);
 	}
 
 	if(ifprintSvfromNv0){
@@ -1302,7 +1299,7 @@ void CalcXP(gsl_vector** xp, gsl_matrix** Upsilon,
 	
 	// Prints results in calculating the periodic orbit.
 	int ifPrintx0p = 0;
-	int ifPrintXP = 1; 
+	int ifPrintXP = 0; 
 
 	char x0pname[15] = "x0p";
 	
@@ -1664,18 +1661,22 @@ void CalcInv1minusA(gsl_matrix* inv1A, gsl_matrix* A, int n, char fntestentopar[
  * PAi, PBi, Ni and Xii are IN parameters.
  * Sv is an OUT parameter.
  */ 
+// #include <iostream>
+// void CalSvfromEIRdata(gsl_vector* Sv, double PAi, double PBi, double Ni, 
+// 					  gsl_vector* Xii){
 
-void CalSvfromEIRdata(gsl_vector* Sv, double PAi, double PBi, double Ni, 
-					  gsl_vector* Xii){
-
-	double temp;
+// 	double temp;
 	
-	// Sv(t) = Xii(t)*(Ni/(PAi*PBi))
-	temp = Ni/(PAi*PBi);
-	gsl_vector_memcpy(Sv, Xii);
-	gsl_vector_scale(Sv, temp);	
+// 	// Sv(t) = Xii(t)*(Ni/(PAi*PBi))
+// 	temp = Ni/(PAi*PBi) * 2.0; // DEBUG, remove * 2!!!!!!!!!!!
+// 	gsl_vector_memcpy(Sv, Xii);
+// 	gsl_vector_scale(Sv, temp);	
+	
+// 	std::cout << endl;
+// 	std::cout << "Root-Finding: svFromEIR:" << std::endl;
+// 	std::cout << gsl_vector_get(Xii, 0) << " * " << temp << " = " << gsl_vector_get(Sv, 0) << std::endl;
 
-}
+// }
 /********************************************************************/
 
 
@@ -1894,8 +1895,8 @@ void PrintRootFindingStateTS(size_t iter, gsl_multiroot_fsolver* srootfind,
 	Nv0_0 = gsl_vector_get(srootfind->x, 0);
 
 	// Print to screen:
-	printf("iter = %5u Nv0(1) = % .3f ||f||_1 = % .3f \n", iter, Nv0_0, svdiffsum);
-	fprintf(fpp, "iter = %5u Nv0(1) = % .3f ||f||_1 = % .3f \n", iter, Nv0_0, svdiffsum);
+	printf("iter = %5lu Nv0(1) = % .3f ||f||_1 = % .3f \n", iter, Nv0_0, svdiffsum);
+	fprintf(fpp, "iter = %5lu Nv0(1) = % .3f ||f||_1 = % .3f \n", iter, Nv0_0, svdiffsum);
 	fclose(fpp);
 }
 
@@ -2059,7 +2060,7 @@ void PrintXP(gsl_vector** xp, int eta, int thetap, char fntestentopar[]){
 	int t;
 	char xpname[15] = "xp";
 	char xpvecname[15];
-	char timestring[5];
+	char timestring[15];
 	// double temp;
 
 	FILE* fpp = fopen(fntestentopar, "a");
