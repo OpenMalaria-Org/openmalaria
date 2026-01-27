@@ -500,24 +500,28 @@ double CalcInitMosqEmergeRate(double* FMosqEmergeRateVector, int* daysInYearPtr,
 	gsl_matrix* inv1Xtp;
 
 
-	// We define variables that we will need for the root-finding algorithm here.
-	const gsl_multiroot_fsolver_type* Trootfind;
-	gsl_multiroot_fsolver* srootfind;
+	// // We define variables that we will need for the root-finding algorithm here.
+	// const gsl_multiroot_fsolver_type* Trootfind;
+	// gsl_multiroot_fsolver* srootfind;
 
-	int status; 
-	size_t iter=0;
+	// int status; 
+	// size_t iter=0;
 
-	struct SvDiffParams pararootfind;
-	gsl_multiroot_function frootfind;
-	gsl_vector* xrootfind;
+	// struct SvDiffParams pararootfind;
+	// gsl_multiroot_function frootfind;
+	// gsl_vector* xrootfind;
 
-	// Maximum $l^1$ distance of error of root-finding algorithm
-	double EpsAbsRF = 1e-6;	
+	// // Maximum $l^1$ distance of error of root-finding algorithm
+	// double EpsAbsRF = 1e-6;	
 
-	// Maximum number of iterations of root-finding algorithm.
-	size_t maxiterRF = 1000;
+	// // Maximum number of iterations of root-finding algorithm.
+	// size_t maxiterRF = 1000;
 
-
+	// int status;
+	// size_t iter = 0;
+	
+	int status;
+	
 	// Set Booleans.
 	int ifRootFind = 1;
 
@@ -716,68 +720,102 @@ double CalcInitMosqEmergeRate(double* FMosqEmergeRateVector, int* daysInYearPtr,
 
 
 
-		/************* We initialize variables for root-finding. **************/
-		printf("Starting root-finding \n");
+		// /************* We initialize variables for root-finding. **************/
+		// printf("Starting root-finding \n");
 
-		// Parameters for root-finding function.
-		// pararootfind = {SvfromEIR, Upsilon, inv1Xtp, eta, mt, thetap};
-		pararootfind.SvfromEIR = SvfromEIR;
-		pararootfind.Upsilon = Upsilon;
-		pararootfind.inv1Xtp = inv1Xtp;
-		pararootfind.eta = eta;
-		pararootfind.mt = mt;
-		pararootfind.thetap = thetap;
+		// // Parameters for root-finding function.
+		// // pararootfind = {SvfromEIR, Upsilon, inv1Xtp, eta, mt, thetap};
+		// pararootfind.SvfromEIR = SvfromEIR;
+		// pararootfind.Upsilon = Upsilon;
+		// pararootfind.inv1Xtp = inv1Xtp;
+		// pararootfind.eta = eta;
+		// pararootfind.mt = mt;
+		// pararootfind.thetap = thetap;
 
-		// Set root-finding function.
-		// frootfind = {&CalcSvDiff_rf, thetap, &pararootfind};
-		frootfind.f = &CalcSvDiff_rf;
-		frootfind.n = thetap;
-		frootfind.params = &pararootfind;
+		// // Set root-finding function.
+		// // frootfind = {&CalcSvDiff_rf, thetap, &pararootfind};
+		// frootfind.f = &CalcSvDiff_rf;
+		// frootfind.n = thetap;
+		// frootfind.params = &pararootfind;
 
-		// Input vector for root-finding.
-		xrootfind = gsl_vector_calloc(thetap);
-		gsl_vector_memcpy(xrootfind, Nv0guess);
+		// // Input vector for root-finding.
+		// xrootfind = gsl_vector_calloc(thetap);
+		// gsl_vector_memcpy(xrootfind, Nv0guess);
 
-		// Set type of root-finding algorithm.
-		Trootfind = gsl_multiroot_fsolver_hybrids;
-		// Allocate memory for root-finding workspace.
-		srootfind = gsl_multiroot_fsolver_alloc(Trootfind, thetap);
+		// // Set type of root-finding algorithm.
+		// Trootfind = gsl_multiroot_fsolver_hybrids;
+		// // Allocate memory for root-finding workspace.
+		// srootfind = gsl_multiroot_fsolver_alloc(Trootfind, thetap);
 
-		printf("About to set root-finding solver \n");
-		// Initialize root-finding.
-		gsl_multiroot_fsolver_set(srootfind, &frootfind, xrootfind);
-		printf("Set root-finding \n");
+		// printf("About to set root-finding solver \n");
+		// // Initialize root-finding.
+		// gsl_multiroot_fsolver_set(srootfind, &frootfind, xrootfind);
+		// printf("Set root-finding \n");
 
-		// Print initial state (to screen):
-		PrintRootFindingStateTS(iter, srootfind, thetap, fnamerootfindoutput);
+		// // Print initial state (to screen):
+		// PrintRootFindingStateTS(iter, srootfind, thetap, fnamerootfindoutput);
 
-		do{
-			iter++;
-			status = gsl_multiroot_fsolver_iterate(srootfind);
-			PrintRootFindingStateTS(iter, srootfind, thetap, fnamerootfindoutput);
+		// do{
+		// 	iter++;
+		// 	status = gsl_multiroot_fsolver_iterate(srootfind);
+		// 	PrintRootFindingStateTS(iter, srootfind, thetap, fnamerootfindoutput);
 
-			// Check to see if solver is stuck
-			if (status){
-				break;
-			}
+		// 	// Check to see if solver is stuck
+		// 	if (status){
+		// 		break;
+		// 	}
 
-			status = gsl_multiroot_test_residual(srootfind->f, EpsAbsRF);
+		// 	status = gsl_multiroot_test_residual(srootfind->f, EpsAbsRF);
+		// }
+		// while (status == GSL_CONTINUE && iter < maxiterRF);
+
+		// // Print status
+		// printf("status = %s \n", gsl_strerror(status)); 
+
+		// // Copy solution for Nv0 into Nv0.
+		// gsl_vector_memcpy(Nv0, srootfind->x);
+
+		// if(ifprintfinalNv0){
+		// 	PrintVector(fnametestentopar, finalNv0name, Nv0, thetap);
+		// }
+
+		// if(ifprintfinalSvDiff){
+		// 	PrintVector(fnametestentopar, finalSvDiffname, srootfind->f, thetap);
+		// }
+
+		/************* Analytic solve: build Jacobian and solve linear system. **************/
+		printf("Solving linear system with analytic Jacobian (Nv0 -> Sv)\n");
+
+		gsl_matrix* J = gsl_matrix_calloc(thetap, thetap);
+		CalcSvJacobian(J, Upsilon, inv1Xtp, eta, mt, thetap, fnametestentopar);
+
+		// Solve J * Nv0 = SvfromEIR
+		gsl_matrix* JLU = gsl_matrix_alloc(thetap, thetap);
+		gsl_matrix_memcpy(JLU, J);
+		gsl_permutation* perm = gsl_permutation_alloc(thetap);
+		int signum = 0;
+		status = gsl_linalg_LU_decomp(JLU, perm, &signum);
+		if (status) {
+			printf("LU_decomp failed: %s\n", gsl_strerror(status));
 		}
-		while (status == GSL_CONTINUE && iter < maxiterRF);
-
-		// Print status
-		printf("status = %s \n", gsl_strerror(status)); 
-
-		// Copy solution for Nv0 into Nv0.
-		gsl_vector_memcpy(Nv0, srootfind->x);
+		gsl_linalg_LU_solve(JLU, perm, SvfromEIR, Nv0);
 
 		if(ifprintfinalNv0){
 			PrintVector(fnametestentopar, finalNv0name, Nv0, thetap);
 		}
 
-		if(ifprintfinalSvDiff){
-			PrintVector(fnametestentopar, finalSvDiffname, srootfind->f, thetap);
+		// Optional: compute residual SvDiff to sanity-check
+		CalcSvDiff(SvDiff, SvfromEIR, Upsilon, Nv0, inv1Xtp,
+			eta, mt, thetap, fnametestentopar);
+		SvDiff1norm = gsl_blas_dasum(SvDiff);
+		printf("Post-solve: ||SvDiff||_1 = %.17e\n", SvDiff1norm);
+		if (ifprintfinalSvDiff){
+			PrintVector(fnametestentopar, finalSvDiffname, SvDiff, thetap);
 		}
+
+		gsl_permutation_free(perm);
+		gsl_matrix_free(JLU);
+		gsl_matrix_free(J);
 
 		// Evaluate Lambda - as a pointer to an array of gsl_vectors.
 		// Each vector is the forcing term at time, t.
@@ -833,7 +871,7 @@ double CalcInitMosqEmergeRate(double* FMosqEmergeRateVector, int* daysInYearPtr,
 	gsl_vector_free(Nvp);
 	gsl_vector_free(Ovp);
 	gsl_vector_free(Svp);
-	gsl_vector_free(xrootfind);
+	// gsl_vector_free(xrootfind);
 
 	gsl_matrix_free(Xtp);
 	gsl_matrix_free(inv1Xtp);
@@ -846,7 +884,7 @@ double CalcInitMosqEmergeRate(double* FMosqEmergeRateVector, int* daysInYearPtr,
 			gsl_vector_free(xp[i]);
 		}
 
-		gsl_multiroot_fsolver_free(srootfind);
+		// gsl_multiroot_fsolver_free(srootfind);
 	}
 
 	free(Upsilon);
@@ -1209,6 +1247,90 @@ void CalcSvDiff(gsl_vector* SvDiff, gsl_vector* SvfromEIR,
 /********************************************************************/
 
 
+
+/*******************************************************************/
+/* CalcSvJacobian builds the analytic Jacobian J for the map Nv0 -> Sv.
+ *
+ * J is a thetap x thetap matrix where:
+ *   J(t,s) = d Sv(t) / d Nv0(s)
+ * and Sv(t) is extracted from the periodic orbit state xp[t] at indexSv = 2*mt.
+ *
+ * This exploits linearity of the periodic-orbit construction:
+ *  - Lambda[s] = e0 * Nv0(s)
+ *  - x0 = (I - Xtp)^{-1} * sum_s X(thetap, s+1) * Lambda[s]
+ *  - xp recursion: xp[t] = Upsilon[t-1] * xp[t-1] + Lambda[t-1]
+ */
+void CalcSvJacobian(gsl_matrix* J, gsl_matrix** Upsilon, gsl_matrix* inv1Xtp,
+					int eta, int mt, int thetap, char fntestentopar[]){
+
+	const int indexSv = 2 * mt;
+
+	// D(t) is eta x thetap: D(t)[:,s] = d xp(t)[*] / d Nv0(s)
+	gsl_matrix* Dcur = gsl_matrix_calloc(eta, thetap);
+	gsl_matrix* Dnext = gsl_matrix_calloc(eta, thetap);
+
+	// Scratch objects.
+	gsl_matrix* tail = gsl_matrix_calloc(eta, eta);
+	gsl_matrix* mmul = gsl_matrix_calloc(eta, eta);
+	gsl_vector* col0 = gsl_vector_calloc(eta);
+	gsl_vector* tmp = gsl_vector_calloc(eta);
+
+	// 1) Build D(0): derivative of x0p wrt each Nv0(s).
+	//    We mirror CalcXP's backward tail product so that tail at step s is
+	//    exactly the X(thetap, s+1) used in the forcing sum.
+	gsl_matrix_set_identity(tail);
+	for (int s = thetap - 1; s >= 0; --s) {
+		// col0 = tail * e0, but e0 selects the first column of tail.
+		for (int r = 0; r < eta; ++r) {
+			gsl_vector_set(col0, r, gsl_matrix_get(tail, r, 0));
+		}
+
+		// tmp = inv1Xtp * col0
+		gsl_blas_dgemv(CblasNoTrans, 1.0, inv1Xtp, col0, 0.0, tmp);
+
+		// Set column s of Dcur to tmp
+		gsl_vector_view Dcol = gsl_matrix_column(Dcur, s);
+		gsl_vector_memcpy(&Dcol.vector, tmp);
+
+		// Update tail = Upsilon[s] * tail
+		gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1.0, Upsilon[s], tail, 0.0, mmul);
+		gsl_matrix_memcpy(tail, mmul);
+	}
+
+	// Fill Jacobian row for t=0
+	for (int s = 0; s < thetap; ++s) {
+		gsl_matrix_set(J, 0, s, gsl_matrix_get(Dcur, indexSv, s));
+	}
+
+	// 2) Forward sensitivity recursion matching CalcXP:
+	//      xp[t] = Upsilon[t-1] * xp[t-1] + Lambda[t-1]
+	//    with Lambda[t-1] = e0 * Nv0(t-1)
+	for (int t = 1; t < thetap; ++t) {
+		// Dnext = Upsilon[t-1] * Dcur
+		gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1.0, Upsilon[t - 1], Dcur, 0.0, Dnext);
+
+		// Add e0 to column (t-1): Dnext(0, t-1) += 1
+		gsl_matrix_set(Dnext, 0, t - 1, gsl_matrix_get(Dnext, 0, t - 1) + 1.0);
+
+		// Jacobian row t = row indexSv of Dnext
+		for (int s = 0; s < thetap; ++s) {
+			gsl_matrix_set(J, t, s, gsl_matrix_get(Dnext, indexSv, s));
+		}
+
+		// Swap Dcur and Dnext
+		gsl_matrix* tmpM = Dcur;
+		Dcur = Dnext;
+		Dnext = tmpM;
+	}
+
+	gsl_vector_free(tmp);
+	gsl_vector_free(col0);
+	gsl_matrix_free(mmul);
+	gsl_matrix_free(tail);
+	gsl_matrix_free(Dnext);
+	gsl_matrix_free(Dcur);
+}
+/********************************************************************/
 
 
 

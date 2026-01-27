@@ -74,6 +74,9 @@ void CalcXP(gsl_vector** xp, gsl_matrix** Upsilon,
 			gsl_vector** Lambda, gsl_matrix* inv1Xtp, int eta,
 			int thetap, char fntestentopar[]);
 
+void CalcSvJacobian(gsl_matrix* J, gsl_matrix** Upsilon, gsl_matrix* inv1Xtp,
+                    int eta, int mt, int thetap, char fntestentopar[]);
+
 void CalcPSTS(double* sumkplusPtr, double* sumklplus, int thetas,
 			  int tau, double PA, double Pdf);
 
