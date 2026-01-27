@@ -197,7 +197,7 @@ public:
 
         double factor = vectors::sum(m.forcedS_v) / vectors::sum(avgAnnualS_v);
 
-        cout << "fabs(Input S_v / Simulated S_v - 1.0): " << fabs(factor - 1.0) << endl;
+        // cout << "fabs(Input S_v / Simulated S_v - 1.0): " << fabs(factor - 1.0) << endl;
 
         double *mosqEmergerateVector = m.mosqEmergeRate.data();//transmission.emergence->getEmergenceRate().internal().data();
         int daysInYear = 365; //transmission.emergence->getEmergenceRate().internal().size(); // 365? 73? stepsInYear?
@@ -205,10 +205,27 @@ public:
         int nHostTypesInit = 1; // + types of non human hosts NOT USED in calcUpsionOneHost
         int nMalHostTypesInit = 1; // NOT USED in calcUpsionOneHost
         double popSize = populationSize;
-        double hostAvailabilityRateInit = meanAvail; // ?
+        double hostAvailabilityRateInit = m.initAvail * meanAvail; // ?
 
-        vector<double> Kvi(daysInYear, laggedKappa[0]);
-        double *FHumanInfectivityInitVector = Kvi.data();
+        // vector<double> Kvi(daysInYear, laggedKappa[0]);
+        // vector<double> Kvi(laggedKappa.begin(), laggedKappa.end());
+        std::vector<double> Kvi365(365);
+
+        // Linear interpolation of LaggedKappa from 73 time-steps to daily resolution
+        for (size_t i = 0; i < laggedKappa.size(); ++i) {
+            size_t start = i * 5;
+            size_t end   = start + 5;
+
+            double v0 = laggedKappa[i];
+            double v1 = (i + 1 < laggedKappa.size()) ? laggedKappa[i + 1] : laggedKappa[i];
+
+            for (size_t d = start; d < end; ++d) {
+                double t = double(d - start) / 5.0;
+                Kvi365[d] = (1.0 - t) * v0 + t * v1;
+            }
+        }
+
+        double *FHumanInfectivityInitVector = Kvi365.data();
         // double *FEIRInitVector = m.speciesEIR.data();
         double *FSvInitVector = m.forcedS_v.data();
 
@@ -246,6 +263,11 @@ public:
         // cout << "Before Nv0: " << endl; 
         // for(int i=0; i<5; i++)
         //     cout << i << "\t" << m.mosqEmergeRate[i] << endl;
+
+        // cout << "initAvail: " << m.initAvail * populationSize << endl;
+        // cout << "initAvailMeanAge: " << m.initAvail * meanAvail * populationSize << endl;
+        // cout << "meanAvail: " << meanAvail << endl;
+        // cout << "EntoAvail: " << PerHostAnophParams::get(0).entoAvailability->mean() << " " << PerHostAnophParams::get(0).entoAvailabilityFactor * populationSize << endl;
 
         CalcInitMosqEmergeRate(mosqEmergerateVector, &daysInYear,
             &m.mosq.restDuration, &EIPDuration, &nHostTypesInit,
