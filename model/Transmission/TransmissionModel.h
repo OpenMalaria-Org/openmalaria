@@ -128,7 +128,7 @@ protected:
         : initialisationEIR(std::move(initialisationEIR))
         , simulationMode(forcedEIR)
         , interventionMode(interventionMode)
-        , laggedKappa(1, 0.0)
+        , laggedKappa(sim::stepsPerYear(), 0.0)
         , // if using non-vector model, it will resize this
         annualEIR(0.0)
         , _annualAverageKappa(numeric_limits<double>::signaling_NaN())
