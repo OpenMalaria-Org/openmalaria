@@ -89,7 +89,7 @@ public:
     unique_ptr<DecayFunction> hetSample(double hetFactor) const {
         unique_ptr<StepDecayFunction> copy = make_unique<StepDecayFunction>(*this);
         copy->hetFactor = hetFactor;
-        return move(copy);
+        return std::move(copy);
     }
     
 private:
@@ -119,7 +119,7 @@ public:
     unique_ptr<DecayFunction> hetSample(double hetFactor) const {
         unique_ptr<LinearDecayFunction> copy = make_unique<LinearDecayFunction>(*this);
         copy->hetFactor = hetFactor;
-        return move(copy);
+        return std::move(copy);
     }
     
 private:
@@ -145,7 +145,7 @@ public:
     unique_ptr<DecayFunction> hetSample(double hetFactor) const {
         unique_ptr<ExponentialDecayFunction> copy = make_unique<ExponentialDecayFunction>(*this);
         copy->hetFactor = hetFactor;
-        return move(copy);
+        return std::move(copy);
     }
     
 private:
@@ -176,7 +176,7 @@ public:
     unique_ptr<DecayFunction> hetSample(double hetFactor) const {
         unique_ptr<WeibullDecayFunction> copy = make_unique<WeibullDecayFunction>(*this);
         copy->hetFactor = hetFactor;
-        return move(copy);
+        return std::move(copy);
     }
     
 private:
@@ -203,7 +203,7 @@ public:
     unique_ptr<DecayFunction> hetSample(double hetFactor) const {
         unique_ptr<HillDecayFunction> copy = make_unique<HillDecayFunction>(*this);
         copy->hetFactor = hetFactor;
-        return move(copy);
+        return std::move(copy);
     }
     
 private:
@@ -233,7 +233,7 @@ public:
     unique_ptr<DecayFunction> hetSample(double hetFactor) const {
         unique_ptr<SmoothCompactDecayFunction> copy = make_unique<SmoothCompactDecayFunction>(*this);
         copy->hetFactor = hetFactor;
-        return move(copy);
+        return std::move(copy);
     }
     
 private:
@@ -255,7 +255,7 @@ public:
 
     OperatorDecayFunction(const OperatorDecayFunction &copy, unique_ptr<DecayFunction> f1, unique_ptr<DecayFunction> f2) : 
         DecayFunction(copy),
-        f1(move(f1)), f2(move(f2)) {}
+        f1(std::move(f1)), f2(std::move(f2)) {}
 
     double compute(double effectiveAge) const {
         return max(min(op(f1->eval(effectiveAge), f2->eval(effectiveAge)), 1.0), 0.0);
@@ -268,8 +268,8 @@ public:
     unique_ptr<DecayFunction> hetSample(double hetFactor) const {
         unique_ptr<DecayFunction> f1hetSample = f1->hetSample(hetFactor);
         unique_ptr<DecayFunction> f2hetSample = f2->hetSample(hetFactor);
-        unique_ptr<OperatorDecayFunction> copy = make_unique<OperatorDecayFunction>(*this, move(f1hetSample), move(f2hetSample));
-        return move(copy);
+        unique_ptr<OperatorDecayFunction> copy = make_unique<OperatorDecayFunction>(*this, std::move(f1hetSample), std::move(f2hetSample));
+        return std::move(copy);
     }
 
 private:

@@ -35,7 +35,7 @@ vector<Treatments> Treatments::treatments;
 TreatmentId Treatments::addTreatment( const scnXml::TreatmentOption& desc ){
     Treatments treatment( desc );
     TreatmentId id( treatments.size() );
-    treatments.push_back( move(treatment) );
+    treatments.push_back( std::move(treatment) );
     return id;
 }
 

@@ -136,7 +136,7 @@ void diagnostics::init( const Parameters& parameters, const scnXml::Scenario& sc
     if(scenario.getDiagnostics().present()){
         for( const scnXml::Diagnostic& diagnostic : scenario.getDiagnostics().get().getDiagnostic() ){
             string name = diagnostic.getName();     // conversion fails without this extra line
-            bool inserted = diagnostic_set.insert( make_pair(move(name), Diagnostic(parameters, diagnostic)) ).second;
+            bool inserted = diagnostic_set.insert( make_pair(std::move(name), Diagnostic(parameters, diagnostic)) ).second;
             if( !inserted ){
                 throw util::xml_scenario_error( string("diagnostic with this name already set: ").append(diagnostic.getName()) );
             }
@@ -205,7 +205,7 @@ const Diagnostic& diagnostics::get( const string& name ){
 const Diagnostic& diagnostics::make_deterministic(double minDens){
     string name = "";   // anything not matching an existing name is fine
     assert( diagnostic_set.count(name) == 0 );  // we shouldn't need to call make_deterministic more than once, so I think this will do
-    auto ret = diagnostic_set.insert( make_pair(move(name), Diagnostic( minDens )) );
+    auto ret = diagnostic_set.insert( make_pair(std::move(name), Diagnostic( minDens )) );
     assert(ret.second);
     return ret.first->second;
 }

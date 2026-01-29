@@ -52,7 +52,7 @@ void LSTMDrug::medicate(double time, double qty){
     // Insert in the right position to maintain sorting:
     auto elt = make_pair (time, qty);
     auto pos = lower_bound(doses.begin(), doses.end(), elt, comp);
-    doses.insert(pos, move(elt));
+    doses.insert(pos, std::move(elt));
     assert(is_sorted(doses.begin(), doses.end(), comp));
 }
 

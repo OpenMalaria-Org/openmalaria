@@ -439,7 +439,7 @@ void AnophelesModel::initVectorTrap(const scnXml::Description1 &desc, size_t ins
     TrapParams params;
     params.relAvail = desc.getRelativeAvailability().getValue();
     params.availDecay = DecayFunction::makeObject(desc.getDecayOfAvailability(), "decayOfAvailability");
-    trapParams.push_back(move(params));
+    trapParams.push_back(std::move(params));
 }
 
 void AnophelesModel::deployVectorPopInterv(LocalRng &rng, size_t instance)
@@ -463,7 +463,7 @@ void AnophelesModel::deployVectorTrap(LocalRng &rng, size_t species, size_t inst
     data.availHet = trapParams[instance].availDecay->hetSample(rng);
     data.deployTime = sim::now();
     data.expiry = sim::now() + lifespan;
-    baitedTraps.push_back(move(data));
+    baitedTraps.push_back(std::move(data));
 }
 
 // Every sim::oneTS() days:

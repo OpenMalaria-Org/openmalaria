@@ -481,7 +481,7 @@ public:
     }
     // Set the WithinHost model used by the human, and return a pointer to it. Do not delete this!
     static WithinHost::WHInterface* setHumanWH(Host::Human& human, unique_ptr<WithinHost::WHInterface> wh){
-        human.withinHostModel = move(wh);
+        human.withinHostModel = std::move(wh);
         return &*human.withinHostModel;
     }
 };

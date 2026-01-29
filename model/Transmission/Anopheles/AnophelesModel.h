@@ -159,7 +159,7 @@ struct Nhh {
 
 struct TrapParams {
     TrapParams(): relAvail(numeric_limits<double>::signaling_NaN()) {}
-    TrapParams(TrapParams&& o): relAvail(o.relAvail), availDecay(move(o.availDecay)) {}
+    TrapParams(TrapParams&& o): relAvail(o.relAvail), availDecay(std::move(o.availDecay)) {}
     
     double relAvail; // Initial availability of a trap relative to an adult
     unique_ptr<util::DecayFunction> availDecay; // Decay of availability

@@ -167,13 +167,13 @@ namespace OM { namespace util {
         void scaleMean( double scalar );
         
         /** Get the mean. */
-        double mean() const;
+        double mean() const override;
 
         /** Sample a value. */
-        double sample(LocalRng& rng) const;
+        double sample(LocalRng& rng) const override;
         
         /** Create a log-normal sample from an existing normal sample. */
-        double sample(NormalSample sample) const{
+        double sample(NormalSample sample) const override {
             return sample.asLognormal( mu, sigma );
         }
 
@@ -189,7 +189,7 @@ namespace OM { namespace util {
          * @param x  The point at which to evaluate the CDF (must be a real number).
          * @return   P(X ≤ x), where X ~ LogNormal(mu, sigma²).
          */
-        double cdf(double x) const;
+        double cdf(double x) const override;
         
     private:
         // log-space parameters
@@ -244,10 +244,10 @@ namespace OM { namespace util {
         static unique_ptr<util::GammaSampler> fromMeanVariance( double mean, double variance, std::optional<double> truncate = std::nullopt);
         
         /** Get the mean. */
-        double mean() const;
+        double mean() const override;
 
         /** Sample a value. */
-        double sample(LocalRng& rng) const;
+        double sample(LocalRng& rng) const override;
         
         /**
          * Compute the cumulative distribution function (CDF) of this gamma sampler.
@@ -263,7 +263,7 @@ namespace OM { namespace util {
          * @param x  The point at which to evaluate the CDF (must be a real number).
          * @return   P(X ≤ x), where X ~ Gamma(k, θ).
          */
-        double cdf(double x) const;
+        double cdf(double x) const override;
         
     private:
         double mu       = std::numeric_limits<double>::signaling_NaN();
