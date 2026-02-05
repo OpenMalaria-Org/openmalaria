@@ -196,12 +196,15 @@ Boston, MA 02110-1301, USA. -->
                 <seasonality annualEIR="24.826144381650714" input="EIR">
                     <!-- 2015 P.f. passively detected cases in Bataraza, Brooke's Point and Rizal -->
                     <!-- https://swisstph.github.io/openmalaria/fourier -->
+                    <!-- EIRRotateAngle can be used to shift the seasonality. It is specified as an angle 
+                    in radian, e.g. use 0.26 to shift the seasonality by 1 month. 
+                    This can be useful if, for example, you are using rain data at month end. -->
                     <fourierSeries EIRRotateAngle="0">
                         <coeffic a="-1.0313715140024822" b="0.5474993785222372"/>
                         <coeffic a="-0.005155722300211589" b="-0.19769509633382162"/>
                     </fourierSeries>
                     <!-- Or, equivalent specification via monthly values -->
-                    <!-- <monthlyValues smoothing="fourier">
+                    <!-- <monthlyValues smoothing="fourier" EIRRotateAngle="0">
                         <value>98</value>
                         <value>132</value>
                         <value>223</value>

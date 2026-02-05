@@ -133,15 +133,17 @@ inline Anopheles::AnophelesModel *createAnophelesModel(size_t i, const scnXml::A
             FSCoeffic.push_back(it->getA());
             FSCoeffic.push_back(it->getB());
         }
-        // According to spec, EIR for first day of year (rather than EIR at the
-        // exact start of the year) is generated with t=0 in Fourier series.
-        EIRRotateAngle = seasFC.getEIRRotateAngle();
+
+        EIRRotateAngle = 0;
+        if(seasFC.getEIRRotateAngle().present())
+            EIRRotateAngle = seasFC.getEIRRotateAngle().get();
 
         // EIR for this species, with index 0 refering to value over first interval
         initEIR365.resize(sim::oneYear(), 0.0);
 
         // Now we rescale to get an EIR of targetEIR.
         // Calculate current sum as is usually done.
+        cout << EIRRotateAngle << endl;
         vectors::expIDFT(initEIR365, FSCoeffic, EIRRotateAngle);
         // And scale (also acts as a unit conversion):
         FSCoeffic[0] += log(targetEIR / vectors::sum(initEIR365));
@@ -179,13 +181,10 @@ inline Anopheles::AnophelesModel *createAnophelesModel(size_t i, const scnXml::A
             // work well when number of intervals changes?
             util::vectors::logFourierCoefficients(months, FSCoeffic);
 
-            // The above places the value for the first month at angle 0, so
-            // effectively the first month starts at angle -2*pi/24 radians.
-            // The value for the first day of the year should start 2*pi/(365*2)
-            // radians later, so adjust EIRRotateAngle to compensate.
-
-            // Change this to 0 later?
-            EIRRotateAngle = M_PI * (1.0 / 12.0 - 1.0 / 365.0);
+            // Assume the values are for the start of the month
+            EIRRotateAngle = 0;
+            if(seasM.getEIRRotateAngle().present())
+                EIRRotateAngle = seasM.getEIRRotateAngle().get();
 
             // EIR for this species, with index 0 refering to value over first interval
             initEIR365.resize(sim::oneYear());
