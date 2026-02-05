@@ -72,7 +72,7 @@ Code subdirectories:
 | schema/entomology.xsd, schema/demography.xsd, etc | components of the latest schema, included from scenario.xsd. |
 | schema/scenario_*.xsd | Copies of released schema versions, with all components inlined in the same file. |
 
-This git repository is currently maintained by members of the [Global Disease Modelling Team](https://www.thekids.org.au/our-research/early-environment/infection-and-vaccines/global-disease-modelling/) of __The Kids Research Institute Australia__,  the [Disease Modelling Unit](https://www.swisstph.ch/en/about/eph/disease-modelling/) of the __Swiss Tropical and Public Health institute__ and other collaborators.
+This git repository is currently maintained by members of the [Global Disease Modelling Team](https://www.thekids.org.au/our-research/early-environment/infection-and-vaccines/global-disease-modelling/) of __The Kids Research Institute Australia__,  the [Disease Modelling Group](https://www.swisstph.ch/en/about/eph/disease-modelling/) of the __Swiss Tropical and Public Health institute__ along with the [SciCORE Center for Scientific Computing, University of Basel](https://scicore.unibas.ch) and other collaborators.
 
 
 License
