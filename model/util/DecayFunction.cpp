@@ -301,6 +301,26 @@ public:
         initialConcentration = elt.getInitialConcentration().get();
 
         IC50 = pow(IC50, slope); // compute once
+
+        if (Emax < 0.0 || Emax > 1.0) {
+            throw util::xml_scenario_error(
+                "Emax function: Emax must be in [0, 1], got " + std::to_string(Emax));
+        }
+
+        if (IC50 <= 0.0) {
+            throw util::xml_scenario_error(
+                "Emax function: IC50 must be > 0, got " + std::to_string(IC50));
+        }
+
+        if (slope <= 0.0) {
+            throw util::xml_scenario_error(
+                "Emax function: Slope must be > 0, got " + std::to_string(slope));
+        }
+
+        if (initialConcentration < 0.0) {
+            throw util::xml_scenario_error(
+                "Emax function: InitialConcentration must be >= 0, got " + std::to_string(initialConcentration));
+        }
     }
 
     EmaxFunction(const EmaxFunction &copy, unique_ptr<DecayFunction> f) : 
