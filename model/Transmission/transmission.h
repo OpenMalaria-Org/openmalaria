@@ -143,8 +143,8 @@ inline Anopheles::AnophelesModel *createAnophelesModel(size_t i, const scnXml::A
 
         // Now we rescale to get an EIR of targetEIR.
         // Calculate current sum as is usually done.
-        cout << EIRRotateAngle << endl;
         vectors::expIDFT(initEIR365, FSCoeffic, EIRRotateAngle);
+        
         // And scale (also acts as a unit conversion):
         FSCoeffic[0] += log(targetEIR / vectors::sum(initEIR365));
 
