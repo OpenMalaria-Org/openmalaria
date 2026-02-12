@@ -8377,7 +8377,7 @@ however, this parameter must be specified.</p>
 <h2><a class="header" href="#a-nameelt-fourierseriesa-fourier-approximation-to-pre-intervention-eir" id="a-nameelt-fourierseriesa-fourier-approximation-to-pre-intervention-eir"><a name="elt-fourierSeries"></a> Fourier approximation to pre-intervention EIR</a></h2>
 <p>→ <a href="#elt-scenario">scenario</a> → <a href="#elt-entomology">entomology</a> → <a href="#elt-vector">vector</a> → <a href="#elt-anopheles-4">anopheles</a> → <a href="#elt-seasonality">seasonality</a> → <a href="#elt-fourierSeries">fourierSeries</a></p>
 <pre><code class="language-xml">&lt;fourierSeries
-    EIRRotateAngle=double
+  [ EIRRotateAngle=double ]
   &gt;
 IN THIS ORDER:
 | ( &lt;coeffic ... /&gt; )*
@@ -8424,6 +8424,7 @@ some natural number n.</p>
 <p>→ <a href="#elt-scenario">scenario</a> → <a href="#elt-entomology">entomology</a> → <a href="#elt-vector">vector</a> → <a href="#elt-anopheles-4">anopheles</a> → <a href="#elt-seasonality">seasonality</a> → <a href="#elt-monthlyValues">monthlyValues</a></p>
 <pre><code class="language-xml">&lt;monthlyValues
     smoothing=(&quot;none&quot; or &quot;fourier&quot;)
+  [ EIRRotateAngle=double ]
   &gt;
 IN THIS ORDER:
 | ( &lt;value ... /&gt; ){12,12}
@@ -8448,6 +8449,11 @@ sequence of values:</p>
 is fit to the sequence of monthly values and used to
 generate a smoothed list of daily values.</li>
 </ol>
+<h4><a class="header" href="#rotation-angle-defining-the-origin-of-the-fourier-approximation-to-ln-eir-1" id="rotation-angle-defining-the-origin-of-the-fourier-approximation-to-ln-eir-1">Rotation angle defining the origin of the Fourier approximation to ln (EIR)</a></h4>
+<pre><code class="language-xml">EIRRotateAngle=double
+</code></pre>
+<p><strong>Units:</strong> Radians</p>
+<p>Rotation angle defining the origin of the Fourier approximation to ln (EIR)</p>
 <h2><a class="header" href="#a-nameelt-valuea-monthly-value" id="a-nameelt-valuea-monthly-value"><a name="elt-value"></a> Monthly value</a></h2>
 <p>→ <a href="#elt-scenario">scenario</a> → <a href="#elt-entomology">entomology</a> → <a href="#elt-vector">vector</a> → <a href="#elt-anopheles-4">anopheles</a> → <a href="#elt-seasonality">seasonality</a> → <a href="#elt-monthlyValues">monthlyValues</a> → <a href="#elt-value">value</a></p>
 <pre><code class="language-xml">&lt;value&gt;
