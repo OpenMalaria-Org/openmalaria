@@ -191,7 +191,7 @@ Licence: GNU General Public Licence version 2 or later (see COPYING) -->
            </xs:complexType>
           </xs:element>
          </xs:sequence>
-         <xs:attribute name="EIRRotateAngle" type="xs:double" use="required">
+         <xs:attribute name="EIRRotateAngle" type="xs:double" use="optional">
           <xs:annotation>
            <xs:documentation>
                         Rotation angle defining the origin of the Fourier approximation to ln (EIR)
@@ -242,6 +242,14 @@ Licence: GNU General Public Licence version 2 or later (see COPYING) -->
             <xs:enumeration value="fourier"/>
            </xs:restriction>
           </xs:simpleType>
+         </xs:attribute>
+         <xs:attribute name="EIRRotateAngle" type="xs:double" use="optional">
+          <xs:annotation>
+           <xs:documentation>
+                        Rotation angle defining the origin of the Fourier approximation to ln (EIR)
+                      </xs:documentation>
+           <xs:appinfo>units:Radians;name:Rotation angle defining the origin of the Fourier approximation to ln (EIR);</xs:appinfo>
+          </xs:annotation>
          </xs:attribute>
         </xs:complexType>
        </xs:element>
