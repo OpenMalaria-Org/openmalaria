@@ -55,11 +55,11 @@ double CalcInitMosqEmergeRate(double* FMosqEmergeRateVector, int* daysInYearPtr,
 				double* mosqProbOvipositingPtr, double* FHumanInfectivityInitVector,
 				double* FEIRInitVector, double* FMosqEmergeRateInitEstimateVector);
 
-void CalcUpsilonOneHost(gsl_matrix** Upsilon, double* PAPtr, 
-		double* PAiPtr, int thetap, int eta, int mt, int tau, 
-		int thetas, int n, int m, double Ni, double alphai, 
-		double muvA, double thetad, double PBi, double PCi, double PDi, 
-		double PEi, gsl_vector* Kvi, char fntestentopar[]);
+void CalcUpsilonOneHost(gsl_matrix** Upsilon, double* PAPtr,
+		double* PAiPtr, int thetap, int eta, int mt, int tau,
+		int thetas, int n, int m, const double* Ni, const double* alphai,
+		double muvA, double thetad, const double* PBi, const double* PCi, const double* PDi,
+		double PEi, const gsl_matrix* Kvi, char fntestentopar[]);
 
 int CalcSvDiff_rf(const gsl_vector* x, void* p, gsl_vector* f);
 
@@ -90,6 +90,8 @@ void CalSvfromEIRdata(gsl_vector* Sv, double PAi, double PBi, double Ni,
 					  gsl_vector* Xii);
 
 double binomial(int n, int k);
+
+void CalcCGSLMatrixFromCArray(gsl_matrix* CMatrix, double* FArray, int nCols, int nRows);
 
 void CalcCGSLMatrixFromFortranArray(gsl_matrix* CMatrix, double* FArray, 
 				int ColLength, int RowLength);
