@@ -72,5 +72,3 @@ void FuncX(gsl_matrix* X, const std::vector<gsl_matrix*> &Upsilon, int t, int s,
 double CalcSpectralRadius(gsl_matrix* A, int n);
 
 void CalcInv1minusA(gsl_matrix* inv1A, gsl_matrix* A, int n);
-
-double binomial(int n, int k);

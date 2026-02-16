@@ -522,7 +522,7 @@ void CalcPSTS(double &sumkplus, double* sumklplus, int thetas,
 	// Evaluate sumkplus
 	sumkplus = 0.;
 	for (int j=0; j <= kplus; j++){
-		double tempbin = binomial(thetas-(j+1)*tau+j,j);
+		double tempbin = gsl_sf_choose(thetas - (j + 1) * tau + j, j); // binomial
 		double temppap = pow(PA,thetas-(j+1)*tau);
 		double temppdfp = pow(Pdf,j);
 		double temp = tempbin*temppap*temppdfp;
@@ -535,7 +535,7 @@ void CalcPSTS(double &sumkplus, double* sumklplus, int thetas,
 		sumklplus[l-1] = 0;
 
 		for(int j=0; j<=klplus; j++){
-			double tempbin = binomial(thetas+l-(j+2)*tau+j,j);
+			double tempbin = gsl_sf_choose(thetas + l - (j + 2) * tau + j, j); // binomial
 			double temppap = pow(PA,thetas+l-(j+2)*tau);
 			double temppdfp = pow(Pdf,j+1);
 			double temp = tempbin*temppap*temppdfp;
@@ -650,31 +650,5 @@ void CalcInv1minusA(gsl_matrix* inv1A, gsl_matrix* A, int n){
 	// Free memory.
 	gsl_matrix_free(B);
 	gsl_permutation_free(p);
-}
-/********************************************************************/
-
-
-/*******************************************************************/
-/* binomial() calculates the binomial coefficient given two integers.
- * 
- * Note that we do not check for errors.
- * 
- * All parameters are IN parameters.
- */ 
-double binomial(int n, int k){
-	
-	unsigned int nunsigned;
-	unsigned int kunsigned;
-	unsigned int nminusk;
-
-	double bc;	// Binomial coefficient
-
-	nminusk = (unsigned int) (n-k);
-	nunsigned = (unsigned int) n;
-	kunsigned = (unsigned int) k;
-
-	bc = gsl_sf_fact(nunsigned)/(gsl_sf_fact(kunsigned)*gsl_sf_fact(nminusk));
-
-	return bc;
 }
 /********************************************************************/
