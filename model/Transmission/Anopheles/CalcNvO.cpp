@@ -85,9 +85,8 @@ double CalcInitMosqEmergeRate(
 	const std::vector<double> &PCi, // $P_{C_i}$: mosqProbFindRestSite (length n)
 	const std::vector<double> &PDi, // $P_{D_i}$: mosqProbResting (length n)
 	double PEi, // $P_{E_i}$: mosqProbOvipositing -- assumed not affected by nhh
-	const std::vector<double> KviInit, // Kvi: (size n * thetap),
-	const std::vector<double> SvInit, // Sv (length n), 
-	const std::vector<double> Nv0Init // Nv0 (length n)
+	const std::vector<double> KviInit, // Kvi: (size n * thetap)
+	const std::vector<double> SvInit // Sv (length n)
 	){
 
     /* Note that from here on we use the notation from "A Mathematical Model for the
@@ -236,7 +235,6 @@ double CalcInitMosqEmergeRate(
 	// Set Kvi, Sv and Nv0guess
 	CalcCGSLMatrixFromCArray(Kvi, KviInit.data(), n, thetap);
 	CalcCGSLVectorFromFortranArray(SvfromEIR, SvInit.data(), thetap);
-	CalcCGSLVectorFromFortranArray(Nv0guess, Nv0Init.data(), thetap);
 
 	// Create matrices in Upsilon.
 	// We also define PA and PAi in the same routine. 

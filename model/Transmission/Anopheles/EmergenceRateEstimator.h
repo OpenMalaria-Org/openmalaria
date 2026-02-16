@@ -240,8 +240,8 @@ public:
             PDi,
             PEi, 
             Kvi,
-            svInit, 
-            NvOguess);
+            svInit
+        );
         
         return false;
     }
