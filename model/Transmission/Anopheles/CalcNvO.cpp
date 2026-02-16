@@ -587,13 +587,6 @@ void FuncX(gsl_matrix* X, const std::vector<gsl_matrix*> &Upsilon, int t, int s,
  */ 
 
 double CalcSpectralRadius(gsl_matrix* A, int n){
-	int i;
-
-	double sr;	// sprectral radius
-
-	double temp;
-	gsl_complex ztemp;
-
 	gsl_vector* abseval = gsl_vector_calloc(n);	// Vector of the absolute values of eigenvalues.
 	gsl_matrix* B = gsl_matrix_calloc(n, n); // Use to keep A safe.
 	gsl_vector_complex* eval = gsl_vector_complex_calloc(n); // Vector of eigenvalues.
@@ -607,14 +600,14 @@ double CalcSpectralRadius(gsl_matrix* A, int n){
 	gsl_eigen_nonsymm(B, eval, w);
 
 	// Calculate the absolute values of the eigenvalues.
-	for(i=0; i<n; i++){
-		ztemp = gsl_vector_complex_get(eval, i);
-		temp = gsl_complex_abs(ztemp);
+	for(int i=0; i<n; i++){
+		gsl_complex ztemp = gsl_vector_complex_get(eval, i);
+		double temp = gsl_complex_abs(ztemp);
 		gsl_vector_set(abseval, i, temp);
 	}
 	
 	// Find the largest eigenvalue.
-	sr = gsl_vector_max(abseval);
+	double sr = gsl_vector_max(abseval); // sprectral radius
 
 	// Free memory.
 	gsl_matrix_free(B);
@@ -642,12 +635,12 @@ double CalcSpectralRadius(gsl_matrix* A, int n){
 void CalcInv1minusA(gsl_matrix* inv1A, gsl_matrix* A, int n){
 	// Data types required to compute inverse.
 	gsl_matrix* B = gsl_matrix_calloc(n, n); // We calculate (I-A) in B.
-	int signum;
 	gsl_permutation* p = gsl_permutation_alloc(n);
 
 	gsl_matrix_set_identity(B); // B = I.
 	gsl_matrix_sub(B, A);	// B = I-A.
 
+	int signum;
 	// Calculate LU decomposition of (I-A).
 	gsl_linalg_LU_decomp(B, p, &signum);
 
