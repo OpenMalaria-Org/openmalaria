@@ -84,7 +84,7 @@ double CalcInitMosqEmergeRate(
 	const std::vector<double> &PBi, // $P_{B_i}$: mosqProbBiting (length n)
 	const std::vector<double> &PCi, // $P_{C_i}$: mosqProbFindRestSite (length n)
 	const std::vector<double> &PDi, // $P_{D_i}$: mosqProbResting (length n)
-	double PEi, // $P_{E_i}$: mosqProbOvipositing -- assumed not affected by nhh
+	const std::vector<double> &PEi, // $P_{E_i}$: mosqProbOvipositing -- assumed not affected by nhh
 	const std::vector<double> KviInit, // Kvi (size n * thetap)
 	const std::vector<double> SvInit // Sv (length n)
 ){
@@ -119,7 +119,7 @@ double CalcInitMosqEmergeRate(
 	gsl_vector_view Nv0_view = gsl_vector_view_array(mosqEmergeRateVector.data(), thetap);
 	gsl_vector* Nv0 = &Nv0_view.vector; // $N_{v0}$: mosqEmergeRate 
 
-	const auto Kvi_view = gsl_matrix_const_view_array(KviInit.data(), n, thetap);
+	const auto Kvi_view = gsl_matrix_const_view_array(KviInit.data(), thetap, n);
 	const gsl_matrix* Kvi = &Kvi_view.matrix;
 
 	// State variables.
@@ -189,7 +189,7 @@ double CalcInitMosqEmergeRate(
 	// may, then we will change the code accordingly. We will need to go through
 	// a lot of changes anyway. 
 	CalcUpsilon(Upsilon, PA, PAi, thetap, eta, mt, tau, thetas, 
-		n, m, Ni.data(), alphai.data(), muvA, thetad, PBi.data(), PCi.data(), PDi.data(), PEi, Kvi);
+		n, m, Ni.data(), alphai.data(), muvA, thetad, PBi.data(), PCi.data(), PDi.data(), PEi.data(), Kvi);
 
 	// Calculate $X_{\theta_p}$.
 	// Refer to Cushing (1995) and the paper for the periodic entomological model
@@ -296,7 +296,7 @@ void CalcUpsilon(std::vector<gsl_matrix*> &Upsilon, double &PA,
 		double &PAi, int thetap, int eta, int mt, int tau,
 		int thetas, int n, int m, const double* Ni, const double* alphai,
 		double muvA, double thetad, const double* PBi, const double* PCi, const double* PDi,
-		double PEi, const gsl_matrix* Kvi) {
+		const double* PEi, const gsl_matrix* Kvi) {
 
 	// $P_{dif}$: Probability that a mosquito finds a host on a given
 	// night and then completes the feeding cycle and gets infected.
@@ -327,27 +327,33 @@ void CalcUpsilon(std::vector<gsl_matrix*> &Upsilon, double &PA,
 	// Pdf = sum_i PAi_i * PBi_i * PCi_i * PDi_i * PEi
 	for (int i = 0; i < n; i++){
 		const double PAi_i = (1.0 - PA) * (alphai[i] * Ni[i]) / (temp + muvA);
-		Pdf += PAi_i * PBi[i] * PCi[i] * PDi[i] * PEi;
+		Pdf += PAi_i * PBi[i] * PCi[i] * PDi[i] * PEi[i];
+	}
+
+	// Precompute weights w[i] (independent of k)
+	std::vector<double> w(n);
+	const double denom = (temp + muvA);
+
+	for (int i = 0; i < n; ++i) {
+		const double PAi_i = (1.0 - PA) * (alphai[i] * Ni[i]) / denom;
+		w[i] = PAi_i * PBi[i] * PCi[i] * PDi[i] * PEi[i];
 	}
 
 	// Evaluate Pdif and Pduf.
-	// Pdif(k) = sum_i [ PAi_i * PBi_i * PCi_i * PDi_i * PEi * Kvi(i,k) ]
+	// Pdif(k) = sum_i [ w_i * Kvi(k,i) ]
 	// Pduf(k) = Pdf - Pdif(k)
-	for (int k = 0; k < thetap; k++){
+	for (int k = 0; k < thetap; ++k) {
+		const double* Krow = gsl_matrix_const_ptr(Kvi, k, 0); // row k, col 0
 		double pdif_k = 0.0;
 
-		for (int i = 0; i < n; i++){
-			const double PAi_i = (1.0 - PA) * (alphai[i] * Ni[i]) / (temp + muvA);
-			const double wi = PAi_i * PBi[i] * PCi[i] * PDi[i] * PEi;
-
-			// NOTE: this file consistently uses gsl_matrix_get(M, col, row).
-			// Here: col = host type i, row = time k.
-			pdif_k += wi * gsl_matrix_get(Kvi, i, k);
+		// If only human groups can have non-zero Kvi, iterate only them:
+		for (int i = 0; i < m; ++i) {
+			pdif_k += w[i] * Krow[i];
 		}
+		// If you want fully general (allow Kvi for any host), use i < n.
 
-		// numerical safety
 		if (pdif_k < 0.0) pdif_k = 0.0;
-		if (pdif_k > Pdf) pdif_k = Pdf;
+		if (pdif_k > Pdf)  pdif_k = Pdf;
 
 		gsl_vector_set(Pdif, k, pdif_k);
 		gsl_vector_set(Pduf, k, Pdf - pdif_k);

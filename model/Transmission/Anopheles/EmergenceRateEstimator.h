@@ -195,8 +195,6 @@ public:
         int thetap = sim::DAYS_IN_YEAR;
         int tau = m.mosq.restDuration;
         int thetas = m.mosq.EIPDuration;
-        int nHost = 1;
-        int nMalHost = 1;
         std::vector<double> Ni{static_cast<double>(populationSize)};
         std::vector<double> alphai{m.initAvail * meanAvail};
         double muvA = m.mosq.seekingDeathRate;
@@ -204,26 +202,51 @@ public:
         std::vector<double> PBi{m.mosq.probBiting};
         std::vector<double> PCi{m.mosq.probFindRestSite};
         std::vector<double> PDi{m.mosq.probResting};
-        double PEi = m.mosq.probOvipositing;
+        std::vector<double> PEi{m.mosq.probOvipositing};
+        std::vector<double> &svInit = m.forcedS_v;
+        std::vector<double> NvOguess(m.mosqEmergeRate.begin(), m.mosqEmergeRate.end());
 
-        std::vector<double> Kvi(thetap);
+        // Append active NHH host types (malaria-non-susceptible)
+        for (const auto &[name, nhh] : m.nhhInstances) {
+            cout << name << endl;
+            // Interpret nhh.avail_i as total availability α_i * N_i
+            Ni.push_back(1.0);
+            alphai.push_back(nhh.avail_i);
 
-        // Linear interpolation of LaggedKappa from 73 time-steps to daily resolution
+            PBi.push_back(nhh.P_B_I);
+            PCi.push_back(nhh.P_C_I);
+            PDi.push_back(nhh.P_D_I);
+            PEi.push_back(m.mosq.probOvipositing); // Using the same probability for nhh
+        }
+
+        int nHost = static_cast<int>(Ni.size());
+        int nMalHost = 1; // only humans are malaria-susceptible here
+
+        std::vector<double> humanKappa(thetap, 0.0);
+
+        // Linear interpolation 73 -> daily (5-day blocks)
         for (size_t i = 0; i < laggedKappa.size(); ++i) {
-            size_t start = i * 5;
-            size_t end   = start + 5;
+            const size_t start = i * 5;
+            const size_t end   = std::min(start + 5, static_cast<size_t>(thetap));
 
-            double v0 = laggedKappa[i];
-            double v1 = (i + 1 < laggedKappa.size()) ? laggedKappa[i + 1] : laggedKappa[i];
+            const double v0 = laggedKappa[i];
+            const double v1 = (i + 1 < laggedKappa.size()) ? laggedKappa[i + 1] : laggedKappa[i];
 
             for (size_t d = start; d < end; ++d) {
-                double t = double(d - start) / 5.0;
-                Kvi[d] = (1.0 - t) * v0 + t * v1;
+                const double t = double(d - start) / 5.0;
+                humanKappa[d] = (1.0 - t) * v0 + t * v1;
             }
         }
 
-        std::vector<double> &svInit = m.forcedS_v;
-        std::vector<double> NvOguess(m.mosqEmergeRate.begin(), m.mosqEmergeRate.end());
+        std::vector<double> KviInit(static_cast<size_t>(thetap) * nHost, 0.0);
+
+        // Fill all malaria-susceptible human groups with the humanKappa series.
+        // If later each group has its own kappa, fill each column separately.
+        for (int i = 0; i < nMalHost; ++i) {
+            for (int k = 0; k < thetap; ++k) {
+                KviInit[static_cast<size_t>(k) * nHost + i] = humanKappa[k];
+            }
+        }
 
         CalcInitMosqEmergeRate(mosqEmergeRateVector, 
             thetap, // $\theta_p$: daysInYear
@@ -238,8 +261,8 @@ public:
             PBi, // $P_{B_i}$: mosqProbBiting (length n)
             PCi, // $P_{C_i}$: mosqProbFindRestSite (length n)
             PDi, // $P_{D_i}$: mosqProbResting (length n)
-            PEi, // $P_{E_i}$: mosqProbOvipositing -- assumed not affected by nhh
-            Kvi, // Kvi (size n * thetap)
+            PEi, // $P_{E_i}$: mosqProbOvipositing
+            KviInit, // Kvi (size n * thetap)
             svInit // Sv (length n)
         );
         
