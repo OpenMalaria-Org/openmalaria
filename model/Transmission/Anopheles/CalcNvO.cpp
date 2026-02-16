@@ -133,9 +133,8 @@ double CalcInitMosqEmergeRate(
 	// $P_A$ in model. Vector of length $\theta_p$.
 	// For now, we assume that this is a double - we can change 
 	// it later (no dependence on the phase of the period).
-	double PA;		
-	double* PAPtr;
-
+	double PA = 0.0;		
+	
 	// Probability that on a given day, a mosquito finds a host 
 	// of type $i$. 
 	// Dimensionless.
@@ -143,8 +142,7 @@ double CalcInitMosqEmergeRate(
 	// For now, we assume that this  is  a double: 
 	// - no dependence on the phase of the period - or the
 	// type of host. 
-	double PAi;
-	double* PAiPtr;
+	double PAi = 0.0;
 
 	// Spectral Radius of Xtp
 	double srXtp;
@@ -240,24 +238,14 @@ double CalcInitMosqEmergeRate(
 	CalcCGSLVectorFromFortranArray(SvfromEIR, SvInit.data(), thetap);
 	CalcCGSLVectorFromFortranArray(Nv0guess, Nv0Init.data(), thetap);
 
-	// Initalize and reference pointers.
-	PA = 0;
-	PAi = 0;
-	PAPtr = &PA;
-	PAiPtr = &PAi;
-
 	// Create matrices in Upsilon.
 	// We also define PA and PAi in the same routine. 
 	// For now, we treat PA and PAi as scalars since we are 
 	// defining most parameters as scalars. If we do change things later, which we
 	// may, then we will change the code accordingly. We will need to go through
 	// a lot of changes anyway. 
-	CalcUpsilon(Upsilon, PAPtr, PAiPtr, thetap, eta, mt, tau, thetas, 
+	CalcUpsilon(Upsilon, PA, PAi, thetap, eta, mt, tau, thetas, 
 		n, m, Ni.data(), alphai.data(), muvA, thetad, PBi.data(), PCi.data(), PDi.data(), PEi, Kvi);
-
-	// Dereference PA and PAi from CalcUpsilon.
-	PA = *PAPtr;
-	PAi = *PAiPtr;
 
 	// Calculate $X_{\theta_p}$.
 	// Refer to Cushing (1995) and the paper for the periodic entomological model
@@ -333,7 +321,7 @@ double CalcInitMosqEmergeRate(
 
 
 /*******************************************************************/
-/* CalcUpsilonOneHost returns a pointer to an array of thetap 
+/* CalcUpsilon returns a pointer to an array of thetap 
  * GSL matrices assuming there is only one host of humans..
  * Each matrix is Upsilon(t).
  *
@@ -369,18 +357,11 @@ double CalcInitMosqEmergeRate(
  * Upsilon, PAPtr, and PAiPtr are OUT parameters.
  * All other parameters are IN parameters.
  */ 
-void CalcUpsilon(gsl_matrix** Upsilon, double* PAPtr,
-		double* PAiPtr, int thetap, int eta, int mt, int tau,
+void CalcUpsilon(gsl_matrix** Upsilon, double &PA,
+		double &PAi, int thetap, int eta, int mt, int tau,
 		int thetas, int n, int m, const double* Ni, const double* alphai,
 		double muvA, double thetad, const double* PBi, const double* PCi, const double* PDi,
-		double PEi, const gsl_matrix* Kvi){
-
-	int i;
-	int k;
-	int l;
-	// Prints intermediate results in calculating Upsilon.
-	double PA;	// Described in CalcInitMosqEmergeRate.
-	double PAi;	// Described in CalcInitMosqEmergeRate.
+		double PEi, const gsl_matrix* Kvi) {
 	// $P_{df}$: Probability that a mosquito finds a host on a given
 	// night and then completes the feeding cycle.
 	double Pdf; 
@@ -412,7 +393,7 @@ void CalcUpsilon(gsl_matrix** Upsilon, double* PAPtr,
 	// PA = exp(- (sum_i alpha_i N_i + mu_vA) * theta_d)
 	// (computed in the same "sum then exp" style as the original code)
 	temp = 0.0;
-	for (i = 0; i < n; i++){
+	for (int i = 0; i < n; i++){
 		temp += alphai[i] * Ni[i];
 	}
 	PA = exp(-(temp + muvA) * thetad);
@@ -420,13 +401,13 @@ void CalcUpsilon(gsl_matrix** Upsilon, double* PAPtr,
 	// Keep PAi as a scalar for minimal changes:
 	// Probability of encountering one of the first m host types.
 	PAi = 0.0;
-	for (i = 0; i < m; i++){
+	for (int i = 0; i < m; i++){
 		PAi += (1.0 - PA) * (alphai[i] * Ni[i]) / (temp + muvA);
 	}
 
 	// Pdf = sum_i PAi_i * PBi_i * PCi_i * PDi_i * PEi
 	Pdf = 0.0;
-	for (i = 0; i < n; i++){
+	for (int i = 0; i < n; i++){
 		const double PAi_i = (1.0 - PA) * (alphai[i] * Ni[i]) / (temp + muvA);
 		Pdf += PAi_i * PBi[i] * PCi[i] * PDi[i] * PEi;
 	}
@@ -434,10 +415,10 @@ void CalcUpsilon(gsl_matrix** Upsilon, double* PAPtr,
 	// Evaluate Pdif and Pduf.
 	// Pdif(k) = sum_i [ PAi_i * PBi_i * PCi_i * PDi_i * PEi * Kvi(i,k) ]
 	// Pduf(k) = Pdf - Pdif(k)
-	for (k = 0; k < thetap; k++){
+	for (int k = 0; k < thetap; k++){
 		double pdif_k = 0.0;
 
-		for (i = 0; i < n; i++){
+		for (int i = 0; i < n; i++){
 			const double PAi_i = (1.0 - PA) * (alphai[i] * Ni[i]) / (temp + muvA);
 			const double wi = PAi_i * PBi[i] * PCi[i] * PDi[i] * PEi;
 
@@ -465,10 +446,10 @@ void CalcUpsilon(gsl_matrix** Upsilon, double* PAPtr,
 
 	// We start creating the matrices now.
 	// Refer to Section 2.1 of JBD Paper for how this matrix is created.
-	for (k=0; k < thetap; k++){
+	for (int k=0; k < thetap; k++){
 		Upsilon[k] = gsl_matrix_calloc(eta, eta);
 
-		for (i=0; i<eta; i++){
+		for (int i=0; i<eta; i++){
 			// Set 1's along the subdiagonal of all rows except the three
 			// rows for the the main system variables.
 			if(!((i==0) || (i==mt) || (i==(2*mt)))){
@@ -494,7 +475,7 @@ void CalcUpsilon(gsl_matrix** Upsilon, double* PAPtr,
 		temp = gsl_vector_get(Pdif,(k+thetap-thetas)%thetap)*sumkplus;
 		gsl_matrix_set(Upsilon[k],2*mt,thetas-1,temp);
 		gsl_matrix_set(Upsilon[k],2*mt,mt+thetas-1,-temp);
-		for (l=1; l <= tau-1; l++){
+		for (int l=1; l <= tau-1; l++){
 			temp = gsl_vector_get(Pdif,(k+thetap-thetas-l)%thetap)*sumklplus[l-1];
 			gsl_matrix_set(Upsilon[k],2*mt, thetas+l-1, temp);
 			gsl_matrix_set(Upsilon[k],2*mt, mt+thetas+l-1, -temp);
@@ -503,10 +484,6 @@ void CalcUpsilon(gsl_matrix** Upsilon, double* PAPtr,
 		temp = Pdf + gsl_matrix_get(Upsilon[k], 2*mt, 2*mt+tau-1);
 		gsl_matrix_set(Upsilon[k], 2*mt, 2*mt+tau-1, temp);
 	}
-
-	// Reference pointers.
-	*PAPtr = PA;
-	*PAiPtr = PAi;
 
 	// Deallocate memory for vectors
 	gsl_vector_free(Pdif);

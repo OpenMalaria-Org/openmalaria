@@ -58,8 +58,8 @@ double CalcInitMosqEmergeRate(
 	const std::vector<double> Nv0Init // Nv0 (length n)
 );
 
-void CalcUpsilon(gsl_matrix** Upsilon, double* PAPtr,
-		double* PAiPtr, int thetap, int eta, int mt, int tau,
+void CalcUpsilon(gsl_matrix** Upsilon, double &PA,
+		double &PAi, int thetap, int eta, int mt, int tau,
 		int thetas, int n, int m, const double* Ni, const double* alphai,
 		double muvA, double thetad, const double* PBi, const double* PCi, const double* PDi,
 		double PEi, const gsl_matrix* Kvi);
