@@ -191,15 +191,22 @@ public:
 
     bool estimate(AnophelesModel &m, const vector<double> &laggedKappa, double meanAvail) override
     {
-        //double *mosqEmergerateVector = m.mosqEmergeRate.data();//transmission.emergence->getEmergenceRate().internal().data();
-        //int daysInYear = 365; //transmission.emergence->getEmergenceRate().internal().size(); // 365? 73? stepsInYear?
-        int EIPDuration = m.mosq.EIPDuration; //.inDays();
-        int nHostTypesInit = 1; // + types of non human hosts NOT USED in calcUpsionOneHost
-        int nMalHostTypesInit = 1; // NOT USED in calcUpsionOneHost
-        double popSize = populationSize;
-        double hostAvailabilityRateInit = m.initAvail * meanAvail; // ?
+        std::vector<double> &mosqEmergeRateVector = m.mosqEmergeRate;
+        int thetap = sim::DAYS_IN_YEAR;
+        int tau = m.mosq.restDuration;
+        int thetas = m.mosq.EIPDuration;
+        int nHost = 1;
+        int nMalHost = 1;
+        std::vector<double> Ni{static_cast<double>(populationSize)};
+        std::vector<double> alphai{m.initAvail * meanAvail};
+        double muvA = m.mosq.seekingDeathRate;
+        double thetad = m.mosq.seekingDuration;
+        std::vector<double> PBi{m.mosq.probBiting};
+        std::vector<double> PCi{m.mosq.probFindRestSite};
+        std::vector<double> PDi{m.mosq.probResting};
+        double PEi = m.mosq.probOvipositing;
 
-        std::vector<double> Kvi365(365);
+        std::vector<double> Kvi(thetap);
 
         // Linear interpolation of LaggedKappa from 73 time-steps to daily resolution
         for (size_t i = 0; i < laggedKappa.size(); ++i) {
@@ -211,33 +218,30 @@ public:
 
             for (size_t d = start; d < end; ++d) {
                 double t = double(d - start) / 5.0;
-                Kvi365[d] = (1.0 - t) * v0 + t * v1;
+                Kvi[d] = (1.0 - t) * v0 + t * v1;
             }
         }
 
-        double *FHumanInfectivityInitVector = Kvi365.data();
-        double *FSvInitVector = m.forcedS_v.data();
-
+        std::vector<double> &svInit = m.forcedS_v;
         std::vector<double> NvOguess(m.mosqEmergeRate.begin(), m.mosqEmergeRate.end());
-        double *FMosqEmergeRateInitEstimateVector = NvOguess.data();
 
-        CalcInitMosqEmergeRate(m.mosqEmergeRate, 
-            sim::DAYS_IN_YEAR,
-            m.mosq.restDuration, 
-            EIPDuration, 
-            nHostTypesInit,
-            nMalHostTypesInit, 
-            &popSize, 
-            &hostAvailabilityRateInit, 
-            m.mosq.seekingDeathRate,
-            m.mosq.seekingDuration, 
-            &m.mosq.probBiting,
-            &m.mosq.probFindRestSite, 
-            &m.mosq.probResting,
-            m.mosq.probOvipositing, 
-            FHumanInfectivityInitVector,
-            FSvInitVector, 
-            FMosqEmergeRateInitEstimateVector);
+        CalcInitMosqEmergeRate(mosqEmergeRateVector, 
+            thetap,
+            tau, 
+            thetas, 
+            nHost,
+            nMalHost, 
+            Ni, 
+            alphai, 
+            muvA,
+            thetad, 
+            PBi,
+            PCi, 
+            PDi,
+            PEi, 
+            Kvi,
+            svInit, 
+            NvOguess);
         
         return false;
     }

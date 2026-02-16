@@ -45,17 +45,18 @@ double CalcInitMosqEmergeRate(
 	int thetas, // $\theta_s$: EIPDuration
 	int n, // $n$: nHostTypes
 	int m, // $m$: nMalHostTypes
-	double* popSizeInitPtr, 
-	double* hostAvailabilityRateInitPtr, 
+	const std::vector<double> &Ni, // $N_i$: popSize (length n)
+	const std::vector<double> &alphai, // $\alpha_i$: hostAvailabilityRate	(length n)
 	double muvA, // $\mu_{vA}: mosqSeekingDeathRate
 	double thetad, // $\theta_d$: mosqSeekingDuration
-	double* mosqProbBitingPtr,
-	double* mosqProbFindRestSitePtr, 
-	double* mosqProbRestingPtr,
+	const std::vector<double> &PBi, // $P_{B_i}$: mosqProbBiting (length n)
+	const std::vector<double> &PCi, // $P_{C_i}$: mosqProbFindRestSite (length n)
+	const std::vector<double> &PDi, // $P_{D_i}$: mosqProbResting (length n)
 	double PEi, // $P_{E_i}$: mosqProbOvipositing -- assumed not affected by nhh
-	double* FHumanInfectivityInitVector,
-	double* FSvInitVector, 
-	double* FMosqEmergeRateInitEstimateVector);
+	const std::vector<double> KviInit, // Kvi: (size n * thetap),
+	const std::vector<double> SvInit, // Sv (length n), 
+	const std::vector<double> Nv0Init // Nv0 (length n)
+);
 
 void CalcUpsilon(gsl_matrix** Upsilon, double* PAPtr,
 		double* PAiPtr, int thetap, int eta, int mt, int tau,
@@ -75,12 +76,12 @@ void CalcInv1minusA(gsl_matrix* inv1A, gsl_matrix* A, int n);
 
 double binomial(int n, int k);
 
-void CalcCGSLMatrixFromCArray(gsl_matrix* CMatrix, double* FArray, int nCols, int nRows);
+void CalcCGSLMatrixFromCArray(gsl_matrix* CMatrix, const double* FArray, int nCols, int nRows);
 
-void CalcCGSLMatrixFromFortranArray(gsl_matrix* CMatrix, double* FArray, int ColLength, int RowLength);
+void CalcCGSLMatrixFromFortranArray(gsl_matrix* CMatrix, const double* FArray, int ColLength, int RowLength);
 
 void CalcFortranArrayFromCGSLMatrix(gsl_matrix* CMatrix, double* FArray, int ColLength, int RowLength);
 
-void CalcCGSLVectorFromFortranArray(gsl_vector* CVector, double* FArray, int Length);
+void CalcCGSLVectorFromFortranArray(gsl_vector* CVector, const double* FArray, int Length);
 
 void mosqEmergeRateVector(gsl_vector* CVector, double* FArray, int Length);

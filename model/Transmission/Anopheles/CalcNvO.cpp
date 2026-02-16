@@ -77,17 +77,18 @@ double CalcInitMosqEmergeRate(
 	int thetas, // $\theta_s$: EIPDuration
 	int n, // $n$: nHostTypes
 	int m, // $m$: nMalHostTypes
-	double* popSizeInitPtr, 
-	double* hostAvailabilityRateInitPtr, 
+	const std::vector<double> &Ni, // $N_i$: popSize (length n)
+	const std::vector<double> &alphai, // $\alpha_i$: hostAvailabilityRate	(length n)
 	double muvA, // $\mu_{vA}: mosqSeekingDeathRate
 	double thetad, // $\theta_d$: mosqSeekingDuration
-	double* mosqProbBitingPtr,
-	double* mosqProbFindRestSitePtr, 
-	double* mosqProbRestingPtr,
+	const std::vector<double> &PBi, // $P_{B_i}$: mosqProbBiting (length n)
+	const std::vector<double> &PCi, // $P_{C_i}$: mosqProbFindRestSite (length n)
+	const std::vector<double> &PDi, // $P_{D_i}$: mosqProbResting (length n)
 	double PEi, // $P_{E_i}$: mosqProbOvipositing -- assumed not affected by nhh
-	double* FHumanInfectivityInitVector,
-	double* FSvInitVector, 
-	double* FMosqEmergeRateInitEstimateVector){
+	const std::vector<double> KviInit, // Kvi: (size n * thetap),
+	const std::vector<double> SvInit, // Sv (length n), 
+	const std::vector<double> Nv0Init // Nv0 (length n)
+	){
 
     /* Note that from here on we use the notation from "A Mathematical Model for the
 	 * Dynamics of Malaria in Mosquitoes Feeding on a Heterogeneous Host Population",
@@ -116,19 +117,10 @@ double CalcInitMosqEmergeRate(
 	 * flexibility.
 	 *
 	 */
-	int i;
-	
+
 	// We initialize the parameters below. Where possible, we also include the name
 	// given to the parameter in Fortran. We exclude 'Init' from the name - where
 	// the parameter name in the Fortran initialization contains 'Init'.
-
-	// Model Parameters (input parameters to entomological model).
-	// Please refer to Entomology.f for a more detailed description of these parameters.
-	const double* Ni;		// $N_i$: popSize				(length n)
-	const double* alphai;	// $\alpha_i$: hostAvailabilityRate	(length n)
-	const double* PBi;		// $P_{B_i}$: mosqProbBiting		(length n)
-	const double* PCi;		// $P_{C_i}$: mosqProbFindRestSite	(length n)
-	const double* PDi;		// $P_{D_i}$: mosqProbResting		(length n)
 
 	// (NOTE that for this function Nv0 is an OUT parameter). //
 	gsl_vector* Nv0;	// $N_{v0}$: mosqEmergeRate 
@@ -207,14 +199,6 @@ double CalcInitMosqEmergeRate(
 	// $(\mathbb{I}-X_{\theta_p})^{-1}$.
 	// The inverse of the identity matrix minus Xtp.
 	gsl_matrix* inv1Xtp;
-	
-	int status;
-
-	Ni = popSizeInitPtr;
-	alphai = hostAvailabilityRateInitPtr;
-	PBi = mosqProbBitingPtr;
-	PCi = mosqProbFindRestSitePtr;
-	PDi = mosqProbRestingPtr;
 
 	// Set up the variables that we use to index the system.
 	mt = thetas + tau -1;
@@ -252,9 +236,9 @@ double CalcInitMosqEmergeRate(
 	inv1Xtp = gsl_matrix_calloc(eta, eta);
 
 	// Set Kvi, Sv and Nv0guess
-	CalcCGSLMatrixFromCArray(Kvi, FHumanInfectivityInitVector, n, thetap);
-	CalcCGSLVectorFromFortranArray(SvfromEIR, FSvInitVector, thetap);
-	CalcCGSLVectorFromFortranArray(Nv0guess, FMosqEmergeRateInitEstimateVector, thetap);
+	CalcCGSLMatrixFromCArray(Kvi, KviInit.data(), n, thetap);
+	CalcCGSLVectorFromFortranArray(SvfromEIR, SvInit.data(), thetap);
+	CalcCGSLVectorFromFortranArray(Nv0guess, Nv0Init.data(), thetap);
 
 	// Initalize and reference pointers.
 	PA = 0;
@@ -269,7 +253,7 @@ double CalcInitMosqEmergeRate(
 	// may, then we will change the code accordingly. We will need to go through
 	// a lot of changes anyway. 
 	CalcUpsilon(Upsilon, PAPtr, PAiPtr, thetap, eta, mt, tau, thetas, 
-		n, m, Ni, alphai, muvA, thetad, PBi, PCi, PDi, PEi, Kvi);
+		n, m, Ni.data(), alphai.data(), muvA, thetad, PBi.data(), PCi.data(), PDi.data(), PEi, Kvi);
 
 	// Dereference PA and PAi from CalcUpsilon.
 	PA = *PAPtr;
@@ -308,7 +292,7 @@ double CalcInitMosqEmergeRate(
 	gsl_matrix_memcpy(JLU, J);
 	gsl_permutation* perm = gsl_permutation_alloc(thetap);
 	int signum = 0;
-	status = gsl_linalg_LU_decomp(JLU, perm, &signum);
+	int status = gsl_linalg_LU_decomp(JLU, perm, &signum);
 	if (status) {
 		printf("LU_decomp failed: %s\n", gsl_strerror(status));
 	}
@@ -336,7 +320,7 @@ double CalcInitMosqEmergeRate(
 	gsl_matrix_free(Xtp);
 	gsl_matrix_free(inv1Xtp);
 
-	for (i=0; i<thetap; i++)
+	for (int i=0; i<thetap; i++)
 		gsl_matrix_free(Upsilon[i]);
 
 	free(Upsilon);
@@ -916,7 +900,7 @@ void CalcFortranArrayFromCGSLMatrix(gsl_matrix* CMatrix, double* FArray,
  * CVector is an OUT parameter.
  * FArray is an IN parameter.
  */ 
-void CalcCGSLVectorFromFortranArray(gsl_vector* CVector, double* FArray, 
+void CalcCGSLVectorFromFortranArray(gsl_vector* CVector, const double* FArray, 
 				int Length){
 	int i; 
 	double temp; // Temporary value of i^{th} element.
@@ -930,7 +914,7 @@ void CalcCGSLVectorFromFortranArray(gsl_vector* CVector, double* FArray,
 
 /*********************************************************************/
 
-void CalcCGSLMatrixFromCArray(gsl_matrix* CMatrix, double* FArray,
+void CalcCGSLMatrixFromCArray(gsl_matrix* CMatrix, const double* FArray,
 				int nCols, int nRows){
 	int i;
 	int k;
