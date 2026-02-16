@@ -70,13 +70,6 @@ using namespace std;
  * mosqEmergeRateVector is an OUT parameter.
  * All other parameters are IN parameters.
  */
-
- 	int thetap; // $\theta_p$: daysInYear
-	int tau;	// $\tau$: mosqRestDuration
-	int thetas;	// $\theta_s$: EIPDuration
-	int n;		// $n$: nHostTypes
-	int m;		// $m$: nMalHostTypes
-
 double CalcInitMosqEmergeRate(
 	std::vector<double> &mosqEmergeRateVector, // output vector
 	int thetap, // $\theta_p$: daysInYear
@@ -131,12 +124,6 @@ double CalcInitMosqEmergeRate(
 
 	// Model Parameters (input parameters to entomological model).
 	// Please refer to Entomology.f for a more detailed description of these parameters.
-	//int thetap; // $\theta_p$: daysInYear
-	//int tau;	// $\tau$: mosqRestDuration
-	//int thetas;	// $\theta_s$: EIPDuration
-	//int n;		// $n$: nHostTypes
-	//int m;		// $m$: nMalHostTypes
-
 	const double* Ni;		// $N_i$: popSize				(length n)
 	const double* alphai;	// $\alpha_i$: hostAvailabilityRate	(length n)
 	const double* PBi;		// $P_{B_i}$: mosqProbBiting		(length n)
