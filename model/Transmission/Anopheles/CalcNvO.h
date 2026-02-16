@@ -74,13 +74,3 @@ double CalcSpectralRadius(gsl_matrix* A, int n);
 void CalcInv1minusA(gsl_matrix* inv1A, gsl_matrix* A, int n);
 
 double binomial(int n, int k);
-
-void CalcCGSLMatrixFromCArray(gsl_matrix* CMatrix, const double* FArray, int nCols, int nRows);
-
-void CalcCGSLMatrixFromFortranArray(gsl_matrix* CMatrix, const double* FArray, int ColLength, int RowLength);
-
-void CalcFortranArrayFromCGSLMatrix(gsl_matrix* CMatrix, double* FArray, int ColLength, int RowLength);
-
-void CalcCGSLVectorFromFortranArray(gsl_vector* CVector, const double* FArray, int Length);
-
-void mosqEmergeRateVector(gsl_vector* CVector, double* FArray, int Length);

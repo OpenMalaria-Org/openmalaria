@@ -123,7 +123,10 @@ double CalcInitMosqEmergeRate(
 
 	// (NOTE that for this function Nv0 is an OUT parameter). //
 	gsl_vector* Nv0;	// $N_{v0}$: mosqEmergeRate 
-	gsl_matrix* Kvi;	// $K_{vi}$: humanInfectivity (now n x thetap)
+
+	const auto Kvi_view = gsl_matrix_const_view_array(KviInit.data(), n, thetap);
+	const gsl_matrix* Kvi = &Kvi_view.matrix;
+
 
 	// Derived Parameters
 	// Probability that a mosquito survives one day of 
@@ -159,16 +162,11 @@ double CalcInitMosqEmergeRate(
 	// The periodic values of the number of infectious host-seeking mosquitoes.
 	gsl_vector* Svp;
 
-	// Other Parameters
-	// The initial estimate of the mosquito emergence rate. This is used
-	// by the root finding algorithm to calculate Nv0.
-	// Defined in Fortran as: MosqEmergeRateInitEstimate
-	gsl_vector* Nv0guess;	
-
 	// The number of infectious mosquitoes over every day of the cycle.
 	// calculated from the EIR data.
 	// $S_v$ (from EIR).
-	gsl_vector* SvfromEIR;
+	gsl_vector_const_view SvfromEIR_view = gsl_vector_const_view_array(SvInit.data(), thetap);
+	const gsl_vector* SvfromEIR = &SvfromEIR_view.vector;
 
 	// The set of thetap matrices that determine the dynamics of the system
 	// from one step to the next.
@@ -220,21 +218,13 @@ double CalcInitMosqEmergeRate(
 
 	// Allocate memory for gsl_vectors and initialize to 0.
 	Nv0 = gsl_vector_calloc(thetap); 
-	Nv0guess = gsl_vector_calloc(thetap);
-	SvfromEIR = gsl_vector_calloc(thetap);
-	// SvDiff = gsl_vector_calloc(thetap);
 	Nvp = gsl_vector_calloc(thetap);
 	Ovp = gsl_vector_calloc(thetap);
 	Svp = gsl_vector_calloc(thetap);
 
 	// Allocate memory for gsl_matrices and initialize to 0.
-	Kvi = gsl_matrix_calloc(n, thetap);
 	Xtp = gsl_matrix_calloc(eta, eta);
 	inv1Xtp = gsl_matrix_calloc(eta, eta);
-
-	// Set Kvi, Sv and Nv0guess
-	CalcCGSLMatrixFromCArray(Kvi, KviInit.data(), n, thetap);
-	CalcCGSLVectorFromFortranArray(SvfromEIR, SvInit.data(), thetap);
 
 	// Create matrices in Upsilon.
 	// We also define PA and PAi in the same routine. 
@@ -296,13 +286,10 @@ double CalcInitMosqEmergeRate(
 
 	// Deallocate memory for vectors and matrices.
 	gsl_vector_free(Nv0);
-	gsl_vector_free(Nv0guess);
-	gsl_vector_free(SvfromEIR);
 	gsl_vector_free(Nvp);
 	gsl_vector_free(Ovp);
 	gsl_vector_free(Svp);
 
-	gsl_matrix_free(Kvi);
 	gsl_matrix_free(Xtp);
 	gsl_matrix_free(inv1Xtp);
 
@@ -783,126 +770,3 @@ double binomial(int n, int k){
 	return bc;
 }
 /********************************************************************/
-
-
-/*******************************************************************/
-/* CalcCGSLMatrixFromFortranArray() returns a GSL matrix, defined
- * according to C convention from an array passed into C from 
- * Fortran.
- * 
- * We now define a function to return a matrix, defined according to 
- * C convention from a matrix defined in Fortran, but passed as  
- * one-dimensional array. We assume that the matrix (in both C and 
- * Fortran) consists of doubles. We would need to rewrite this function
- * for other data types. We also need to ensure that the relevant
- * matrices in Fortran consists of real*8.
- *
- * We assume that the array and matrix are defined appropriately, 
- * that is, they have the correct dimensions. We do not check for
- * errors resulting from differences in sizes.
- *
- * Wanda was the name of the fish, or so thought the little boy. But
- * the fish had no name.
- *
- * CMatrix is an OUT parameter.
- * FArray is an IN parameter.
- */ 
-void CalcCGSLMatrixFromFortranArray(gsl_matrix* CMatrix, double* FArray, 
-				int ColLength, int RowLength){
-	/* Note that ColLength is the number of rows
-	 *       and RowLength is the number of columns.
-	 */
-	int i; // We use i to refer to the row.
-	int j; // We use j to refer to the column.
-	double temp; // Temporary value of i,j element.
-
-	for (i=0; i<ColLength; i++){
-		for (j=0; j<RowLength; j++){
-			temp = FArray[i+j*ColLength];
-			gsl_matrix_set(CMatrix, i, j, temp);
-		}
-	}
-}
-/*********************************************************************/
-
-
-/*******************************************************************/
-/* CalcCFortranArrayfromCGSLMatrix() returns an array defined 
- * according to Fortran matrix convention from a GSL matrix.
- *
- * This function is currently only defined for doubles. We will
- * probably need to rewrite this if we use it for anything else.
- *
- * We assume that the array and matrix are defined appropriately, 
- * that is, they have the correct dimensions. We do not check for
- * errors resulting from differences in sizes.
- *
- * FArray is an OUT parameter.
- * CMatrix is an IN parameter.
- */ 
-void CalcFortranArrayFromCGSLMatrix(gsl_matrix* CMatrix, double* FArray, 
-				int ColLength, int RowLength){
-	/* Note that ColLength is the number of rows
-	 *       and RowLength is the number of columns.
-	 */
-					
-	int i;
-	int j;
-	double temp;
-
-	for (i=0; i<ColLength; i++){
-		for (j=0; j<RowLength; j++){
-			temp = gsl_matrix_get(CMatrix, i, j);
-			FArray[i+j*ColLength] = temp;
-		}
-	}
-}
-/********************************************************************/
-
-
-/*******************************************************************/
-/* CalcCGSLVectorFromFortranArray() returns a GSL vector, defined
- * according to C convention from an array passed into C from 
- * Fortran.
- * 
- * This function is currently only defined for doubles. We will
- * probably need to rewrite this if we use it for anything else.
- *
- * We assume that the array and vector are defined appropriately, 
- * that is, they have the correct dimensions. We do not check for
- * errors resulting from differences in sizes.
- *
- * CVector is an OUT parameter.
- * FArray is an IN parameter.
- */ 
-void CalcCGSLVectorFromFortranArray(gsl_vector* CVector, const double* FArray, 
-				int Length){
-	int i; 
-	double temp; // Temporary value of i^{th} element.
-
-
-	for (i=0; i<Length; i++){
-		temp = FArray[i];
-		gsl_vector_set(CVector, i, temp);
-	}
-}
-
-/*********************************************************************/
-
-void CalcCGSLMatrixFromCArray(gsl_matrix* CMatrix, const double* FArray,
-				int nCols, int nRows){
-	int i;
-	int k;
-	double temp; // Temporary value
-
-	// We assume host-major layout:
-	// FArray[i*nRows + k] = element (col=i, row=k)
-
-	for (i=0; i<nCols; i++){
-		for (k=0; k<nRows; k++){
-			temp = FArray[i*nRows + k];
-			gsl_matrix_set(CMatrix, i, k, temp);
-		}
-	}
-}
-
