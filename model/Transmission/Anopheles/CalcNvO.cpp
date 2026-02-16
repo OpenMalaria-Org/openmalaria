@@ -19,51 +19,6 @@
 
 /* Entomology model coordinator: Nakul Chitnis. */ 
 
-
-/* We need to be very careful with pointers. Arrays passed in from
- * Fortran will be passed as pointers. Any changes made to those pointers
- * in C will also change the values in Fortran. We should make copies of
- * those pointers into arrays in C and work with them as arrays. From
- * Fortran we can also pass pointers to arrays of 0's for those arrays
- * that we wish to pass from C to Fortran. I think this will work. Let's
- * see what happens...
- */ 
-
-/* We should also be careful between floats and doubles. Most of the 
- * variables in Fotran are defined as real - which would translate 
- * into floats. However, I think most of the C mathematics libraries
- * are probably for doubles so we should be careful about going back
- * and forth between these. Maybe make more variables real*8 in Fortran. 
- */ 
-
-
-/* We are currently trying to create arrays and two dimensional arrays.
- * It may make more sense to just create gsl_vectors and gsl_matrices.
- * This may be a problem when we define Upsilon as a three dimensional
- * array. Maybe there is some way of dealing with that in gsl - but
- * perhaps not. Let's deal with that later.
- */ 
-
-/* We use the naming convention that all arrays and matrices that come from 
- * Fortran and will be sent back to Fortran begin with 'F'. All vectors
- * and matrices that are created and used by C begin with 'C'.
- * Hopefully this will help to keep things less confusing
- * - although certainly not eliminate the confusion...
- */
-
-/* In C, the first index refers to the column and the second index to the 
- * row. This is stupid, but we have no choice. However, in our attempt to
- * be as consistent as possible, we always refer to the row by 'i' and to
- * the column by 'j'. We refer to the element in the i^{th} row and j^{th} 
- * column of matrix, A, by A(j,i). This is certainly not perfect, but 
- * perhaps the best that we can do.
- */ 
-
-
-/**************************************************************************
- ****************************  HEADERS ************************************
- **************************************************************************/
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -81,30 +36,6 @@
 #include "CalcNvO.h"
 
 using namespace std;
-
-/***************************************************************************
- *********************** STRUCTURE DEFINITIONS *****************************
- ***************************************************************************/
-
-// Structure that contains the parameters for the function used in the 
-// root-finding algorithm to find the emergence rate that matches the 
-// number of infectious host-seeking mosquitoes.
-struct SvDiffParams
-{
-	gsl_vector* SvfromEIR;
-	gsl_matrix** Upsilon;
-	gsl_matrix* inv1Xtp;
-	int eta;
-	int mt;
-	int thetap;
-};
-
-/***************************************************************************
- ************************ START SUBROUTINES HERE ***************************
- ***************************************************************************/
-
-
-/***************************************************************************/
 
 /* calcInitMosqEmergeRate() calculates the mosquito emergence rate given
  * all other parameters.
@@ -139,7 +70,6 @@ struct SvDiffParams
  * FMosqEmergeRateVector is an OUT parameter.
  * All other parameters are IN parameters.
  */
-
 double CalcInitMosqEmergeRate(double* FMosqEmergeRateVector, int* daysInYearPtr,
 				int* mosqRestDurationPtr, int* EIPDurationPtr, int* nHostTypesInitPtr,
 				int* nMalHostTypesInitPtr, double* popSizeInitPtr, 
@@ -148,8 +78,6 @@ double CalcInitMosqEmergeRate(double* FMosqEmergeRateVector, int* daysInYearPtr,
 				double* mosqProbFindRestSitePtr, double* mosqProbRestingPtr,
 				double* mosqProbOvipositingPtr, double* FHumanInfectivityInitVector,
 				double* FSvInitVector, double* FMosqEmergeRateInitEstimateVector){
-
-
 
     /* Note that from here on we use the notation from "A Mathematical Model for the
 	 * Dynamics of Malaria in Mosquitoes Feeding on a Heterogeneous Host Population",
@@ -241,9 +169,6 @@ double CalcInitMosqEmergeRate(double* FMosqEmergeRateVector, int* daysInYearPtr,
 	// The periodic values of the number of infectious host-seeking mosquitoes.
 	gsl_vector* Svp;
 
-
-
-
 	// Other Parameters
 	// The initial estimate of the mosquito emergence rate. This is used
 	// by the root finding algorithm to calculate Nv0.
@@ -264,7 +189,6 @@ double CalcInitMosqEmergeRate(double* FMosqEmergeRateVector, int* daysInYearPtr,
 	// from one step to the next.
 	// $\Lambda(t)$ (over all time , $t \in [1, \theta_p]$).
 	gsl_vector** Lambda;
-
 
 	// Parameters that help to describe the order of the system.
 	// Ask not why we call mt, mt. We use mt to index the system.
