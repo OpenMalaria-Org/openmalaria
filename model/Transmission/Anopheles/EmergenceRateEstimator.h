@@ -226,21 +226,21 @@ public:
         std::vector<double> NvOguess(m.mosqEmergeRate.begin(), m.mosqEmergeRate.end());
 
         CalcInitMosqEmergeRate(mosqEmergeRateVector, 
-            thetap,
-            tau, 
-            thetas, 
-            nHost,
-            nMalHost, 
-            Ni, 
-            alphai, 
-            muvA,
-            thetad, 
-            PBi,
-            PCi, 
-            PDi,
-            PEi, 
-            Kvi,
-            svInit
+            thetap, // $\theta_p$: daysInYear
+            tau, // $\tau$: mosqRestDuration
+            thetas, // $\theta_s$: EIPDuration
+            nHost, // $n$: nHostTypes
+            nMalHost, // $m$: nMalHostTypes
+            Ni, // $N_i$: popSize (length n)
+            alphai, // $\alpha_i$: hostAvailabilityRate	(length n)
+            muvA, // $\mu_{vA}: mosqSeekingDeathRate
+            thetad, // $\theta_d$: mosqSeekingDuration
+            PBi, // $P_{B_i}$: mosqProbBiting (length n)
+            PCi, // $P_{C_i}$: mosqProbFindRestSite (length n)
+            PDi, // $P_{D_i}$: mosqProbResting (length n)
+            PEi, // $P_{E_i}$: mosqProbOvipositing -- assumed not affected by nhh
+            Kvi, // Kvi (size n * thetap)
+            svInit // Sv (length n)
         );
         
         return false;
