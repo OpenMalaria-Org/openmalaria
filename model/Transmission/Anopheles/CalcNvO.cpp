@@ -85,7 +85,7 @@ double CalcInitMosqEmergeRate(
 	const std::vector<double> &PCi, // $P_{C_i}$: mosqProbFindRestSite (length n)
 	const std::vector<double> &PDi, // $P_{D_i}$: mosqProbResting (length n)
 	double PEi, // $P_{E_i}$: mosqProbOvipositing -- assumed not affected by nhh
-	const std::vector<double> KviInit, // Kvi: (size n * thetap)
+	const std::vector<double> KviInit, // Kvi (size n * thetap)
 	const std::vector<double> SvInit // Sv (length n)
 ){
     /* Note that from here on we use the notation from "A Mathematical Model for the
@@ -214,7 +214,7 @@ double CalcInitMosqEmergeRate(
 	CalcInv1minusA(inv1Xtp, Xtp, eta);
 
 	/************* Analytic solve: build Jacobian and solve linear system. **************/
-	printf("Solving linear system with analytic Jacobian (Nv0 -> Sv)\n");
+	printf("Solving linear system with analytic Jacobian (Nv0 -> Sv)... ");
 
 	gsl_matrix* J = gsl_matrix_calloc(thetap, thetap);
 	CalcSvJacobian(J, Upsilon, inv1Xtp, eta, mt, thetap);
@@ -230,7 +230,7 @@ double CalcInitMosqEmergeRate(
 	}
 	gsl_linalg_LU_solve(JLU, perm, SvfromEIR, Nv0);
 
-	printf("Post-solve\n");
+	printf("Done\n");
 
 	gsl_permutation_free(perm);
 	gsl_matrix_free(JLU);
@@ -297,51 +297,34 @@ void CalcUpsilon(std::vector<gsl_matrix*> &Upsilon, double &PA,
 		int thetas, int n, int m, const double* Ni, const double* alphai,
 		double muvA, double thetad, const double* PBi, const double* PCi, const double* PDi,
 		double PEi, const gsl_matrix* Kvi) {
-	// $P_{df}$: Probability that a mosquito finds a host on a given
-	// night and then completes the feeding cycle.
-	double Pdf; 
+
 	// $P_{dif}$: Probability that a mosquito finds a host on a given
 	// night and then completes the feeding cycle and gets infected.
-	gsl_vector* Pdif;
+	gsl_vector* Pdif = gsl_vector_calloc(thetap);
+
 	// $P_{duf}$: Probability that a mosquito finds a host on a given
 	// night and then completes the feeding cycle and does not get infected.
-	gsl_vector* Pduf; 
-	// The probability of a mosquito surviving the extrinsic incubation
-	// period. 
-	// This is the sum of j from 0 to k_+ in (2.3c).
-	double sumkplus; 
-	double* sumkplusPtr;
-
-	// This is an array of the sums from 0 to k_{l+} in (2.3c).
-	// Note that sumklplus here is defined as sumlv in MATLAB.
-	double* sumklplus;
-	sumklplus = (double *)malloc((tau-1)*sizeof(double));
-
-	double temp;
-
-	// Initialize gsl_vectors.
-	Pdif = gsl_vector_calloc(thetap);
-	Pduf = gsl_vector_calloc(thetap);
-
-	// ---- Generalization to n host types (including non-human) ----
+	gsl_vector* Pduf = gsl_vector_calloc(thetap);
 
 	// PA = exp(- (sum_i alpha_i N_i + mu_vA) * theta_d)
 	// (computed in the same "sum then exp" style as the original code)
-	temp = 0.0;
-	for (int i = 0; i < n; i++){
+	double temp = 0.0;
+	for (int i = 0; i < n; i++)
 		temp += alphai[i] * Ni[i];
-	}
+	
 	PA = exp(-(temp + muvA) * thetad);
 
 	// Keep PAi as a scalar for minimal changes:
 	// Probability of encountering one of the first m host types.
 	PAi = 0.0;
-	for (int i = 0; i < m; i++){
+	for (int i = 0; i < m; i++)
 		PAi += (1.0 - PA) * (alphai[i] * Ni[i]) / (temp + muvA);
-	}
+
+	// $P_{df}$: Probability that a mosquito finds a host on a given
+	// night and then completes the feeding cycle.
+	double Pdf = 0.0;; 
 
 	// Pdf = sum_i PAi_i * PBi_i * PCi_i * PDi_i * PEi
-	Pdf = 0.0;
 	for (int i = 0; i < n; i++){
 		const double PAi_i = (1.0 - PA) * (alphai[i] * Ni[i]) / (temp + muvA);
 		Pdf += PAi_i * PBi[i] * PCi[i] * PDi[i] * PEi;
@@ -370,14 +353,19 @@ void CalcUpsilon(std::vector<gsl_matrix*> &Upsilon, double &PA,
 		gsl_vector_set(Pduf, k, Pdf - pdif_k);
 	}
 
-	sumkplus = 0;
-	sumkplusPtr = &sumkplus;
+	// The probability of a mosquito surviving the extrinsic incubation
+	// period. 
+	// This is the sum of j from 0 to k_+ in (2.3c).
+	double sumkplus = 0; 
+
+	// This is an array of the sums from 0 to k_{l+} in (2.3c).
+	// Note that sumklplus here is defined as sumlv in MATLAB.
+	double* sumklplus = (double *)malloc((tau-1)*sizeof(double));
 
 	// Calculate probabilities of mosquito surviving the extrinsic
 	// incubation period.]
 	// These currently do not depend on the phase of the period.
-	CalcPSTS(sumkplusPtr, sumklplus, thetas, tau, PA, Pdf);
-	sumkplus = *sumkplusPtr;
+	CalcPSTS(sumkplus, sumklplus, thetas, tau, PA, Pdf);
 
 	// We start creating the matrices now.
 	// Refer to Section 2.1 of JBD Paper for how this matrix is created.
@@ -527,50 +515,30 @@ void CalcSvJacobian(gsl_matrix* J, const std::vector<gsl_matrix*> &Upsilon, gsl_
  * sumkplusPtr and sumklplus are OUT parameters.
  * All other parameters are IN parameter.
  */ 
-void CalcPSTS(double* sumkplusPtr, double* sumklplus, int thetas,
+void CalcPSTS(double &sumkplus, double* sumklplus, int thetas,
 			  int tau, double PA, double Pdf){
-
-	int j;
-	int l;
-	int kplus;	// $k_+$ in model.
-	int klplus;	// $k_{l+}$ in model.
-	// int itemp;
-
-	double sumkplus;
-	double thetasd;
-	double taud;
-	double temp;
-	double tempbin;
-	double temppap;
-	double temppdfp;
-
-	taud = (double)tau;
-	thetasd = (double) thetas;
-
-	// klplus = (int *)malloc((tau-1)*sizeof(int)); Define temporarily.
-	kplus = (int) ((thetasd/taud)-1.); // = floor(thetas/tau)-1;
+	int kplus = thetas / tau - 1; // $k_+$ in model.
 
 	// Evaluate sumkplus
 	sumkplus = 0.;
-	for (j=0; j <= kplus; j++){
-		tempbin = binomial(thetas-(j+1)*tau+j,j);
-		temppap = pow(PA,thetas-(j+1)*tau);
-		temppdfp = pow(Pdf,j);
-		temp = tempbin*temppap*temppdfp;
+	for (int j=0; j <= kplus; j++){
+		double tempbin = binomial(thetas-(j+1)*tau+j,j);
+		double temppap = pow(PA,thetas-(j+1)*tau);
+		double temppdfp = pow(Pdf,j);
+		double temp = tempbin*temppap*temppdfp;
 		sumkplus=sumkplus+temp;
 	}
-	*sumkplusPtr = sumkplus;
 
 	// Evaluate sumklplus
-	for (l=1; l <= tau-1; l++){
-		klplus = (int) (((thetasd+l)/taud) - 2); // = floor((thetas+l)/tau)-2;
+	for (int l=1; l <= tau-1; l++){
+		int klplus = (thetas+l) / tau - 2; // $k_{l+}$ in model.
 		sumklplus[l-1] = 0;
 
-		for(j=0; j<=klplus; j++){
-			tempbin = binomial(thetas+l-(j+2)*tau+j,j);
-			temppap = pow(PA,thetas+l-(j+2)*tau);
-			temppdfp = pow(Pdf,j+1);
-			temp = tempbin*temppap*temppdfp;
+		for(int j=0; j<=klplus; j++){
+			double tempbin = binomial(thetas+l-(j+2)*tau+j,j);
+			double temppap = pow(PA,thetas+l-(j+2)*tau);
+			double temppdfp = pow(Pdf,j+1);
+			double temp = tempbin*temppap*temppdfp;
 			sumklplus[l-1] = sumklplus[l-1]+temp;
 		}
 	}
@@ -595,14 +563,11 @@ void CalcPSTS(double* sumkplusPtr, double* sumklplus, int thetas,
  * All other parameters are IN parameters.
  */ 
 void FuncX(gsl_matrix* X, const std::vector<gsl_matrix*> &Upsilon, int t, int s, int eta){
-
-	int i;
-
 	gsl_matrix* temp = gsl_matrix_calloc(eta, eta); 
 
 	gsl_matrix_set_identity(X);
 
-	for (i=s; i<t; i++){
+	for (int i=s; i<t; i++){
 		gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1.0, Upsilon[i], X, 0.0, temp);
 		gsl_matrix_memcpy(X, temp);
 	}
