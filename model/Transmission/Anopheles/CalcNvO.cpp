@@ -122,7 +122,7 @@ double CalcInitMosqEmergeRate(
 	// the parameter name in the Fortran initialization contains 'Init'.
 
 	// (NOTE that for this function Nv0 is an OUT parameter). //
-	gsl_vector* Nv0;	// $N_{v0}$: mosqEmergeRate 
+	gsl_vector* Nv0 = gsl_vector_calloc(thetap);	// $N_{v0}$: mosqEmergeRate 
 
 	const auto Kvi_view = gsl_matrix_const_view_array(KviInit.data(), n, thetap);
 	const gsl_matrix* Kvi = &Kvi_view.matrix;
@@ -146,21 +146,18 @@ double CalcInitMosqEmergeRate(
 	// type of host. 
 	double PAi = 0.0;
 
-	// Spectral Radius of Xtp
-	double srXtp;
-
 	// State variables.
 	// $x_p(t)$: The periodic orbit of all eta state variables.
-	gsl_vector** xp; 
+	gsl_vector** xp = (gsl_vector**) malloc(thetap*sizeof(gsl_vector*)); 
 	// $N_v^{(p)}(t)$. 
 	// The periodic values of the total number of host-seeking mosquitoes.
-	gsl_vector* Nvp;
+	gsl_vector* Nvp = gsl_vector_calloc(thetap);
 	// $O_v^{(p)}(t)$. 
 	// The periodic values of the number of infected host-seeking mosquitoes.
-	gsl_vector* Ovp;
+	gsl_vector* Ovp = gsl_vector_calloc(thetap);
 	// $S_v^{(p)}(t)$. 
 	// The periodic values of the number of infectious host-seeking mosquitoes.
-	gsl_vector* Svp;
+	gsl_vector* Svp = gsl_vector_calloc(thetap);
 
 	// The number of infectious mosquitoes over every day of the cycle.
 	// calculated from the EIR data.
@@ -171,56 +168,28 @@ double CalcInitMosqEmergeRate(
 	// The set of thetap matrices that determine the dynamics of the system
 	// from one step to the next.
 	// $\Upsilon(t)$ (over all time , $t \in [1, \theta_p]$).
-	gsl_matrix** Upsilon;
+	gsl_matrix** Upsilon = (gsl_matrix**) malloc(thetap*sizeof(gsl_matrix*));
 
 	// The set of thetap vectors that determine the forcing of the system
 	// from one step to the next.
 	// $\Lambda(t)$ (over all time , $t \in [1, \theta_p]$).
-	gsl_vector** Lambda;
+	gsl_vector** Lambda = (gsl_vector**) malloc(thetap*sizeof(gsl_vector*));
 
 	// Parameters that help to describe the order of the system.
-	// Ask not why we call mt, mt. We use mt to index the system.
 	// It is the maximum number of time steps we go back for $N_v$ and $O_v$. 
-	int mt;		
-	int eta;	// $\eta$: The order of the system.
+	int mt = thetas + tau -1;		
+	int eta = 2*mt + tau;	// $\eta$: The order of the system.
 
 	// $X_{\theta_p}$.
 	// The product of all the evolution matrices.
 	// $X_{\theta_p} = X(\theta_p+1,1)$. 
 	// Refer to Cushing (1995) and the paper for the periodic entomological model
 	// for more information.
-	gsl_matrix* Xtp;
+	gsl_matrix* Xtp = gsl_matrix_calloc(eta, eta);
 
 	// $(\mathbb{I}-X_{\theta_p})^{-1}$.
 	// The inverse of the identity matrix minus Xtp.
-	gsl_matrix* inv1Xtp;
-
-	// Set up the variables that we use to index the system.
-	mt = thetas + tau -1;
-	eta = 2*mt + tau;
-
-	// The set of thetap matrices that determine the dynamics of the system
-	// from one step to the next, that is, the system is described by,
-	// $x(t) = \Upsilon(t) x(t-1) = \Lambda(t)$.
-	// $\Upsilon(t)$ is defined over time, $1 \leq t \leq \theta_p$, 
-	// where $t \in \mathbb{N}$.
-	Upsilon = (gsl_matrix**) malloc(thetap*sizeof(gsl_matrix*));
-
-	// The set of thetap vectors that determine the forcing of the system
-	// at every time step.
-	// $\Lambda(t)$ is defined over time, $1 \leq t \leq \theta_p$, 
-	// where $t \in \mathbb{N}$.
-	Lambda = (gsl_vector**) malloc(thetap*sizeof(gsl_vector*));
-
-	// The full periodic orbit.
-	// $x_p(t)$.
-	xp = (gsl_vector**) malloc(thetap*sizeof(gsl_vector*));
-
-	// Allocate memory for gsl_vectors and initialize to 0.
-	Nv0 = gsl_vector_calloc(thetap); 
-	Nvp = gsl_vector_calloc(thetap);
-	Ovp = gsl_vector_calloc(thetap);
-	Svp = gsl_vector_calloc(thetap);
+	gsl_matrix* inv1Xtp = gsl_matrix_calloc(eta, eta);
 
 	// Allocate memory for gsl_matrices and initialize to 0.
 	Xtp = gsl_matrix_calloc(eta, eta);
@@ -241,7 +210,7 @@ double CalcInitMosqEmergeRate(
 	FuncX(Xtp, Upsilon, thetap, 0, eta);
 
 	// We should now find the spectral radius of Xtp and show that it's less than 1.
-	srXtp = CalcSpectralRadius(Xtp, eta);
+	double srXtp = CalcSpectralRadius(Xtp, eta);
 
 	// If the spectral radius of Xtp is greater than or equal to 1, then
 	// we are not guaranteed the existence of a unique globally asymptotically
