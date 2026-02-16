@@ -36,14 +36,26 @@
 #include <gsl/gsl_complex_math.h>
 #include <gsl/gsl_multiroots.h>
 
-double CalcInitMosqEmergeRate(double* FMosqEmergeRateVector, int* daysInYearPtr,
-				int* mosqRestDurationPtr, int* EIPDurationPtr, int* nHostTypesInitPtr,
-				int* nMalHostTypesInitPtr, double* popSizeInitPtr, 
-				double* hostAvailabilityRateInitPtr, double* mosqSeekingDeathRatePtr,
-				double* mosqSeekingDurationPtr, double* mosqProbBitingPtr,
-				double* mosqProbFindRestSitePtr, double* mosqProbRestingPtr,
-				double* mosqProbOvipositingPtr, double* FHumanInfectivityInitVector,
-				double* FEIRInitVector, double* FMosqEmergeRateInitEstimateVector);
+#include <vector>
+
+double CalcInitMosqEmergeRate(
+	std::vector<double> &mosqEmergeRateVector, // output vector
+	int thetap, // $\theta_p$: daysInYear
+	int tau, // $\tau$: mosqRestDuration
+	int thetas, // $\theta_s$: EIPDuration
+	int n, // $n$: nHostTypes
+	int m, // $m$: nMalHostTypes
+	double* popSizeInitPtr, 
+	double* hostAvailabilityRateInitPtr, 
+	double muvA, // $\mu_{vA}: mosqSeekingDeathRate
+	double thetad, // $\theta_d$: mosqSeekingDuration
+	double* mosqProbBitingPtr,
+	double* mosqProbFindRestSitePtr, 
+	double* mosqProbRestingPtr,
+	double PEi, // $P_{E_i}$: mosqProbOvipositing -- assumed not affected by nhh
+	double* FHumanInfectivityInitVector,
+	double* FSvInitVector, 
+	double* FMosqEmergeRateInitEstimateVector);
 
 void CalcUpsilon(gsl_matrix** Upsilon, double* PAPtr,
 		double* PAiPtr, int thetap, int eta, int mt, int tau,
@@ -71,4 +83,4 @@ void CalcFortranArrayFromCGSLMatrix(gsl_matrix* CMatrix, double* FArray, int Col
 
 void CalcCGSLVectorFromFortranArray(gsl_vector* CVector, double* FArray, int Length);
 
-void CalcFortranArrayFromCGSLVector(gsl_vector* CVector, double* FArray, int Length);
+void mosqEmergeRateVector(gsl_vector* CVector, double* FArray, int Length);

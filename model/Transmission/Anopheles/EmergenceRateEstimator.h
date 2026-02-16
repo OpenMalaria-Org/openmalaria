@@ -191,24 +191,14 @@ public:
 
     bool estimate(AnophelesModel &m, const vector<double> &laggedKappa, double meanAvail) override
     {
-        std::vector<double> avgAnnualS_v(sim::oneYear(), 0.0);
-        for (SimTime i = sim::fromYearsI(4); i < sim::fromYearsI(5); i = i + sim::oneDay())
-            avgAnnualS_v[mod_nn(i, sim::oneYear())] = m.quinquennialS_v[i];
-
-        double factor = vectors::sum(m.forcedS_v) / vectors::sum(avgAnnualS_v);
-
-        // cout << "fabs(Input S_v / Simulated S_v - 1.0): " << fabs(factor - 1.0) << endl;
-
-        double *mosqEmergerateVector = m.mosqEmergeRate.data();//transmission.emergence->getEmergenceRate().internal().data();
-        int daysInYear = 365; //transmission.emergence->getEmergenceRate().internal().size(); // 365? 73? stepsInYear?
+        //double *mosqEmergerateVector = m.mosqEmergeRate.data();//transmission.emergence->getEmergenceRate().internal().data();
+        //int daysInYear = 365; //transmission.emergence->getEmergenceRate().internal().size(); // 365? 73? stepsInYear?
         int EIPDuration = m.mosq.EIPDuration; //.inDays();
         int nHostTypesInit = 1; // + types of non human hosts NOT USED in calcUpsionOneHost
         int nMalHostTypesInit = 1; // NOT USED in calcUpsionOneHost
         double popSize = populationSize;
         double hostAvailabilityRateInit = m.initAvail * meanAvail; // ?
 
-        // vector<double> Kvi(daysInYear, laggedKappa[0]);
-        // vector<double> Kvi(laggedKappa.begin(), laggedKappa.end());
         std::vector<double> Kvi365(365);
 
         // Linear interpolation of LaggedKappa from 73 time-steps to daily resolution
@@ -226,66 +216,28 @@ public:
         }
 
         double *FHumanInfectivityInitVector = Kvi365.data();
-        // double *FEIRInitVector = m.speciesEIR.data();
         double *FSvInitVector = m.forcedS_v.data();
-
 
         std::vector<double> NvOguess(m.mosqEmergeRate.begin(), m.mosqEmergeRate.end());
         double *FMosqEmergeRateInitEstimateVector = NvOguess.data();
 
-        // cout << "daysInYear: " << daysInYear << endl;
-        // cout << "EIPDuration: " << EIPDuration << endl;
-        // cout << "nHostTypesInit: " << nHostTypesInit << endl;
-        // cout << "nMalHostTypesInit: " << nMalHostTypesInit << endl;
-        // cout << "popSizeInit: " << popSize << endl;
-        // cout << "hostAvailabilityRateInit: " << hostAvailabilityRateInit << endl;
-
-        // cout << "mosqSeekingDeathRate: " << m.mosq.seekingDeathRate << endl;
-        // cout << "mosqRestDuration: " << m.mosq.restDuration << endl;
-        // cout << "mosqSeekingDuration: " << m.mosq.seekingDuration << endl;
-        // cout << "mosqProbBiting: " << m.mosq.probBiting << endl;
-        // cout << "mosqProbFindRestSite: " << m.mosq.probFindRestSite << endl;
-        // cout << "mosqProbResting: " << m.mosq.probResting << endl;
-        // cout << "mosqProbOvipositing: " << m.mosq.probOvipositing << endl;
-
-        // cout << "FHumanInfectivityInitVector: " << Kvi.size() << endl;
-        // cout << "FEIRInitVector: " << m.speciesEIR.size() << endl;
-        // cout << "FMosqEmergeRateInitEstimateVector: " << NvOguess.size() << endl;
-
-        // cout << "initNv0FromSv: " << m.initNv0FromSv << endl;
-        // cout << "initSvFromEIR: " << m.initSvFromEIR << endl;
-
-        // cout << "sum(FEIRInitVector): " << vectors::sum(m.speciesEIR) << endl;
-        // cout << "Before Forced S_v: " << endl; 
-        // for(int i=0; i<5; i++)
-        //     cout << i << "\t" << m.forcedS_v[i] << endl;
-        
-        // cout << "Before Nv0: " << endl; 
-        // for(int i=0; i<5; i++)
-        //     cout << i << "\t" << m.mosqEmergeRate[i] << endl;
-
-        // cout << "initAvail: " << m.initAvail * populationSize << endl;
-        // cout << "initAvailMeanAge: " << m.initAvail * meanAvail * populationSize << endl;
-        // cout << "meanAvail: " << meanAvail << endl;
-        // cout << "EntoAvail: " << PerHostAnophParams::get(0).entoAvailability->mean() << " " << PerHostAnophParams::get(0).entoAvailabilityFactor * populationSize << endl;
-
-        CalcInitMosqEmergeRate(mosqEmergerateVector, &daysInYear,
-            &m.mosq.restDuration, &EIPDuration, &nHostTypesInit,
-            &nMalHostTypesInit, &popSize, 
-            &hostAvailabilityRateInit, &m.mosq.seekingDeathRate,
-            &m.mosq.seekingDuration, &m.mosq.probBiting,
-            &m.mosq.probFindRestSite, &m.mosq.probResting,
-            &m.mosq.probOvipositing, FHumanInfectivityInitVector,
-            FSvInitVector, FMosqEmergeRateInitEstimateVector);
-        
-
-        // cout << "After Forced S_v: " << endl; 
-        // for(int i=0; i<5; i++)
-        //     cout << i << "\t" << m.forcedS_v[i] << endl;
-        
-        // cout << "After Nv0: " << endl; 
-        // for(int i=0; i<5; i++)
-        //     cout << i << "\t" << m.mosqEmergeRate[i] << endl;
+        CalcInitMosqEmergeRate(m.mosqEmergeRate, 
+            sim::DAYS_IN_YEAR,
+            m.mosq.restDuration, 
+            EIPDuration, 
+            nHostTypesInit,
+            nMalHostTypesInit, 
+            &popSize, 
+            &hostAvailabilityRateInit, 
+            m.mosq.seekingDeathRate,
+            m.mosq.seekingDuration, 
+            &m.mosq.probBiting,
+            &m.mosq.probFindRestSite, 
+            &m.mosq.probResting,
+            m.mosq.probOvipositing, 
+            FHumanInfectivityInitVector,
+            FSvInitVector, 
+            FMosqEmergeRateInitEstimateVector);
         
         return false;
     }

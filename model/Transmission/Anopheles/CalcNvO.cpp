@@ -67,17 +67,34 @@ using namespace std;
  *
  * This function has a dummy return of 0.
  * 
- * FMosqEmergeRateVector is an OUT parameter.
+ * mosqEmergeRateVector is an OUT parameter.
  * All other parameters are IN parameters.
  */
-double CalcInitMosqEmergeRate(double* FMosqEmergeRateVector, int* daysInYearPtr,
-				int* mosqRestDurationPtr, int* EIPDurationPtr, int* nHostTypesInitPtr,
-				int* nMalHostTypesInitPtr, double* popSizeInitPtr, 
-				double* hostAvailabilityRateInitPtr, double* mosqSeekingDeathRatePtr,
-				double* mosqSeekingDurationPtr, double* mosqProbBitingPtr,
-				double* mosqProbFindRestSitePtr, double* mosqProbRestingPtr,
-				double* mosqProbOvipositingPtr, double* FHumanInfectivityInitVector,
-				double* FSvInitVector, double* FMosqEmergeRateInitEstimateVector){
+
+ 	int thetap; // $\theta_p$: daysInYear
+	int tau;	// $\tau$: mosqRestDuration
+	int thetas;	// $\theta_s$: EIPDuration
+	int n;		// $n$: nHostTypes
+	int m;		// $m$: nMalHostTypes
+
+double CalcInitMosqEmergeRate(
+	std::vector<double> &mosqEmergeRateVector, // output vector
+	int thetap, // $\theta_p$: daysInYear
+	int tau, // $\tau$: mosqRestDuration
+	int thetas, // $\theta_s$: EIPDuration
+	int n, // $n$: nHostTypes
+	int m, // $m$: nMalHostTypes
+	double* popSizeInitPtr, 
+	double* hostAvailabilityRateInitPtr, 
+	double muvA, // $\mu_{vA}: mosqSeekingDeathRate
+	double thetad, // $\theta_d$: mosqSeekingDuration
+	double* mosqProbBitingPtr,
+	double* mosqProbFindRestSitePtr, 
+	double* mosqProbRestingPtr,
+	double PEi, // $P_{E_i}$: mosqProbOvipositing -- assumed not affected by nhh
+	double* FHumanInfectivityInitVector,
+	double* FSvInitVector, 
+	double* FMosqEmergeRateInitEstimateVector){
 
     /* Note that from here on we use the notation from "A Mathematical Model for the
 	 * Dynamics of Malaria in Mosquitoes Feeding on a Heterogeneous Host Population",
@@ -114,20 +131,17 @@ double CalcInitMosqEmergeRate(double* FMosqEmergeRateVector, int* daysInYearPtr,
 
 	// Model Parameters (input parameters to entomological model).
 	// Please refer to Entomology.f for a more detailed description of these parameters.
-	int thetap; // $\theta_p$: daysInYear
-	int tau;	// $\tau$: mosqRestDuration
-	int thetas;	// $\theta_s$: EIPDuration
-	int n;		// $n$: nHostTypes
-	int m;		// $m$: nMalHostTypes
+	//int thetap; // $\theta_p$: daysInYear
+	//int tau;	// $\tau$: mosqRestDuration
+	//int thetas;	// $\theta_s$: EIPDuration
+	//int n;		// $n$: nHostTypes
+	//int m;		// $m$: nMalHostTypes
 
 	const double* Ni;		// $N_i$: popSize				(length n)
 	const double* alphai;	// $\alpha_i$: hostAvailabilityRate	(length n)
-	double muvA;	// $\mu_{vA}$: mosqSeekingDeathRate
-	double thetad;	// $\theta_d$: mosqSeekingDuration
 	const double* PBi;		// $P_{B_i}$: mosqProbBiting		(length n)
 	const double* PCi;		// $P_{C_i}$: mosqProbFindRestSite	(length n)
 	const double* PDi;		// $P_{D_i}$: mosqProbResting		(length n)
-	double PEi;		// $P_{E_i}$: mosqProbOvipositing
 
 	// (NOTE that for this function Nv0 is an OUT parameter). //
 	gsl_vector* Nv0;	// $N_{v0}$: mosqEmergeRate 
@@ -209,22 +223,11 @@ double CalcInitMosqEmergeRate(double* FMosqEmergeRateVector, int* daysInYearPtr,
 	
 	int status;
 
-	// Dereference pointers.
-	thetap = *daysInYearPtr;
-	tau = *mosqRestDurationPtr;
-	thetas = *EIPDurationPtr;
-	n = *nHostTypesInitPtr;
-	m = *nMalHostTypesInitPtr;
-	
-	muvA = *mosqSeekingDeathRatePtr;
-	thetad = *mosqSeekingDurationPtr;
-
 	Ni = popSizeInitPtr;
 	alphai = hostAvailabilityRateInitPtr;
 	PBi = mosqProbBitingPtr;
 	PCi = mosqProbFindRestSitePtr;
 	PDi = mosqProbRestingPtr;
-	PEi = *mosqProbOvipositingPtr;
 
 	// Set up the variables that we use to index the system.
 	mt = thetas + tau -1;
@@ -331,7 +334,8 @@ double CalcInitMosqEmergeRate(double* FMosqEmergeRateVector, int* daysInYearPtr,
 	gsl_matrix_free(J);
 
 	// Copy the mosquito emergence rate to the Fortran vector.
-	CalcFortranArrayFromCGSLVector(Nv0, FMosqEmergeRateVector, thetap);
+	for (int i = 0; i < thetap; ++i)
+    	mosqEmergeRateVector[i] = gsl_vector_get(Nv0, i);
 
 	// Deallocate memory for vectors and matrices.
 	gsl_vector_free(Nv0);
@@ -955,35 +959,4 @@ void CalcCGSLMatrixFromCArray(gsl_matrix* CMatrix, double* FArray,
 		}
 	}
 }
-
-
-
-/*******************************************************************/
-/* CalcCFortranArrayfromCGSLVector() returns an array defined 
- * according to Fortran matrix convention from a GSL vector.
- *
- * This function is currently only defined for doubles. We will
- * probably need to rewrite this if we use it for anything else.
- *
- * We assume that the array and vector are defined appropriately, 
- * that is, they have the correct dimensions. We do not check for
- * errors resulting from differences in sizes.
- *
- * FArray is an OUT parameter.
- * CVector is an IN parameter.
- */ 
-void CalcFortranArrayFromCGSLVector(gsl_vector* CVector, double* FArray, 
-				int Length){
-	int i; 
-	double temp; // Temporary value of i^{th} element.
-
-
-	for (i=0; i<Length; i++){
-		temp = gsl_vector_get(CVector, i);
-		FArray[i] = temp;
-		
-	}
-}
-/********************************************************************/
-
 
