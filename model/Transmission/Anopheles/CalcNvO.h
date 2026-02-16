@@ -57,17 +57,17 @@ double CalcInitMosqEmergeRate(
 	const std::vector<double> SvInit // Sv (length n)
 );
 
-void CalcUpsilon(gsl_matrix** Upsilon, double &PA,
+void CalcUpsilon(std::vector<gsl_matrix*> &Upsilon, double &PA,
 		double &PAi, int thetap, int eta, int mt, int tau,
 		int thetas, int n, int m, const double* Ni, const double* alphai,
 		double muvA, double thetad, const double* PBi, const double* PCi, const double* PDi,
 		double PEi, const gsl_matrix* Kvi);
 
-void CalcSvJacobian(gsl_matrix* J, gsl_matrix** Upsilon, gsl_matrix* inv1Xtp, int eta, int mt, int thetap);
+void CalcSvJacobian(gsl_matrix* J, const std::vector<gsl_matrix*> &Upsilon, gsl_matrix* inv1Xtp, int eta, int mt, int thetap);
 
 void CalcPSTS(double* sumkplusPtr, double* sumklplus, int thetas, int tau, double PA, double Pdf);
 
-void FuncX(gsl_matrix* X, gsl_matrix** Upsilon, int t, int s, int n);
+void FuncX(gsl_matrix* X, const std::vector<gsl_matrix*> &Upsilon, int t, int s, int n);
 
 double CalcSpectralRadius(gsl_matrix* A, int n);
 

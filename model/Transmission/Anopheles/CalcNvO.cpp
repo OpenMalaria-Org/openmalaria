@@ -144,7 +144,7 @@ double CalcInitMosqEmergeRate(
 	// The set of thetap matrices that determine the dynamics of the system
 	// from one step to the next.
 	// $\Upsilon(t)$ (over all time , $t \in [1, \theta_p]$).
-	gsl_matrix** Upsilon = (gsl_matrix**) malloc(thetap*sizeof(gsl_matrix*));
+	std::vector<gsl_matrix*> Upsilon(thetap, nullptr);
 
 	// The set of thetap vectors that determine the forcing of the system
 	// from one step to the next.
@@ -247,7 +247,6 @@ double CalcInitMosqEmergeRate(
 	for (int i=0; i<thetap; i++)
 		gsl_matrix_free(Upsilon[i]);
 
-	free(Upsilon);
 	free(Lambda);
 	free(xp);
 
@@ -293,7 +292,7 @@ double CalcInitMosqEmergeRate(
  * Upsilon, PAPtr, and PAiPtr are OUT parameters.
  * All other parameters are IN parameters.
  */ 
-void CalcUpsilon(gsl_matrix** Upsilon, double &PA,
+void CalcUpsilon(std::vector<gsl_matrix*> &Upsilon, double &PA,
 		double &PAi, int thetap, int eta, int mt, int tau,
 		int thetas, int n, int m, const double* Ni, const double* alphai,
 		double muvA, double thetad, const double* PBi, const double* PCi, const double* PDi,
@@ -442,7 +441,7 @@ void CalcUpsilon(gsl_matrix** Upsilon, double &PA,
  *  - x0 = (I - Xtp)^{-1} * sum_s X(thetap, s+1) * Lambda[s]
  *  - xp recursion: xp[t] = Upsilon[t-1] * xp[t-1] + Lambda[t-1]
  */
-void CalcSvJacobian(gsl_matrix* J, gsl_matrix** Upsilon, gsl_matrix* inv1Xtp,
+void CalcSvJacobian(gsl_matrix* J, const std::vector<gsl_matrix*> &Upsilon, gsl_matrix* inv1Xtp,
 					int eta, int mt, int thetap){
 
 	const int indexSv = 2 * mt;
@@ -595,7 +594,7 @@ void CalcPSTS(double* sumkplusPtr, double* sumklplus, int thetas,
  * X is an OUT parameter.
  * All other parameters are IN parameters.
  */ 
-void FuncX(gsl_matrix* X, gsl_matrix** Upsilon, int t, int s, int eta){
+void FuncX(gsl_matrix* X, const std::vector<gsl_matrix*> &Upsilon, int t, int s, int eta){
 
 	int i;
 
