@@ -87,8 +87,7 @@ double CalcInitMosqEmergeRate(
 	double PEi, // $P_{E_i}$: mosqProbOvipositing -- assumed not affected by nhh
 	const std::vector<double> KviInit, // Kvi: (size n * thetap)
 	const std::vector<double> SvInit // Sv (length n)
-	){
-
+){
     /* Note that from here on we use the notation from "A Mathematical Model for the
 	 * Dynamics of Malaria in Mosquitoes Feeding on a Heterogeneous Host Population",
 	 * and (the publication with the periodic model - yet to be written).
@@ -117,34 +116,11 @@ double CalcInitMosqEmergeRate(
 	 *
 	 */
 
-	// We initialize the parameters below. Where possible, we also include the name
-	// given to the parameter in Fortran. We exclude 'Init' from the name - where
-	// the parameter name in the Fortran initialization contains 'Init'.
-
-	// (NOTE that for this function Nv0 is an OUT parameter). //
-	gsl_vector* Nv0 = gsl_vector_calloc(thetap);	// $N_{v0}$: mosqEmergeRate 
+	gsl_vector_view Nv0_view = gsl_vector_view_array(mosqEmergeRateVector.data(), thetap);
+	gsl_vector* Nv0 = &Nv0_view.vector; // $N_{v0}$: mosqEmergeRate 
 
 	const auto Kvi_view = gsl_matrix_const_view_array(KviInit.data(), n, thetap);
 	const gsl_matrix* Kvi = &Kvi_view.matrix;
-
-
-	// Derived Parameters
-	// Probability that a mosquito survives one day of 
-	// host-seeking but does not find a host. 
-	// Dimensionless.
-	// $P_A$ in model. Vector of length $\theta_p$.
-	// For now, we assume that this is a double - we can change 
-	// it later (no dependence on the phase of the period).
-	double PA = 0.0;		
-	
-	// Probability that on a given day, a mosquito finds a host 
-	// of type $i$. 
-	// Dimensionless.
-	// $P_{A^i}$ in model. Matrix of size $n \times \theta_p$.
-	// For now, we assume that this  is  a double: 
-	// - no dependence on the phase of the period - or the
-	// type of host. 
-	double PAi = 0.0;
 
 	// State variables.
 	// $x_p(t)$: The periodic orbit of all eta state variables.
@@ -194,6 +170,17 @@ double CalcInitMosqEmergeRate(
 	// Allocate memory for gsl_matrices and initialize to 0.
 	Xtp = gsl_matrix_calloc(eta, eta);
 	inv1Xtp = gsl_matrix_calloc(eta, eta);
+
+	// Probability that a mosquito survives one day of host-seeking but does not find a host. 
+	// Dimensionless.
+	// $P_A$ in model. Vector of length $\theta_p$.
+	double PA = 0.0;		
+	
+	// Probability that on a given day, a mosquito finds a host of type $i$. 
+	// Dimensionless.
+	// $P_{A^i}$ in model. Matrix of size $n \times \theta_p$.
+	// - no dependence on the phase of the period - or the type of host. 
+	double PAi = 0.0;
 
 	// Create matrices in Upsilon.
 	// We also define PA and PAi in the same routine. 
@@ -249,12 +236,7 @@ double CalcInitMosqEmergeRate(
 	gsl_matrix_free(JLU);
 	gsl_matrix_free(J);
 
-	// Copy the mosquito emergence rate to the Fortran vector.
-	for (int i = 0; i < thetap; ++i)
-    	mosqEmergeRateVector[i] = gsl_vector_get(Nv0, i);
-
 	// Deallocate memory for vectors and matrices.
-	gsl_vector_free(Nv0);
 	gsl_vector_free(Nvp);
 	gsl_vector_free(Ovp);
 	gsl_vector_free(Svp);
