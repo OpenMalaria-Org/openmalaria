@@ -344,7 +344,7 @@ inline VectorModel *createVectorModel(const scnXml::Entomology &entoData, int po
 
         Anopheles::AnophelesModel *anophModel = createAnophelesModel(i, anoph, initialisationEIR, populationSize, interventionMode);
         // Anopheles::EmergenceRateAdaptiveFitter *estimator = new Anopheles::EmergenceRateAdaptiveFitter(*anophModel);
-        Anopheles::EmergenceRateRootFindingSolver *estimator = new Anopheles::EmergenceRateRootFindingSolver(*anophModel, populationSize);
+        Anopheles::EmergenceRateSolver *estimator = new Anopheles::EmergenceRateSolver(*anophModel, populationSize);
 
         species.push_back(std::unique_ptr<Anopheles::AnophelesModel>(anophModel));
         emergenceRateEstimators.push_back(std::unique_ptr<Anopheles::EmergenceRateEstimator>(estimator));

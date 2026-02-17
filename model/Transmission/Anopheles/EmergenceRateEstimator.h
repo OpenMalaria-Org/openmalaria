@@ -184,10 +184,10 @@ private:
     bool rotated, scaled;
 };
 
-class EmergenceRateRootFindingSolver final : public EmergenceRateEstimator
+class EmergenceRateSolver final : public EmergenceRateEstimator
 {
 public:
-    EmergenceRateRootFindingSolver(AnophelesModel &m, int populationSize) : populationSize(populationSize) {}
+    EmergenceRateSolver(AnophelesModel &m, int populationSize) : populationSize(populationSize) {}
 
     bool estimate(AnophelesModel &m, const vector<double> &laggedKappa, double meanAvail) override
     {
