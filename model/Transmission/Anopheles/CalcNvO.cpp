@@ -35,6 +35,155 @@
 
 #include "CalcNvO.h"
 
+// Regularized smoothness solve for Nv0:
+//   x = argmin ||J x - S||_2^2 + lambda * ||D2 x||_2^2
+// where D2 is the *periodic* second-difference operator.
+// Solves (J^T J + lambda * (D2^T D2)) x = J^T S via Cholesky (SPD).
+//
+// Requires GSL: <gsl/gsl_blas.h>, <gsl/gsl_linalg.h>
+
+#include <algorithm>
+#include <cmath>
+#include <gsl/gsl_blas.h>
+#include <gsl/gsl_linalg.h>
+
+static inline int modp(int i, int n) {
+    int r = i % n;
+    return (r < 0) ? r + n : r;
+}
+
+// Adds lambda * (D2^T D2) to A in-place, with periodic boundary conditions.
+// (D2^T D2) has 5-point stencil: [ +1, -4, +6, -4, +1 ] on offsets [-2,-1,0,+1,+2].
+static void add_periodic_D2tD2(gsl_matrix* A, double lambda) {
+    const int n = static_cast<int>(A->size1);
+    // A is assumed square n×n
+    for (int i = 0; i < n; ++i) {
+        const int im2 = modp(i - 2, n);
+        const int im1 = modp(i - 1, n);
+        const int ip1 = modp(i + 1, n);
+        const int ip2 = modp(i + 2, n);
+
+        // Diagonal
+        gsl_matrix_set(A, i, i,   gsl_matrix_get(A, i, i)   + lambda * 6.0);
+        // First off-diagonals
+        gsl_matrix_set(A, i, im1, gsl_matrix_get(A, i, im1) + lambda * (-4.0));
+        gsl_matrix_set(A, i, ip1, gsl_matrix_get(A, i, ip1) + lambda * (-4.0));
+        // Second off-diagonals
+        gsl_matrix_set(A, i, im2, gsl_matrix_get(A, i, im2) + lambda * 1.0);
+        gsl_matrix_set(A, i, ip2, gsl_matrix_get(A, i, ip2) + lambda * 1.0);
+    }
+}
+
+// Solves for x (length n):
+//   (J^T J + lambda * D2^T D2) x = J^T S
+// J is n×n (your thetap×thetap Jacobian).
+// S is length n (SvfromEIR).
+// x must be allocated length n.
+// If clip_nonneg=true, negative entries are set to 0 after solve.
+static int solve_Nv0_smooth_reg(
+    gsl_vector* x,
+    const gsl_matrix* J,
+    const gsl_vector* S,
+    double lambdaD2
+) {
+    const int n = static_cast<int>(J->size1);
+    if (J->size2 != (size_t)n || S->size != (size_t)n || x->size != (size_t)n) {
+        return GSL_EBADLEN;
+    }
+    if (lambdaD2 < 0.0) {
+        return GSL_EDOM;
+    }
+
+    // A = J^T J
+    gsl_matrix* A = gsl_matrix_calloc(n, n);
+    // A := 1.0 * J^T * J + 0.0 * A
+    gsl_blas_dgemm(CblasTrans, CblasNoTrans, 1.0, J, J, 0.0, A);
+
+    // Add lambda * (D2^T D2)
+	if (lambdaD2 > 0.0) add_periodic_D2tD2(A, lambdaD2);
+
+    // rhs = J^T S
+    gsl_vector* rhs = gsl_vector_calloc(n);
+    gsl_blas_dgemv(CblasTrans, 1.0, J, S, 0.0, rhs);
+
+    // Solve A x = rhs (A should be SPD if lambdaSmooth>0; also often SPD even without)
+    int status = 0;
+
+    // Try Cholesky first
+    gsl_matrix* Achol = gsl_matrix_alloc(n, n);
+    gsl_matrix_memcpy(Achol, A);
+    status = gsl_linalg_cholesky_decomp(Achol);
+    if (status == 0) {
+        gsl_vector_memcpy(x, rhs);
+        status = gsl_linalg_cholesky_solve(Achol, rhs, x);
+    } else {
+        // Fallback: LU (less ideal but avoids hard failure)
+        gsl_matrix* ALU = gsl_matrix_alloc(n, n);
+        gsl_matrix_memcpy(ALU, A);
+        gsl_permutation* p = gsl_permutation_alloc(n);
+        int signum = 0;
+        status = gsl_linalg_LU_decomp(ALU, p, &signum);
+        if (status == 0) {
+            status = gsl_linalg_LU_solve(ALU, p, rhs, x);
+        }
+        gsl_permutation_free(p);
+        gsl_matrix_free(ALU);
+    }
+
+    gsl_matrix_free(Achol);
+    gsl_matrix_free(A);
+    gsl_vector_free(rhs);
+    return status;
+}
+
+// Drop-in: choose lambdaSmooth automatically from J using SVD.
+// Idea:
+//   You solve (J^T J + lambda * D2^T D2) x = J^T S
+//   J^T J has eigenvalues sigma_i^2 (sigma_i singular values of J).
+//   D2^T D2 (periodic second-difference) has eigenvalues mu_k in [0, 16].
+// We pick an "effective cutoff" sigma_c = sigma_max / kappa_target,
+// and choose lambda so that lambda * mu_max ~= sigma_c^2, i.e.
+//   lambda = (sigma_max / kappa_target)^2 / mu_max  with mu_max = 16.
+//
+// This yields a stable default without a sweep.
+// Tune kappa_target (1e4..1e6 typical); larger => weaker regularization.
+// Frobenius norm squared: ||J||_F^2
+static double frob_norm_sq(const gsl_matrix* M)
+{
+    double sum = 0.0;
+    for (size_t i = 0; i < M->size1; ++i) {
+        for (size_t j = 0; j < M->size2; ++j) {
+            const double v = gsl_matrix_get(M, i, j);
+            sum += v * v;
+        }
+    }
+    return sum;
+}
+
+// Compute lambdaSmooth = cSmooth * ||J||_F^2 / (6n)
+static double compute_lambdaSmooth_from_J(
+    const gsl_matrix* J,
+    double cSmooth,
+    bool print_diag = true)
+{
+    const double n = static_cast<double>(J->size1); // assume square n×n
+    const double JF2 = frob_norm_sq(J);
+    const double D2F2 = 6.0 * n;   // periodic second difference operator
+
+    double lambda = cSmooth * (JF2 / D2F2);
+
+    if (print_diag) {
+        printf("Scale-based lambda selection:\n");
+        printf("  ||J||_F^2 = %.6e\n", JF2);
+        printf("  n = %.0f\n", n);
+        printf("  ||D2||_F^2 = %.6e\n", D2F2);
+        printf("  cSmooth = %.6g\n", cSmooth);
+        printf("  lambdaSmooth = %.6e\n", lambda);
+    }
+
+    return lambda;
+}
+
 using namespace std;
 
 /* calcInitMosqEmergeRate() calculates the mosquito emergence rate given
@@ -219,21 +368,37 @@ double CalcInitMosqEmergeRate(
 	gsl_matrix* J = gsl_matrix_calloc(thetap, thetap);
 	CalcSvJacobian(J, Upsilon, inv1Xtp, eta, mt, thetap);
 
-	// Solve J * Nv0 = SvfromEIR
-	gsl_matrix* JLU = gsl_matrix_alloc(thetap, thetap);
-	gsl_matrix_memcpy(JLU, J);
-	gsl_permutation* perm = gsl_permutation_alloc(thetap);
-	int signum = 0;
-	int status = gsl_linalg_LU_decomp(JLU, perm, &signum);
-	if (status) {
-		printf("LU_decomp failed: %s\n", gsl_strerror(status));
+	// // Solve J * Nv0 = SvfromEIR
+	// gsl_matrix* JLU = gsl_matrix_alloc(thetap, thetap);
+	// gsl_matrix_memcpy(JLU, J);
+	// gsl_permutation* perm = gsl_permutation_alloc(thetap);
+	// int signum = 0;
+	// int status = gsl_linalg_LU_decomp(JLU, perm, &signum);
+	// if (status) {
+	// 	printf("LU_decomp failed: %s\n", gsl_strerror(status));
+	// }
+	// gsl_linalg_LU_solve(JLU, perm, SvfromEIR, Nv0);
+
+	// J: thetap×thetap Jacobian
+	// SvfromEIR: length thetap
+	// Nv0: length thetap
+
+	// Pick ONE constant (global) or per-species.
+	// If you want one global number, a good compromise from your runs is ~1.1e5.
+	// const double cSmooth = 1e5;
+
+	const double cSmooth = 1e5;
+	const double lambdaSmooth = compute_lambdaSmooth_from_J(J, cSmooth);
+
+	int st = solve_Nv0_smooth_reg(Nv0, J, SvfromEIR, lambdaSmooth);
+	if (st) {
+		printf("Smooth regularized Nv0 solve failed: %s\n", gsl_strerror(st));
 	}
-	gsl_linalg_LU_solve(JLU, perm, SvfromEIR, Nv0);
 
 	printf("Done\n");
 
-	gsl_permutation_free(perm);
-	gsl_matrix_free(JLU);
+	// gsl_permutation_free(perm);
+	// gsl_matrix_free(JLU);
 	gsl_matrix_free(J);
 
 	// Deallocate memory for vectors and matrices.
