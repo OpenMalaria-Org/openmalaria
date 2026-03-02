@@ -22,7 +22,7 @@
 
 #include "Host/WithinHost/Pathogenesis/Submodels.h"
 #include "Parameters.h"
-#include "mon/reporting.h"
+#include "mon/Monitoring.h"
 
 #include <cmath>
 using namespace std;

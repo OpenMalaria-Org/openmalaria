@@ -80,8 +80,7 @@ set (Model_CPP
   Host/WithinHost/Diagnostic.cpp
   Host/WithinHost/Treatments.cpp
   
-  mon/mon.cpp
-  mon/misc.cpp
+  mon/Monitoring.cpp
   mon/Continuous.cpp
   
   util/errors.cpp

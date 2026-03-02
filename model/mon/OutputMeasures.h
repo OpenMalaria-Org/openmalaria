@@ -20,96 +20,10 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  */
 
-#ifndef H_OM_mon_cpp
-// This is the only way we need to use this header:
-#error "Only include from mon.cpp"
-#endif
-
-#include "mon/reporting.h"      // for Measure enum
-#include <map>
-#include <string>
+#include "mon/Monitoring.h"
 
 namespace OM {
 namespace mon {
-
-// Describes each "measure" to be output
-struct OutMeasure{
-    // Number used in output to identify this measure/aggregation.
-    // This is what identifies this "measure".
-    int outId;
-    
-    // The following control what is reported by this measure:
-    // Set m to M_NUM for obsolete/special outputs
-    Measure m;  // internal measure (e.g. MHR_HOSTS) this comes from
-    bool isDouble;  // false: type is int; true: type is double
-    bool byAge; // segregate by age
-    bool byCohort;      // segregate by cohort
-    bool bySpecies;     // segregate by species of vector
-    bool byGenotype;    // segregate by genotype of parasite
-    bool byDrug;        // segregate by drug type
-    uint8_t method;     // deployment method (see above)
-    
-    // Convenience constructors:
-    OutMeasure() : outId(-1), m(M_NUM), isDouble(false), byAge(false),
-                byCohort(false), bySpecies(false), byGenotype(false),
-                byDrug(false), method(0) {}
-    OutMeasure( int outId, Measure m, bool isDouble, bool byAge, bool byCohort,
-                bool bySpecies, bool byGenotype, bool byDrug, uint8_t method ) :
-        outId(outId), m(m), isDouble(isDouble), byAge(byAge), byCohort(byCohort),
-        bySpecies(bySpecies), byGenotype(byGenotype), byDrug(byDrug),
-        method(method) {}
-    // Simple reports
-    static OutMeasure value( int outId, Measure m, bool isDouble ){
-        return OutMeasure( outId, m, isDouble, false, false, false, false,
-                           false, Deploy::NA );
-    }
-    // Something with reports segregated by human age and cohort membership
-    static OutMeasure humanAC( int outId, Measure m, bool isDouble ){
-        return OutMeasure( outId, m, isDouble, true, true, false, false, false,
-                           Deploy::NA );
-    }
-    // Something with reports segregated by human age, cohort membership
-    // and parasite genotype.
-    static OutMeasure humanACG( int outId, Measure m, bool isDouble ){
-        return OutMeasure( outId, m, isDouble, true, true, false, true, false,
-                           Deploy::NA );
-    }
-    // Something with reports segregated by human age, cohort membership
-    // and drug type.
-    static OutMeasure humanACP( int outId, Measure m, bool isDouble ){
-        return OutMeasure( outId, m, isDouble, true, true, false, false, true,
-                           Deploy::NA );
-    }
-    // Reports by mosquito species and optionally parasite genotype.
-    // All are floating point (currently).
-    static OutMeasure species( int outId, Measure m, bool byGenotype ){
-        return OutMeasure( outId, m, true, false, false, true, byGenotype,
-                           false, Deploy::NA );
-    }
-    // Deployments with reports segregated by human age and cohort membership
-    // Method can be Deploy::NA to not match deployments (but in this case,
-    // better to use a different constructor), or it can be one of the three
-    // deployment methods (to only count reports of that type of deployment),
-    // or it can be a bit-or-ed combination of any of the three methods (to
-    // count deployments of multiple types simultaneously).
-    static OutMeasure humanDeploy( int outId, Measure m, Deploy::Method method ){
-        assert( method >= 0 &&
-            method <= (Deploy::TIMED|Deploy::CTS|Deploy::TREAT) );
-        return OutMeasure( outId, m, false, true, true, false, false, false,
-                           method );
-    }
-    static OutMeasure obsolete( int outId ){
-        return OutMeasure( outId, M_OBSOLETE, false, false, false, false,
-                           false, false, Deploy::NA );
-    }
-};
-
-// These are all output measures set by a name in the XML
-// Example: nHosts
-typedef std::map<std::string,OutMeasure> NamedMeasureMapT;
-extern NamedMeasureMapT namedOutMeasures;
-// These are all measures available for use in deployment conditions:
-extern set<Measure> validCondMeasures;
 
 void findNamedMeasuresUsing( Measure m, ostream& msg ){
     int nMatches = 0;

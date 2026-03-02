@@ -26,7 +26,7 @@
 #include "Host/WithinHost/Genotypes.h"
 #include "Host/WithinHost/Infection/Infection.h"
 #include "Host/Human.h"
-#include "mon/reporting.h"
+#include "mon/Monitoring.h"
 #include "util/random.h"
 #include "util/errors.h"
 #include "util/checkpoint_containers.h"

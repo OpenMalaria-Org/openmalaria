@@ -31,7 +31,7 @@
 #include "Host/WithinHost/Diagnostic.h"
 #include "Host/WithinHost/Treatments.h"
 #include "Host/WithinHost/Genotypes.h"
-#include "mon/reporting.h"
+#include "mon/Monitoring.h"
 #include "util/random.h"
 #include "util/ModelOptions.h"
 #include "util/errors.h"

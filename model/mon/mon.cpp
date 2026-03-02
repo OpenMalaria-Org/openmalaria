@@ -20,10 +20,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  */
 
-#include "mon/info.h"
-#include "mon/reporting.h"
-#include "mon/management.h"
-#define H_OM_mon_cpp
+#include "mon/Monitoring.h"
 #include "mon/OutputMeasures.h"
 #include "Host/WithinHost/Diagnostic.h"
 #include "Host/WithinHost/Genotypes.h"

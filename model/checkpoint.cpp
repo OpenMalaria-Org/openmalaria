@@ -26,7 +26,7 @@
 
 #include "Global.h"
 #include "mon/Continuous.h"
-#include "mon/management.h"
+#include "mon/Monitoring.h"
 #include "interventions/InterventionManager.h"
 #include "Host/NeonatalMortality.h"
 #include "Clinical/ClinicalModel.h"

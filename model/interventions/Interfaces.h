@@ -24,7 +24,7 @@
 #define OM_INTERVENTIONS_INTERFACES
 
 #include "Global.h"
-#include "mon/reporting.h"
+#include "mon/Monitoring.h"
 #include <schema/interventions.h>
 #include <limits>
 

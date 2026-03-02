@@ -31,7 +31,7 @@
 #include "util/StreamValidator.h"
 #include "Population.h"
 #include "interventions/InterventionManager.h"
-#include "mon/reporting.h"
+#include "mon/Monitoring.h"
 #include "schema/scenario.h"
 
 namespace OM { namespace Host {

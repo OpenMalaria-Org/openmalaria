@@ -26,7 +26,7 @@
 #include "Clinical/ImmediateOutcomes.h"
 #include "Clinical/DecisionTree5Day.h"
 #include "Host/NeonatalMortality.h"
-#include "mon/reporting.h"
+#include "mon/Monitoring.h"
 #include "util/ModelOptions.h"
 #include "util/CommandLine.h"
 #include "util/errors.h"

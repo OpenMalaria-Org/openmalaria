@@ -35,7 +35,7 @@
 #include "Host/WithinHost/WHInterface.h"
 #include "Host/WithinHost/Genotypes.h"
 #include "mon/Continuous.h"
-#include "mon/info.h"
+#include "mon/Monitoring.h"
 #include "util/StreamValidator.h"
 #include "util/CommandLine.h"
 #include "util/vectors.h"
