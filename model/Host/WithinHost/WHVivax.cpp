@@ -345,18 +345,18 @@ double WHVivax::probTransmissionToMosquito(vector<double> &probTransGenotype_i, 
 
 bool WHVivax::summarize(Host::Human& human) const{
     if( infections.size() == 0 ) return false;  // no infections: not patent, nothing to report
-    mon::record(mon::measure::nInfect, mon::humanStatKey(human), 1);
+    mon::recordStat(mon::nInfect, human, 1);
     bool patentHost = false;
     // (patent) infections are reported by genotype, even though we don't have
     // genotype in this model
-    mon::record(mon::measure::totalInfs, mon::humanStatKey(human).withGenotype(0), static_cast<int>(infections.size()) );
+    mon::recordStat(mon::totalInfs, human, static_cast<int>(infections.size()), 0, 0, 0);
     for(auto inf = infections.begin(); inf != infections.end(); ++inf) {
         if (inf->isPatent()){
-            mon::record(mon::measure::totalPatentInf, mon::humanStatKey(human).withGenotype(0), 1);
+            mon::recordStat(mon::totalPatentInf, human, 1, 0, 0, 0);
             patentHost = true;
         }
     }
-    if( patentHost ) mon::record(mon::measure::nPatent, mon::humanStatKey(human), 1);
+    if( patentHost ) mon::recordStat(mon::nPatent, human, 1);
     return patentHost;
 }
 
@@ -465,7 +465,7 @@ bool WHVivax::diagnosticResult( LocalRng& rng, const Diagnostic& diagnostic ) co
 }
 
 Pathogenesis::StatePair WHVivax::determineMorbidity( Host::Human& human, double ageYears, bool ){
-    mon::record(mon::measure::expectedSevere, mon::humanStatKey(human), pSevere);
+    mon::recordStat(mon::expectedSevere, human, pSevere);
     Pathogenesis::StatePair result;     // no indirect mortality in the vivax model
     result.state = morbidity;
     return result;
@@ -494,7 +494,7 @@ void WHVivax::optionalPqTreatment( Host::Human& human ){
                 it->treatmentLS();
             }
         }
-        mon::record(mon::measure::nLiverStageTreatments, mon::humanEventKey(human), 1);
+        mon::recordEvent(mon::nLiverStageTreatments, human, 1);
     }
 }
 bool WHVivax::treatSimple( Host::Human& human, SimTime timeLiver, SimTime timeBlood ){
@@ -518,7 +518,7 @@ bool WHVivax::treatSimple( Host::Human& human, SimTime timeLiver, SimTime timeBl
                 }
             }
         }
-        mon::record(mon::measure::nLiverStageTreatments, mon::humanEventKey(human), 1);
+        mon::recordEvent(mon::nLiverStageTreatments, human, 1);
     }
     
     // there probably will be blood-stage treatment

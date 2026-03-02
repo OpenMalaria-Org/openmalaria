@@ -118,8 +118,8 @@ namespace Host {
                 for(Human& human : population){
                     if(human.rng.bernoulli( rateNow )){
                         human.withinHostModel->importInfection(human.rng);
-                        mon::record(mon::measure::nNewInfections, mon::humanEventKey(human), 1);
-                        mon::record(mon::measure::nNewInfections_Imported, mon::humanEventKey(human), 1);
+                        mon::recordEvent(mon::nNewInfections, human, 1);
+                        mon::recordEvent(mon::nNewInfections_Imported, human, 1);
                     }
                 }
             }
