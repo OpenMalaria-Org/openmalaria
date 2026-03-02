@@ -59,8 +59,8 @@ void CommonWithinHost::init( const scnXml::Scenario& scenario ){
     // hetWeightMult must be large enough that birth weight is at least 0.5 kg:
     minHetMassMult = 0.5 / massByAge.eval( 0.0 );
     
-    reportInfectedOrPatentInfected = mon::isUsedM(mon::MHR_INFECTIONS) ||
-        mon::isUsedM(mon::MHR_PATENT_INFECTIONS);
+    reportInfectedOrPatentInfected = mon::isUsed(mon::measure::totalInfs) ||
+        mon::isUsed(mon::measure::totalPatentInf);
     
     PkPd::LSTMModel::init( scenario );
 }
@@ -302,34 +302,34 @@ bool CommonWithinHost::summarize( Host::Human& human )const{
     
     // If the number of infections is 0 and parasite density is positive we default to Indigenous
     if( infections.size() > 0 ){
-        mon::reportStatMHI( mon::MHR_INFECTED_HOSTS, human, 1 );
+        mon::record(mon::measure::nInfect, mon::humanStatKey(human), 1);
         if(infectionType == InfectionOrigin::Indigenous)
-            mon::reportStatMHI( mon::MHR_INFECTED_HOSTS_INDIGENOUS, human, 1 );
+            mon::record(mon::measure::nInfect_Indigenous, mon::humanStatKey(human), 1);
         else if(infectionType == InfectionOrigin::Introduced)
-            mon::reportStatMHI( mon::MHR_INFECTED_HOSTS_INTRODUCED, human, 1 );
+            mon::record(mon::measure::nInfect_Introduced, mon::humanStatKey(human), 1);
         else
-            reportStatMHI( mon::MHR_INFECTED_HOSTS_IMPORTED, human, 1 );
+            mon::record(mon::measure::nInfect_Imported, mon::humanStatKey(human), 1);
 
         if( reportInfectedOrPatentInfected ){
             for(auto inf = infections.begin(); inf != infections.end(); ++inf)
             {
                 uint32_t genotype = (*inf)->genotype();
-                mon::reportStatMHGI( mon::MHR_INFECTIONS, human, genotype, 1 );
+                mon::record(mon::measure::totalInfs, mon::humanStatKey(human).withGenotype(genotype), 1);
                 if((*inf)->origin() == InfectionOrigin::Indigenous)
-                    mon::reportStatMHGI( mon::MHR_INFECTIONS_INDIGENOUS, human, genotype, 1 );
+                    mon::record(mon::measure::totalInfs_Indigenous, mon::humanStatKey(human).withGenotype(genotype), 1);
                 else if((*inf)->origin() == InfectionOrigin::Introduced)
-                    mon::reportStatMHGI( mon::MHR_INFECTIONS_INTRODUCED, human, genotype, 1 );
+                    mon::record(mon::measure::totalInfs_Introduced, mon::humanStatKey(human).withGenotype(genotype), 1);
                 else
-                    mon::reportStatMHGI( mon::MHR_INFECTIONS_IMPORTED, human, genotype, 1 );
+                    mon::record(mon::measure::totalInfs_Imported, mon::humanStatKey(human).withGenotype(genotype), 1);
 
                 if( diagnostics::monitoringDiagnostic().isPositive( human.rng, (*inf)->getDensity(), std::numeric_limits<double>::quiet_NaN() ) ){
-                    mon::reportStatMHGI( mon::MHR_PATENT_INFECTIONS, human, genotype, 1 );
+                    mon::record(mon::measure::totalPatentInf, mon::humanStatKey(human).withGenotype(genotype), 1);
                     if((*inf)->origin() == InfectionOrigin::Indigenous)
-                        mon::reportStatMHGI( mon::MHR_PATENT_INFECTIONS_INDIGENOUS, human, genotype, 1 );
+                        mon::record(mon::measure::totalPatentInf_Indigenous, mon::humanStatKey(human).withGenotype(genotype), 1);
                     else if((*inf)->origin() == InfectionOrigin::Introduced)
-                        mon::reportStatMHGI( mon::MHR_PATENT_INFECTIONS_INTRODUCED, human, genotype, 1 );
+                        mon::record(mon::measure::totalPatentInf_Introduced, mon::humanStatKey(human).withGenotype(genotype), 1);
                     else
-                        mon::reportStatMHGI( mon::MHR_PATENT_INFECTIONS_IMPORTED, human, genotype, 1 );
+                        mon::record(mon::measure::totalPatentInf_Imported, mon::humanStatKey(human).withGenotype(genotype), 1);
                 }
             }
         }
@@ -351,10 +351,10 @@ bool CommonWithinHost::summarize( Host::Human& human )const{
                     ++inf;
                 }while( inf != sortedInfs.end() && (*inf)->genotype() == genotype );
                 // we had at least one infection of this genotype
-                mon::reportStatMHGI( mon::MHR_INFECTED_GENOTYPE, human, genotype, 1 );
+                mon::record(mon::measure::nInfectByGenotype, mon::humanStatKey(human).withGenotype(genotype), 1);
                 if( diagnostics::monitoringDiagnostic().isPositive(human.rng, dens, std::numeric_limits<double>::quiet_NaN()) ){
-                    mon::reportStatMHGI( mon::MHR_PATENT_GENOTYPE, human, genotype, 1 );
-                    mon::reportStatMHGF( mon::MHF_LOG_DENSITY_GENOTYPE, human, genotype, log(dens) );
+                    mon::record(mon::measure::nPatentByGenotype, mon::humanStatKey(human).withGenotype(genotype), 1);
+                    mon::record(mon::measure::logDensByGenotype, mon::humanStatKey(human).withGenotype(genotype), log(dens) );
                 }
             }
         }
@@ -364,18 +364,18 @@ bool CommonWithinHost::summarize( Host::Human& human )const{
     // (and are applied after update()), thus infections.size() may be 0 while
     // totalDensity > 0. Here we report the last calculated density.
     if( diagnostics::monitoringDiagnostic().isPositive(human.rng, totalDensity, std::numeric_limits<double>::quiet_NaN()) ){
-        mon::reportStatMHI( mon::MHR_PATENT_HOSTS, human, 1 );
+        mon::record(mon::measure::nPatent, mon::humanStatKey(human), 1);
         if(infectionType == InfectionOrigin::Imported)
-            mon::reportStatMHI( mon::MHR_PATENT_HOSTS_IMPORTED, human, 1 );
+            mon::record(mon::measure::nPatent_Imported, mon::humanStatKey(human), 1);
         else if(infectionType == InfectionOrigin::Introduced)
-            mon::reportStatMHI( mon::MHR_PATENT_HOSTS_INTRODUCED, human, 1 );
+            mon::record(mon::measure::nPatent_Introduced, mon::humanStatKey(human), 1);
         else if(infectionType == InfectionOrigin::Indigenous)
-            mon::reportStatMHI( mon::MHR_PATENT_HOSTS_INDIGENOUS, human, 1 );
+            mon::record(mon::measure::nPatent_Indigenous, mon::humanStatKey(human), 1);
 
         if(totalDensity == 0.0)
-            mon::reportStatMHF( mon::MHF_LOG_DENSITY, human, 0.0);
+            mon::record(mon::measure::sumlogDens, mon::humanStatKey(human), 0.0);
         else
-            mon::reportStatMHF( mon::MHF_LOG_DENSITY, human, log(totalDensity) );
+            mon::record(mon::measure::sumlogDens, mon::humanStatKey(human), log(totalDensity) );
         return true;    // patent
     }
     return false;       // not patent

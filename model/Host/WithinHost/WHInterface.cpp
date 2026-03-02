@@ -51,9 +51,9 @@ bool opt_vivax_simple = false,
 // -----  static functions  -----
 
 void WHInterface::init( const OM::Parameters& parameters, const scnXml::Scenario& scenario ) {
-    reportInfectionsByGenotype = mon::isUsedM(mon::MHR_INFECTED_GENOTYPE) ||
-        mon::isUsedM(mon::MHR_PATENT_GENOTYPE) ||
-        mon::isUsedM(mon::MHF_LOG_DENSITY_GENOTYPE);
+    reportInfectionsByGenotype = mon::isUsed(mon::measure::nInfectByGenotype) ||
+        mon::isUsed(mon::measure::nPatentByGenotype) ||
+        mon::isUsed(mon::measure::logDensByGenotype);
     
     if( util::ModelOptions::option( util::VIVAX_SIMPLE_MODEL ) ){
         opt_vivax_simple = true;

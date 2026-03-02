@@ -211,7 +211,7 @@ public:
 
         auto ag = human.monitoringAgeGroup.i();
         auto cs = human.getCohortSet();
-        mon::reportStatMACGF(mon::MVF_INOCS, ag, cs, 0, EIR_l[0]);
+        mon::record(mon::measure::innoculationsPerAgeGroup, mon::statKey().withAge(ag).withCohort(cs).withGenotype(0), EIR_l[0]);
     }
 
 private:

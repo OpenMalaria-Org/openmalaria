@@ -538,7 +538,7 @@ ITNComponent::ITNComponent( ComponentId id, const scnXml::ITNDescription& elt,
 
 void ITNComponent::deploy( Host::Human& human, mon::Deploy::Method method, VaccineLimits )const{
     human.perHostTransmission.deployComponent( human.rng, *this );
-    mon::reportEventMHD( mon::MHD_ITN, human, method );
+    mon::recordDeploy(mon::measure::itn, mon::humanEventKey(human), method);
 }
 
 Component::Type ITNComponent::componentType() const{
