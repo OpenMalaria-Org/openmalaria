@@ -27,7 +27,7 @@
 #include "Clinical/ClinicalModel.h"
 #include "Host/Human.h"
 #include "Host/WithinHost/WHInterface.h"
-#include "mon/reporting.h"
+#include "mon/Monitoring.h"
 
 namespace OM {
 namespace Clinical {

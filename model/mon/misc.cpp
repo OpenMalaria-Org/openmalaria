@@ -20,10 +20,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  */
 
-#include "mon/info.h"
-#include "mon/management.h"
-#include "mon/AgeGroup.h"
-#include "mon/reporting.h"
+#include "mon/Monitoring.h"
 #include "interventions/InterventionManager.h"
 #include "util/CommandLine.h"
 #include "util/errors.h"

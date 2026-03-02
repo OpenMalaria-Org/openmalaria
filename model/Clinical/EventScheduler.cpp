@@ -23,7 +23,7 @@
 #include "Clinical/EventScheduler.h"
 #include "util/random.h"
 #include "Host/WithinHost/WHInterface.h"
-#include "mon/reporting.h"
+#include "mon/Monitoring.h"
 #include "util/ModelOptions.h"
 #include "util/errors.h"
 #include "util/StreamValidator.h"

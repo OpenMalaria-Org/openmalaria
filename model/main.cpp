@@ -31,7 +31,7 @@
 #include "util/XMLChecker.h"
 
 #include "mon/Continuous.h"
-#include "mon/management.h"
+#include "mon/Monitoring.h"
 
 #include "interventions/InterventionManager.h"
 #include "Clinical/ClinicalModel.h"

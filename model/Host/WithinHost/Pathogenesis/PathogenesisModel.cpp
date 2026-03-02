@@ -22,7 +22,7 @@
 
 #include "Host/WithinHost/Pathogenesis/Submodels.h"
 #include "Host/Human.h"
-#include "mon/reporting.h"
+#include "mon/Monitoring.h"
 #include "util/random.h"
 #include "util/ModelOptions.h"
 #include "util/errors.h"

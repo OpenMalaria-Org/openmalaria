@@ -26,7 +26,7 @@
 #include "TransmissionModel.h"
 #include "util/vectors.h"
 #include "Host/Human.h"
-#include "mon/info.h"
+#include "mon/Monitoring.h"
 
 namespace scnXml
 {

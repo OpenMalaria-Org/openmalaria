@@ -27,7 +27,7 @@
 #include "Host/WithinHost/Pathogenesis/State.h"
 #include "Host/WithinHost/Infection/Infection.h"
 #include "mon/AgeGroup.h"
-#include "mon/info.h"
+#include "mon/Monitoring.h"
 #include "util/ModelOptions.h"
 #include <ostream>
 
