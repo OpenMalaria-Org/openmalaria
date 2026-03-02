@@ -42,14 +42,25 @@
 //
 // Requires GSL: <gsl/gsl_blas.h>, <gsl/gsl_linalg.h>
 
+#include <vector>
 #include <algorithm>
 #include <cmath>
-#include <gsl/gsl_blas.h>
+#include <gsl/gsl_matrix.h>
+#include <gsl/gsl_vector.h>
 #include <gsl/gsl_linalg.h>
+#include <gsl/gsl_blas.h>
 
 static inline int modp(int i, int n) {
     int r = i % n;
     return (r < 0) ? r + n : r;
+}
+
+// Adds lambda * I to A in-place.
+static void add_ridge_I(gsl_matrix* A, double lambda) {
+    const int n = static_cast<int>(A->size1);
+    for (int i = 0; i < n; ++i) {
+        gsl_matrix_set(A, i, i, gsl_matrix_get(A, i, i) + lambda);
+    }
 }
 
 // Adds lambda * (D2^T D2) to A in-place, with periodic boundary conditions.
@@ -75,38 +86,40 @@ static void add_periodic_D2tD2(gsl_matrix* A, double lambda) {
 }
 
 // Solves for x (length n):
-//   (J^T J + lambda * D2^T D2) x = J^T S
+//   (J^T J + lambdaRidge * I + lambdaD2 * D2^T D2) x = J^T S
 // J is n×n (your thetap×thetap Jacobian).
 // S is length n (SvfromEIR).
 // x must be allocated length n.
-// If clip_nonneg=true, negative entries are set to 0 after solve.
 static int solve_Nv0_smooth_reg(
     gsl_vector* x,
     const gsl_matrix* J,
     const gsl_vector* S,
-    double lambdaD2
+    double lambdaD2,
+    double lambdaRidge
 ) {
     const int n = static_cast<int>(J->size1);
     if (J->size2 != (size_t)n || S->size != (size_t)n || x->size != (size_t)n) {
         return GSL_EBADLEN;
     }
-    if (lambdaD2 < 0.0) {
+    if (lambdaD2 < 0.0 || lambdaRidge < 0.0) {
         return GSL_EDOM;
     }
 
     // A = J^T J
     gsl_matrix* A = gsl_matrix_calloc(n, n);
-    // A := 1.0 * J^T * J + 0.0 * A
     gsl_blas_dgemm(CblasTrans, CblasNoTrans, 1.0, J, J, 0.0, A);
 
-    // Add lambda * (D2^T D2)
-	if (lambdaD2 > 0.0) add_periodic_D2tD2(A, lambdaD2);
+    // Add ridge: lambdaRidge * I
+    if (lambdaRidge > 0.0) add_ridge_I(A, lambdaRidge);
+
+    // Add smoothness: lambdaD2 * (D2^T D2)
+    if (lambdaD2 > 0.0) add_periodic_D2tD2(A, lambdaD2);
 
     // rhs = J^T S
     gsl_vector* rhs = gsl_vector_calloc(n);
     gsl_blas_dgemv(CblasTrans, 1.0, J, S, 0.0, rhs);
 
-    // Solve A x = rhs (A should be SPD if lambdaSmooth>0; also often SPD even without)
+    // Solve A x = rhs
     int status = 0;
 
     // Try Cholesky first
@@ -117,7 +130,7 @@ static int solve_Nv0_smooth_reg(
         gsl_vector_memcpy(x, rhs);
         status = gsl_linalg_cholesky_solve(Achol, rhs, x);
     } else {
-        // Fallback: LU (less ideal but avoids hard failure)
+        // Fallback: LU
         gsl_matrix* ALU = gsl_matrix_alloc(n, n);
         gsl_matrix_memcpy(ALU, A);
         gsl_permutation* p = gsl_permutation_alloc(n);
@@ -182,6 +195,24 @@ static double compute_lambdaSmooth_from_J(
     }
 
     return lambda;
+}
+
+static double compute_lambdaRidge_from_JtJ_trace(const gsl_matrix* J, double cRidge) {
+    const size_t n = J ? J->size1 : 0;
+    if (!J || J->size2 != n) return 0.0;
+    if (cRidge <= 0.0) return 0.0;
+
+    // trace(J^T J) = sum_{i,j} J_ij^2 = ||J||_F^2
+    double frob2 = 0.0;
+    for (size_t i = 0; i < n; ++i) {
+        for (size_t j = 0; j < n; ++j) {
+            const double v = gsl_matrix_get(J, i, j);
+            frob2 += v * v;
+        }
+    }
+
+    const double mean_diag_JtJ = frob2 / double(n); // (trace / n)
+    return cRidge * mean_diag_JtJ;
 }
 
 using namespace std;
@@ -390,7 +421,10 @@ double CalcInitMosqEmergeRate(
 	const double cSmooth = 1e5;
 	const double lambdaSmooth = compute_lambdaSmooth_from_J(J, cSmooth);
 
-	int st = solve_Nv0_smooth_reg(Nv0, J, SvfromEIR, lambdaSmooth);
+	const double cRidge = 1.5e-1;                    // start here; scan 1e-10 .. 1e-2 if needed
+	const double lambdaRidge = compute_lambdaRidge_from_JtJ_trace(J, cRidge);
+
+	int st = solve_Nv0_smooth_reg(Nv0, J, SvfromEIR, lambdaSmooth, lambdaRidge);	
 	if (st) {
 		printf("Smooth regularized Nv0 solve failed: %s\n", gsl_strerror(st));
 	}
