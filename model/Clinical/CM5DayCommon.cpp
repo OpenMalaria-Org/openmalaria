@@ -36,8 +36,8 @@ using namespace ::OM::util;
 
 // These parameters are set by setHealthSystem() and do not need checkpointing.
 mon::Measure CM5DayCommon::measures[NumCaseTypes] = {
-    mon::MHT_TREATMENTS_1,  // first line official
-    mon::MHT_TREATMENTS_2   // second line official
+    mon::measure::nTreatments1,  // first line official
+    mon::measure::nTreatments2   // second line official
 };
 double CM5DayCommon::accessUCAny[NumCaseTypes];
 double CM5DayCommon::accessUCSelfTreat[NumCaseTypes];
@@ -135,21 +135,21 @@ void CM5DayCommon::severeMalaria (
     // expanded, separating in-hospital and without (q[0]):
     const double exHospitalDeath = p2 * (p3 * p4 + (1 - p3) * p5b);
     const double exDeath = exHospitalDeath + (1 - p2) * p5a;
-    mon::reportStatMHF( mon::MHF_EXPECTED_HOSPITAL_DEATHS, human, exHospitalDeath );
-    mon::reportStatMHF( mon::MHF_EXPECTED_DIRECT_DEATHS, human, exDeath );
+    mon::record(mon::measure::expectedHospitalDeaths, mon::humanStatKey(human), exHospitalDeath);
+    mon::record(mon::measure::expectedDirectDeaths, mon::humanStatKey(human), exDeath);
     
     // Expectation of sequelae is:
     // double exSeq = (q[7] - q[6]) + (q[4] - q[3]) + (q[1] - q[0]);
     // expanded and simplified, noting that p7 == p6 :
     const double exSeq = (p2 * (p3 * (1 - p4) + (1 - p3) * (1 - p5b)) + (1 - p2) * (1 - p5a)) * p6;
-    mon::reportStatMHF( mon::MHF_EXPECTED_SEQUELAE, human, exSeq );
+    mon::record(mon::measure::expectedSequelae, mon::humanStatKey(human), exSeq);
 
     double prandom = human.rng.uniform_01();
     
     //NOTE: we do not model diagnostics in this case
     if( prandom >= q[2] ){      // treated in hospital
         m_tLastTreatment = sim::ts0();
-        mon::reportEventMHI( mon::MHT_TREATMENTS_3, human, 1 );
+        mon::record(mon::measure::nTreatments3, mon::humanEventKey(human), 1);
         Episode::State stateTreated = Episode::State (pgState | Episode::EVENT_IN_HOSPITAL);
         
         if( prandom >= q[5] ){  // treatment successful at clearing parasites
