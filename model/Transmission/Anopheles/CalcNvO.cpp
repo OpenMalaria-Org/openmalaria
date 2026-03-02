@@ -34,6 +34,7 @@
 #include <gsl/gsl_multiroots.h>
 
 #include "CalcNvO.h"
+#include "util/errors.h"
 
 // Regularized smoothness solve for Nv0:
 //   x = argmin ||J x - S||_2^2 + lambda * ||D2 x||_2^2
@@ -431,6 +432,14 @@ double CalcInitMosqEmergeRate(
 
 	printf("Done\n");
 
+	bool hasNegativeNv0 = false;
+	for (int i = 0; i < thetap; ++i) {
+		if (gsl_vector_get(Nv0, i) < 0.0) {
+			hasNegativeNv0 = true;
+			break;
+		}
+	}
+
 	// gsl_permutation_free(perm);
 	// gsl_matrix_free(JLU);
 	gsl_matrix_free(J);
@@ -448,6 +457,12 @@ double CalcInitMosqEmergeRate(
 
 	free(Lambda);
 	free(xp);
+
+	if (hasNegativeNv0) {
+		throw ::OM::util::base_exception(
+			"Emergence rate contains negative values. Seasonality is probably too steep even after smoothing, check EIR input.",
+			::OM::util::Error::VectorFitting);
+	}
 
 	return 0.0;
 }
