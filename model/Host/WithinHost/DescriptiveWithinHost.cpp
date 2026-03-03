@@ -270,23 +270,23 @@ bool DescriptiveWithinHostModel::summarize( Host::Human& human )const{
 
         // (patent) infections are reported by genotype, even though we don't have
         // genotype in this model
-        mon::recordStat(mon::totalInfs, human, static_cast<int>(infections.size()), 0, 0, 0);
-        mon::recordStat(mon::totalInfs_Imported, human, nImported, 0, 0, 0);
-        mon::recordStat(mon::totalInfs_Introduced, human, nIntroduced, 0, 0, 0);
-        mon::recordStat(mon::totalInfs_Indigenous, human, nIndigenous, 0, 0, 0);
+        mon::recordStat(mon::totalInfs, human, static_cast<int>(infections.size()));
+        mon::recordStat(mon::totalInfs_Imported, human, nImported);
+        mon::recordStat(mon::totalInfs_Introduced, human, nIntroduced);
+        mon::recordStat(mon::totalInfs_Indigenous, human, nIndigenous);
 
         if( reportPatentInfected ){
             for(auto inf = infections.begin(); inf != infections.end(); ++inf)
             {
                 if( diagnostics::monitoringDiagnostic().isPositive( human.rng, (*inf)->getDensity(), std::numeric_limits<double>::quiet_NaN() ) )
                 {
-                    mon::recordStat(mon::totalPatentInf, human, 1, 0, 0, 0);
+                    mon::recordStat(mon::totalPatentInf, human, 1);
                     if((*inf)->origin() == InfectionOrigin::Indigenous)
-                        mon::recordStat(mon::totalPatentInf_Indigenous, human, 1, 0, 0, 0);
+                        mon::recordStat(mon::totalPatentInf_Indigenous, human, 1);
                     else if((*inf)->origin() == InfectionOrigin::Introduced)
-                        mon::recordStat(mon::totalPatentInf_Introduced, human, 1, 0, 0, 0);
+                        mon::recordStat(mon::totalPatentInf_Introduced, human, 1);
                     else
-                        mon::recordStat(mon::totalPatentInf_Imported, human, 1, 0, 0, 0);
+                        mon::recordStat(mon::totalPatentInf_Imported, human, 1);
                 }
             }
         }

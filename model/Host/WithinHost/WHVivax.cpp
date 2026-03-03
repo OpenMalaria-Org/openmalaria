@@ -349,10 +349,10 @@ bool WHVivax::summarize(Host::Human& human) const{
     bool patentHost = false;
     // (patent) infections are reported by genotype, even though we don't have
     // genotype in this model
-    mon::recordStat(mon::totalInfs, human, static_cast<int>(infections.size()), 0, 0, 0);
+    mon::recordStat(mon::totalInfs, human, static_cast<int>(infections.size()));
     for(auto inf = infections.begin(); inf != infections.end(); ++inf) {
         if (inf->isPatent()){
-            mon::recordStat(mon::totalPatentInf, human, 1, 0, 0, 0);
+            mon::recordStat(mon::totalPatentInf, human, 1);
             patentHost = true;
         }
     }
