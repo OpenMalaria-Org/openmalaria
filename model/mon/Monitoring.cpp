@@ -166,18 +166,6 @@ struct MonIndex {
     }
 };
 
-template <typename State>
-inline size_t stateSurveySize(const State& state)
-{
-    return state.layout.size();
-}
-
-template <typename State>
-inline size_t stateSize(const State& state)
-{
-    return stateSurveySize(state) * impl::nSurveys;
-}
-
 struct IntState {
     MonIndex layout;
     vector<int> reports;
@@ -209,7 +197,7 @@ IntState makeIntState(const OutMeasure& om, size_t nSp, size_t nD, bool forceNoC
 {
     IntState state;
     fillStateLayout(state, om, nSp, nD, forceNoCategories);
-    state.reports.assign(stateSize(state), 0);
+    state.reports.assign(state.layout.size() * impl::nSurveys, 0);
     return state;
 }
 
@@ -217,7 +205,7 @@ DoubleState makeDoubleState(const OutMeasure& om, size_t nSp, size_t nD, bool fo
 {
     DoubleState state;
     fillStateLayout(state, om, nSp, nD, forceNoCategories);
-    state.reports.assign(stateSize(state), 0.0);
+    state.reports.assign(state.layout.size() * impl::nSurveys, 0.0);
     return state;
 }
 
@@ -282,7 +270,7 @@ void recordIntValue(int val, Measure measure, size_t survey, size_t ageIndex,
         IntState& state = intStates[idx];
         if (state.layout.deployMask != Deploy::NA) continue;
         if (outId != 0 && state.layout.outMeasure != outId) continue;
-        size_t i = survey * stateSurveySize(state) + state.layout.index(ageIndex, cohortSet, species, genotype, drug);
+        size_t i = survey * state.layout.size() + state.layout.index(ageIndex, cohortSet, species, genotype, drug);
         addValue(state.reports, i, val);
     }
 }
@@ -296,7 +284,7 @@ void recordDoubleValue(double val, Measure measure, size_t survey, size_t ageInd
     {
         DoubleState& state = doubleStates[idx];
         if (state.layout.deployMask != Deploy::NA) continue;
-        size_t i = survey * stateSurveySize(state) + state.layout.index(ageIndex, cohortSet, species, genotype, drug);
+        size_t i = survey * state.layout.size() + state.layout.index(ageIndex, cohortSet, species, genotype, drug);
         addValue(state.reports, i, val);
     }
 }
@@ -312,7 +300,7 @@ void recordDeployValue(int val, Measure measure, size_t survey, size_t ageIndex,
         IntState& state = intStates[idx];
         if ((state.layout.deployMask & method) == Deploy::NA) continue;
         assert(state.layout.nSpecies == 1 && state.layout.nGenotypes == 1);
-        size_t i = survey * stateSurveySize(state) + state.layout.index(ageIndex, cohortSet, 0, 0, 0);
+        size_t i = survey * state.layout.size() + state.layout.index(ageIndex, cohortSet, 0, 0, 0);
         addValue(state.reports, i, val);
     }
 }
@@ -326,8 +314,8 @@ double sumStateMeasure(Measure measure, bool isDouble, uint8_t method, size_t su
         {
             const DoubleState& state = doubleStates[idx];
             if (state.layout.deployMask != method) continue;
-            const size_t off = survey * stateSurveySize(state);
-            const size_t end = off + stateSurveySize(state);
+            const size_t off = survey * state.layout.size();
+            const size_t end = off + state.layout.size();
             return std::accumulate(state.reports.begin() + off, state.reports.begin() + end, 0.0);
         }
     } else {
@@ -336,8 +324,8 @@ double sumStateMeasure(Measure measure, bool isDouble, uint8_t method, size_t su
         {
             const IntState& state = intStates[idx];
             if (state.layout.deployMask != method) continue;
-            const size_t off = survey * stateSurveySize(state);
-            const size_t end = off + stateSurveySize(state);
+            const size_t off = survey * state.layout.size();
+            const size_t end = off + state.layout.size();
             return std::accumulate(state.reports.begin() + off, state.reports.begin() + end, 0.0);
         }
     }
@@ -351,7 +339,7 @@ void writeMeasureState(ostream& stream, size_t survey, const OutMeasure& om)
         for (size_t idx : measureToDoubleStates[om.m]) {
             const DoubleState& state = doubleStates[idx];
             if (state.layout.outMeasure != om.outId) continue;
-            state.layout.write(stream, survey + 1, om, state.reports, survey * stateSurveySize(state));
+            state.layout.write(stream, survey + 1, om, state.reports, survey * state.layout.size());
             return;
         }
     } else {
@@ -359,7 +347,7 @@ void writeMeasureState(ostream& stream, size_t survey, const OutMeasure& om)
         for (size_t idx : measureToIntStates[om.m]) {
             const IntState& state = intStates[idx];
             if (state.layout.outMeasure != om.outId) continue;
-            state.layout.write(stream, survey + 1, om, state.reports, survey * stateSurveySize(state));
+            state.layout.write(stream, survey + 1, om, state.reports, survey * state.layout.size());
             return;
         }
     }
@@ -395,9 +383,9 @@ template <typename Stream>
 void checkpointStates(Stream& stream)
 {
     for (IntState& state : intStates)
-        checkpointVec(stream, state.reports, stateSize(state));
+        checkpointVec(stream, state.reports, state.layout.size() * impl::nSurveys);
     for (DoubleState& state : doubleStates)
-        checkpointVec(stream, state.reports, stateSize(state));
+        checkpointVec(stream, state.reports, state.layout.size() * impl::nSurveys);
 }
 
 // Enabled measures:
