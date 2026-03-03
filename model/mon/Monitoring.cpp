@@ -40,8 +40,6 @@
 #include <gzstream/gzstream.h>
 #include <iostream>
 #include <numeric>
-#include <type_traits>
-#include <variant>
 
 namespace OM {
 namespace mon {
@@ -168,32 +166,36 @@ struct MonIndex {
     }
 };
 
-struct MeasureState {
-    MonIndex layout;
-    std::variant<vector<int>, vector<double>> reports;
-};
-
-inline size_t stateSurveySize(const MeasureState& state)
+template <typename State>
+inline size_t stateSurveySize(const State& state)
 {
     return state.layout.size();
 }
 
-inline size_t stateSize(const MeasureState& state)
+template <typename State>
+inline size_t stateSize(const State& state)
 {
     return stateSurveySize(state) * impl::nSurveys;
 }
 
-vector<MeasureState> measureStates;
-vector<vector<size_t>> measureToStates;
+struct IntState {
+    MonIndex layout;
+    vector<int> reports;
+};
 
-inline bool isDoubleState(const MeasureState& state)
-{
-    return std::holds_alternative<vector<double>>(state.reports);
-}
+struct DoubleState {
+    MonIndex layout;
+    vector<double> reports;
+};
 
-MeasureState makeState(const OutMeasure& om, size_t nSp, size_t nD, bool forceNoCategories)
+vector<IntState> intStates;
+vector<DoubleState> doubleStates;
+vector<vector<size_t>> measureToIntStates;
+vector<vector<size_t>> measureToDoubleStates;
+
+template <typename State>
+void fillStateLayout(State& state, const OutMeasure& om, size_t nSp, size_t nD, bool forceNoCategories)
 {
-    MeasureState state;
     state.layout.outMeasure = om.outId;
     state.layout.nAges = forceNoCategories ? 1 : (om.byAge ? AgeGroup::numGroups() : 1);
     state.layout.nCohorts = forceNoCategories ? 1 : (om.byCohort ? impl::nCohorts : 1);
@@ -201,25 +203,44 @@ MeasureState makeState(const OutMeasure& om, size_t nSp, size_t nD, bool forceNo
     state.layout.nGenotypes = forceNoCategories ? 1 : (om.byGenotype ? WithinHost::Genotypes::N() : 1);
     state.layout.nDrugs = forceNoCategories ? 1 : (om.byDrug ? nD : 1);
     state.layout.deployMask = om.method;
+}
 
-    const size_t n = stateSize(state);
-    if (om.isDouble) state.reports = vector<double>(n, 0.0);
-    else state.reports = vector<int>(n, 0);
+IntState makeIntState(const OutMeasure& om, size_t nSp, size_t nD, bool forceNoCategories)
+{
+    IntState state;
+    fillStateLayout(state, om, nSp, nD, forceNoCategories);
+    state.reports.assign(stateSize(state), 0);
+    return state;
+}
+
+DoubleState makeDoubleState(const OutMeasure& om, size_t nSp, size_t nD, bool forceNoCategories)
+{
+    DoubleState state;
+    fillStateLayout(state, om, nSp, nD, forceNoCategories);
+    state.reports.assign(stateSize(state), 0.0);
     return state;
 }
 
 void addState(const OutMeasure& om, size_t nSp, size_t nD, bool forceNoCategories)
 {
     assert(om.m < MeasureCount);
-    size_t idx = measureStates.size();
-    measureStates.push_back(makeState(om, nSp, nD, forceNoCategories));
-    measureToStates[om.m].push_back(idx);
+    if (om.isDouble) {
+        size_t idx = doubleStates.size();
+        doubleStates.push_back(makeDoubleState(om, nSp, nD, forceNoCategories));
+        measureToDoubleStates[om.m].push_back(idx);
+    } else {
+        size_t idx = intStates.size();
+        intStates.push_back(makeIntState(om, nSp, nD, forceNoCategories));
+        measureToIntStates[om.m].push_back(idx);
+    }
 }
 
 void initStates(const vector<OutMeasure>& enabledMeasures, size_t nSp, size_t nD)
 {
-    measureStates.clear();
-    measureToStates.assign(MeasureCount, {});
+    intStates.clear();
+    doubleStates.clear();
+    measureToIntStates.assign(MeasureCount, {});
+    measureToDoubleStates.assign(MeasureCount, {});
     for (const OutMeasure& om : enabledMeasures)
     {
         if (om.m >= MeasureCount) continue;
@@ -230,40 +251,53 @@ void initStates(const vector<OutMeasure>& enabledMeasures, size_t nSp, size_t nD
 void ensureConditionState(const OutMeasure& om)
 {
     assert(om.m < MeasureCount);
-    for (size_t idx : measureToStates[om.m])
-    {
-        const MeasureState& state = measureStates[idx];
-        if (isDoubleState(state) == om.isDouble && state.layout.deployMask == om.method) return;
+    if (om.isDouble) {
+        for (size_t idx : measureToDoubleStates[om.m]) {
+            const DoubleState& state = doubleStates[idx];
+            if (state.layout.deployMask == om.method) return;
+        }
+    } else {
+        for (size_t idx : measureToIntStates[om.m]) {
+            const IntState& state = intStates[idx];
+            if (state.layout.deployMask == om.method) return;
+        }
     }
     addState(om, 1, 1, true);
 }
 
-inline bool acceptsValueType(const MeasureState& state, int) { return std::holds_alternative<vector<int>>(state.reports); }
-inline bool acceptsValueType(const MeasureState& state, double) { return std::holds_alternative<vector<double>>(state.reports); }
-
 template <typename T>
-inline void addValue(MeasureState& state, size_t index, T val)
+inline void addValue(vector<T>& values, size_t index, T val)
 {
-    auto* values = std::get_if<vector<T>>(&state.reports);
-    assert(values != nullptr);
-    assert(index < values->size());
-    (*values)[index] += val;
+    assert(index < values.size());
+    values[index] += val;
 }
 
-template <typename T>
-void recordValue(T val, Measure measure, size_t survey, size_t ageIndex,
-                 uint32_t cohortSet, size_t species, size_t genotype, size_t drug, int outId = 0)
+void recordIntValue(int val, Measure measure, size_t survey, size_t ageIndex,
+                    uint32_t cohortSet, size_t species, size_t genotype, size_t drug, int outId = 0)
 {
     if (survey == NOT_USED) return;
-    assert(measure < measureToStates.size());
-    for (size_t idx : measureToStates[measure])
+    assert(measure < measureToIntStates.size());
+    for (size_t idx : measureToIntStates[measure])
     {
-        MeasureState& state = measureStates[idx];
-        if (!acceptsValueType(state, val)) continue;
+        IntState& state = intStates[idx];
         if (state.layout.deployMask != Deploy::NA) continue;
         if (outId != 0 && state.layout.outMeasure != outId) continue;
         size_t i = survey * stateSurveySize(state) + state.layout.index(ageIndex, cohortSet, species, genotype, drug);
-        addValue(state, i, val);
+        addValue(state.reports, i, val);
+    }
+}
+
+void recordDoubleValue(double val, Measure measure, size_t survey, size_t ageIndex,
+                       uint32_t cohortSet, size_t species, size_t genotype, size_t drug)
+{
+    if (survey == NOT_USED) return;
+    assert(measure < measureToDoubleStates.size());
+    for (size_t idx : measureToDoubleStates[measure])
+    {
+        DoubleState& state = doubleStates[idx];
+        if (state.layout.deployMask != Deploy::NA) continue;
+        size_t i = survey * stateSurveySize(state) + state.layout.index(ageIndex, cohortSet, species, genotype, drug);
+        addValue(state.reports, i, val);
     }
 }
 
@@ -272,35 +306,39 @@ void recordDeployValue(int val, Measure measure, size_t survey, size_t ageIndex,
 {
     if (survey == NOT_USED) return;
     assert(method == Deploy::TIMED || method == Deploy::CTS || method == Deploy::TREAT);
-    assert(measure < measureToStates.size());
-    for (size_t idx : measureToStates[measure])
+    assert(measure < measureToIntStates.size());
+    for (size_t idx : measureToIntStates[measure])
     {
-        MeasureState& state = measureStates[idx];
-        if (isDoubleState(state)) continue;
+        IntState& state = intStates[idx];
         if ((state.layout.deployMask & method) == Deploy::NA) continue;
         assert(state.layout.nSpecies == 1 && state.layout.nGenotypes == 1);
         size_t i = survey * stateSurveySize(state) + state.layout.index(ageIndex, cohortSet, 0, 0, 0);
-        addValue<int>(state, i, val);
+        addValue(state.reports, i, val);
     }
 }
 
 double sumStateMeasure(Measure measure, bool isDouble, uint8_t method, size_t survey)
 {
     assert(survey != NOT_USED);
-    assert(measure < measureToStates.size());
-    for (size_t idx : measureToStates[measure])
-    {
-        const MeasureState& state = measureStates[idx];
-        if (isDoubleState(state) != isDouble) continue;
-        if (state.layout.deployMask != method) continue;
-        const size_t off = survey * stateSurveySize(state);
-        const size_t end = off + stateSurveySize(state);
-        if (isDouble) {
-            const auto& values = std::get<vector<double>>(state.reports);
-            return std::accumulate(values.begin() + off, values.begin() + end, 0.0);
-        } else {
-            const auto& values = std::get<vector<int>>(state.reports);
-            return std::accumulate(values.begin() + off, values.begin() + end, 0.0);
+    if (isDouble) {
+        assert(measure < measureToDoubleStates.size());
+        for (size_t idx : measureToDoubleStates[measure])
+        {
+            const DoubleState& state = doubleStates[idx];
+            if (state.layout.deployMask != method) continue;
+            const size_t off = survey * stateSurveySize(state);
+            const size_t end = off + stateSurveySize(state);
+            return std::accumulate(state.reports.begin() + off, state.reports.begin() + end, 0.0);
+        }
+    } else {
+        assert(measure < measureToIntStates.size());
+        for (size_t idx : measureToIntStates[measure])
+        {
+            const IntState& state = intStates[idx];
+            if (state.layout.deployMask != method) continue;
+            const size_t off = survey * stateSurveySize(state);
+            const size_t end = off + stateSurveySize(state);
+            return std::accumulate(state.reports.begin() + off, state.reports.begin() + end, 0.0);
         }
     }
     throw SWITCH_DEFAULT_EXCEPTION;
@@ -308,51 +346,58 @@ double sumStateMeasure(Measure measure, bool isDouble, uint8_t method, size_t su
 
 void writeMeasureState(ostream& stream, size_t survey, const OutMeasure& om)
 {
-    assert(om.m < measureToStates.size());
-    for (size_t idx : measureToStates[om.m])
-    {
-        const MeasureState& state = measureStates[idx];
-        if (state.layout.outMeasure != om.outId) continue;
-        std::visit([&](const auto& values) {
-            state.layout.write(stream, survey + 1, om, values, survey * stateSurveySize(state));
-        }, state.reports);
-        return;
+    if (om.isDouble) {
+        assert(om.m < measureToDoubleStates.size());
+        for (size_t idx : measureToDoubleStates[om.m]) {
+            const DoubleState& state = doubleStates[idx];
+            if (state.layout.outMeasure != om.outId) continue;
+            state.layout.write(stream, survey + 1, om, state.reports, survey * stateSurveySize(state));
+            return;
+        }
+    } else {
+        assert(om.m < measureToIntStates.size());
+        for (size_t idx : measureToIntStates[om.m]) {
+            const IntState& state = intStates[idx];
+            if (state.layout.outMeasure != om.outId) continue;
+            state.layout.write(stream, survey + 1, om, state.reports, survey * stateSurveySize(state));
+            return;
+        }
     }
     assert(false && "measure not found in records");
 }
 
 bool isMeasureUsed(Measure measure, bool isDouble)
 {
-    assert(measure < measureToStates.size());
-    for (size_t idx : measureToStates[measure])
-        if (isDoubleState(measureStates[idx]) == isDouble) return true;
-    return false;
+    assert(measure < MeasureCount);
+    return isDouble ? !measureToDoubleStates[measure].empty() : !measureToIntStates[measure].empty();
 }
 
-template <typename Stream, typename T>
-void checkpointVec(Stream& stream, vector<T>& values, size_t expectedSize)
+template <typename T>
+void checkpointVec(ostream& stream, vector<T>& values, size_t /*expectedSize*/)
 {
-    if constexpr (std::is_base_of_v<std::ostream, std::remove_reference_t<Stream>>) {
-        values.size() & stream;
-        for (T& y : values) y & stream;
-    } else {
-        size_t l;
-        l & stream;
-        if (l != expectedSize) throw util::checkpoint_error("mon::reports: invalid list size");
-        values.resize(l);
-        for (T& y : values) y & stream;
+    values.size() & stream;
+    for (T& y : values) y & stream;
+}
+
+template <typename T>
+void checkpointVec(istream& stream, vector<T>& values, size_t expectedSize)
+{
+    size_t storedSize = 0;
+    storedSize & stream;
+    if (storedSize != expectedSize) {
+        throw util::checkpoint_error("mon::reports: invalid list size");
     }
+    values.resize(storedSize);
+    for (T& y : values) y & stream;
 }
 
 template <typename Stream>
 void checkpointStates(Stream& stream)
 {
-    for (MeasureState& state : measureStates)
-    {
-        std::visit([&](auto& values) {
-            checkpointVec(stream, values, stateSize(state));
-        }, state.reports);
-    }
+    for (IntState& state : intStates)
+        checkpointVec(stream, state.reports, stateSize(state));
+    for (DoubleState& state : doubleStates)
+        checkpointVec(stream, state.reports, stateSize(state));
 }
 
 // Enabled measures:
@@ -505,12 +550,12 @@ void internal::write( ostream& stream ){
 
 void record(Measure measure, size_t survey, size_t age, uint32_t cohort, size_t species, size_t genotype, size_t drug, int val, int outId)
 {
-    recordValue(val, measure, survey, age, cohort, species, genotype, drug, outId);
+    recordIntValue(val, measure, survey, age, cohort, species, genotype, drug, outId);
 }
 
 void record(Measure measure, size_t survey, size_t age, uint32_t cohort, size_t species, size_t genotype, size_t drug, double val)
 {
-    recordValue(val, measure, survey, age, cohort, species, genotype, drug);
+    recordDoubleValue(val, measure, survey, age, cohort, species, genotype, drug);
 }
 
 void recordStat(Measure measure, const Host::Human& human, int val, size_t species, size_t genotype, size_t drug, int outId)
