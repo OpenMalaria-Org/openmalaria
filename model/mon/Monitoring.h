@@ -227,7 +227,6 @@ typedef std::map<std::string, OutMeasure> NamedMeasureMapT;
 extern NamedMeasureMapT namedOutMeasures;
 extern std::set<Measure> validCondMeasures;
 
-void findNamedMeasuresUsing(Measure m, std::ostream& msg);
 void defineOutMeasures();
 
 } // namespace mon
