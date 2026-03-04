@@ -20,6 +20,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  */
 
+#include <algorithm>
 #include <limits>
 #include <memory>
 
@@ -296,20 +297,18 @@ public:
         f = makeObject(decaySequence[0], "Emax::f");
 
         Emax = elt.getEmax().get();
-        IC50 = elt.getIC50().get();
+        const double rawIC50 = elt.getIC50().get();
         slope = elt.getSlope().get();
         initialConcentration = elt.getInitialConcentration().get();
-
-        IC50 = pow(IC50, slope); // compute once
 
         if (Emax < 0.0 || Emax > 1.0) {
             throw util::xml_scenario_error(
                 "Emax function: Emax must be in [0, 1], got " + std::to_string(Emax));
         }
 
-        if (IC50 <= 0.0) {
+        if (rawIC50 <= 0.0) {
             throw util::xml_scenario_error(
-                "Emax function: IC50 must be > 0, got " + std::to_string(IC50));
+                "Emax function: IC50 must be > 0, got " + std::to_string(rawIC50));
         }
 
         if (slope <= 0.0) {
@@ -321,33 +320,40 @@ public:
             throw util::xml_scenario_error(
                 "Emax function: InitialConcentration must be >= 0, got " + std::to_string(initialConcentration));
         }
+
+        // Store IC50^slope once since compute() evaluates this repeatedly.
+        IC50 = std::pow(rawIC50, slope);
     }
 
-    EmaxFunction(const EmaxFunction &copy, unique_ptr<DecayFunction> f) : 
+    EmaxFunction(const EmaxFunction &copy, std::unique_ptr<DecayFunction> f) :
         DecayFunction(copy),
-        f(move(f)),
-        Emax(copy.Emax), 
+        f(std::move(f)),
+        Emax(copy.Emax),
         IC50(copy.IC50),
         slope(copy.slope),
         initialConcentration(copy.initialConcentration) {}
 
     double compute(double effectiveAge) const {
-        double fcomp = pow(initialConcentration * f->eval(effectiveAge), slope);
-        return max(min(Emax * fcomp / (fcomp + IC50), 1.0), 0.0);
+        // Emax model: E(C)=Emax*C^slope/(C^slope + IC50^slope), C=C0*f(t).
+        const double concentrationPow =
+            std::pow(initialConcentration * f->eval(effectiveAge), slope);
+        const double efficacy = Emax * concentrationPow / (concentrationPow + IC50);
+        return std::max(std::min(efficacy, 1.0), 0.0);
     }
     
     SimTime sampleAgeOfDecay (LocalRng& rng) const {
         return sim::roundToTSFromDays( f->sampleAgeOfDecay(rng) );
     }
 
-    unique_ptr<DecayFunction> hetSample(double hetFactor) const {
-        unique_ptr<DecayFunction> fhetSample = f->hetSample(hetFactor);
-        unique_ptr<EmaxFunction> copy = make_unique<EmaxFunction>(*this, move(fhetSample));
-        return move(copy);
+    std::unique_ptr<DecayFunction> hetSample(double hetFactor) const {
+        std::unique_ptr<DecayFunction> fhetSample = f->hetSample(hetFactor);
+        std::unique_ptr<EmaxFunction> copy =
+            std::make_unique<EmaxFunction>(*this, std::move(fhetSample));
+        return std::move(copy);
     }
 
 private:
-    unique_ptr<DecayFunction> f;
+    std::unique_ptr<DecayFunction> f;
     double Emax, IC50, slope, initialConcentration;
 };
 

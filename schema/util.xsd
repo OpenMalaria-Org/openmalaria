@@ -149,6 +149,10 @@ Licence: GNU General Public Licence version 2 or later (see COPYING) -->
           hill: 1 / (1 + (t/L)^k)
           
           smooth-compact: exp( k - k / (1 - (t/L)^2) ) for t less than L, otherwise 0
+
+          emax: Emax * C(t)^slope / (C(t)^slope + IC50^slope),
+          where C(t) = initialConcentration * f(t), and f(t) is the
+          single nested decay function
         </xs:documentation>
     <xs:appinfo>units:None;min:0;max:1;name:function;</xs:appinfo>
    </xs:annotation>
@@ -230,27 +234,32 @@ Licence: GNU General Public Licence version 2 or later (see COPYING) -->
   <xs:attribute name="initialConcentration" type="xs:double" use="optional">
    <xs:annotation>
     <xs:documentation>
-          biphasic: Proportion between 0 and 1, proportion of the response that is short-lived.</xs:documentation>
+          emax: Initial concentration C(0). Must be >= 0.
+          Units are user-defined, but must be consistent with IC50.
+        </xs:documentation>
    </xs:annotation>
   </xs:attribute>
   <xs:attribute name="Emax" type="xs:double" use="optional">
    <xs:annotation>
     <xs:documentation>
-          maximum efficacy (between 0 and 1)</xs:documentation>
+          emax: Maximum efficacy (between 0 and 1). Dimensionless.
+        </xs:documentation>
    </xs:annotation>
   </xs:attribute>
   <xs:attribute name="slope" type="xs:double" use="optional">
    <xs:annotation>
     <xs:documentation>
-          steepness of the sigmoidal curve
-</xs:documentation>
+          emax: Hill slope (steepness) parameter. Must be > 0.
+          Dimensionless.
+        </xs:documentation>
    </xs:annotation>
   </xs:attribute>
   <xs:attribute name="IC50" type="xs:double" use="optional">
    <xs:annotation>
     <xs:documentation>
-          IC 50
-</xs:documentation>
+          emax: Concentration for half-maximal effect. Must be > 0.
+          Units must match initialConcentration.
+        </xs:documentation>
    </xs:annotation>
   </xs:attribute>
  </xs:complexType>

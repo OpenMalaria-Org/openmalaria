@@ -117,6 +117,39 @@ public:
         TS_ASSERT_APPROX( dHet->eval( sim::fromYearsI(6 ) ), 0.40656965789473687 );
         TS_ASSERT_APPROX( dHet->eval( sim::fromYearsI(20 ) ), 0.0 );
     }
+
+    void testEmax () {
+        dfElt.setFunction( "emax" );
+        dfElt.setEmax( 0.8 );
+        dfElt.setIC50( 1.0 );
+        dfElt.setSlope( 1.0 );
+        dfElt.setInitialConcentration( 2.0 );
+        dfElt.getDecay().clear();
+        scnXml::DecayFunction inner( "exponential" );
+        inner.setL( "10y" );
+        dfElt.getDecay().push_back( inner );
+
+        df = DecayFunction::makeObject( dfElt, "DecayFunctionSuite" );
+        unique_ptr<DecayFunction> dHet = df->hetSample(m_rng);
+        TS_ASSERT_APPROX( dHet->eval( sim::zero() ), 0.5333333333333333 );
+        TS_ASSERT_APPROX( dHet->eval( sim::fromYearsI(10) ), 0.4 );
+        TS_ASSERT_APPROX( dHet->eval( sim::fromYearsI(20) ), 0.26666666666666666 );
+    }
+
+    void testEmaxBadIC50 () {
+        dfElt.setFunction( "emax" );
+        dfElt.setEmax( 0.8 );
+        dfElt.setIC50( -1.0 );
+        dfElt.setSlope( 0.5 );
+        dfElt.setInitialConcentration( 2.0 );
+        dfElt.getDecay().clear();
+        scnXml::DecayFunction inner( "constant" );
+        dfElt.getDecay().push_back( inner );
+
+        string errMsg = "Emax function: IC50 must be > 0, got -1.000000";
+        TS_ASSERT_THROWS_EQUALS( df = DecayFunction::makeObject( dfElt, "DecayFunctionSuite" ),
+                          const std::runtime_error &e, e.what(), errMsg );
+    }
     
 private:
     LocalRng m_rng;
