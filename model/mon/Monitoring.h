@@ -24,12 +24,11 @@
 #define H_OM_mon_Monitoring
 
 #include "Global.h"
+#include "mon/OutMeasures.h"
 #include <cassert>
 #include <cstdint>
 #include <iosfwd>
 #include <limits>
-#include <map>
-#include <set>
 #include <string>
 
 namespace scnXml {
@@ -45,95 +44,6 @@ namespace interventions {
 struct ComponentId;
 }
 namespace mon {
-
-// ----- reporting types -----
-
-enum Measure {
-    nHost,
-    nInfect, nInfect_Imported, nInfect_Introduced, nInfect_Indigenous,
-    nPatent, nPatent_Imported, nPatent_Introduced, nPatent_Indigenous,
-    totalInfs, totalInfs_Imported, totalInfs_Introduced, totalInfs_Indigenous,
-    totalPatentInf, totalPatentInf_Imported, totalPatentInf_Introduced, totalPatentInf_Indigenous,
-    nNewInfections, nNewInfections_Imported, nNewInfections_Introduced, nNewInfections_Indigenous,
-    nSubPopRemovalFirstEvent,
-    nSubPopRemovalTooOld,
-    nInfectByGenotype,
-    nPatentByGenotype,
-    nHostDrugConcNonZero,
-
-    nTreatments1,
-    nTreatments2,
-    nTreatments3,
-    nNMFTreatments,
-    nLiverStageTreatments,
-    nTreatDiagnostics,
-
-    nUncomp, nUncomp_Imported, nUncomp_Introduced, nUncomp_Indigenous,
-    nSevere,
-    nSevereWithoutComorbidities,
-    nNMFever,
-
-    nDirDeaths,
-    nIndDeaths,
-    nSeq,
-    nHospitalDeaths,
-    nHospitalRecovs,
-    nHospitalSeqs,
-    nNmfDeaths,
-    Clinical_FirstDayDeaths,
-    Clinical_HospitalFirstDayDeaths,
-
-    vaccinations,
-    pev,
-    bsv,
-    tbv,
-    itn,
-    irs,
-    gvi,
-    treat,
-    screen,
-    recruit,
-    nTreatDeployments,
-
-    nCMDTReport,
-
-    nExpectd,
-    sumPyrogenThresh,
-    sumLogPyrogenThres,
-    sumlogDens,
-    logDensByGenotype,
-    sumAge,
-    sumLogDrugConcNonZero,
-    expectedDirectDeaths,
-    expectedHospitalDeaths,
-    expectedIndirectDeaths,
-    expectedSequelae,
-    expectedSevere,
-    expectedSevereWithoutComorbidities,
-
-    nTransmit,
-    annAvgK,
-    inputEIR,
-    simulatedEIR, simulatedEIR_Introduced, simulatedEIR_Indigenous,
-    innoculationsPerAgeGroup,
-    Vector_Nv0,
-    Vector_Nv,
-    Vector_Ov,
-    Vector_Sv,
-
-    MeasureCount,
-    obsoleteMeasure,
-    allCauseIMR
-};
-
-namespace Deploy {
-enum Method {
-    NA = 0,
-    TIMED = 1 << 0,
-    CTS = 1 << 1,
-    TREAT = 1 << 2
-};
-}
 
 // ----- info API -----
 
