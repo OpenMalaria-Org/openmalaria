@@ -1082,11 +1082,6 @@ void writeSurveyData ()
         ofstream stream(filename, mode);
         internal::write(stream);
     }
-
-    ifstream stream(filename, std::ios::in | std::ios::binary);
-    if (!stream) {
-        cerr << "STREAM BAD" << endl;
-    }
 }
 
 
