@@ -38,14 +38,49 @@
 #include <gzstream/gzstream.h>
 #include <iostream>
 #include <numeric>
-
 #include <stdexcept>
+
 namespace OM {
 namespace mon {
 
-NamedMeasureMapT namedOutMeasures;
+struct OutMeasure {
+    int outId = -1;
+    Measure m = MeasureCount;
+    bool isDouble = false;
+    bool byAge = false;
+    bool byCohort = false;
+    bool bySpecies = false;
+    bool byGenotype = false;
+    bool byDrug = false;
+    uint8_t method = 0;
+
+    OutMeasure(int outId, Measure m, bool isDouble, bool byAge, bool byCohort, bool bySpecies, bool byGenotype, bool byDrug, uint8_t method)
+        : outId(outId), m(m), isDouble(isDouble), byAge(byAge), byCohort(byCohort), bySpecies(bySpecies), byGenotype(byGenotype), byDrug(byDrug), method(method)
+    {
+    }
+
+    static OutMeasure value(int outId, Measure m, bool isDouble) { return OutMeasure(outId, m, isDouble, false, false, false, false, false, Deploy::NA); }
+    static OutMeasure humanAC(int outId, Measure m, bool isDouble) { return OutMeasure(outId, m, isDouble, true, true, false, false, false, Deploy::NA); }
+    static OutMeasure humanACG(int outId, Measure m, bool isDouble) { return OutMeasure(outId, m, isDouble, true, true, false, true, false, Deploy::NA); }
+    static OutMeasure humanACP(int outId, Measure m, bool isDouble) { return OutMeasure(outId, m, isDouble, true, true, false, false, true, Deploy::NA); }
+    static OutMeasure species(int outId, Measure m, bool byGenotype) { return OutMeasure(outId, m, true, false, false, true, byGenotype, false, Deploy::NA); }
+    static OutMeasure humanDeploy(int outId, Measure m, Deploy::Method method)
+    {
+        assert(method >= 0 && method <= (Deploy::TIMED | Deploy::CTS | Deploy::TREAT));
+        return OutMeasure(outId, m, false, true, true, false, false, false, method);
+    }
+    static OutMeasure obsolete(int outId) { return OutMeasure(outId, obsoleteMeasure, false, false, false, false, false, false, Deploy::NA); }
+};
+
+typedef std::map<std::string, OutMeasure> NamedMeasureMapT;
+std::map<std::string, OutMeasure> namedOutMeasures;
 set<Measure> validCondMeasures;
 static vector<SimTime> ageGroupUpperBound;
+
+using interventions::ComponentId;
+vector<uint32_t> cohortSubPopNumbers;   // value is output number
+map<ComponentId,uint32_t> cohortSubPopIds;      // value is internal index (used above)
+
 // This method defines output measures accepted by name in the XML (e.g.
 // "nHost") and their numeric output identifier (i.e. measure column of
 // outputs), type of output (integer or floating point), aggregation, and the
@@ -425,6 +460,17 @@ namespace impl {
     vector<Condition> conditions;
 }
 
+uint32_t cohortSetOutputId(uint32_t cohortSet){
+    uint32_t outNum = 0;
+    assert( (cohortSet >> cohortSubPopNumbers.size()) == 0 );
+    for( uint32_t i = 0; i < cohortSubPopNumbers.size(); ++i ){
+        if( cohortSet & (static_cast<uint32_t>(1) << i) ){
+            outNum += cohortSubPopNumbers[i];
+        }
+    }
+    return outNum;
+}
+
 /// One of these is used for every output index, and is specific to a measure
 /// and repeated for every survey.
 struct MonIndex {
@@ -468,7 +514,7 @@ struct MonIndex {
             ((c % nCohorts) + nCohorts *
             (a % nAges))));
     }
-    
+
     // Write out some data from results.
     // 
     // @param stream Data sink
@@ -509,7 +555,7 @@ struct MonIndex {
             for( size_t drug = 0; drug < nDrugs; ++drug ){
                 // Yeah, >999 age groups clashes with cohort sets, but unlikely a real issue
                 const int col2 = ageGroup + ageGroupAdd +
-                    1000 * internal::cohortSetOutputId( cohortSet ) +
+                    1000 * cohortSetOutputId( cohortSet ) +
                     1000000 * (drug + 1);
                 emit(ageGroup, cohortSet, 0, 0, drug, col2);
             } } }
@@ -523,7 +569,7 @@ struct MonIndex {
         for( size_t genotype = 0; genotype < nGenotypes; ++genotype ){
             // Yeah, >999 age groups clashes with cohort sets, but unlikely a real issue
             const int col2 = ageGroup + ageGroupAdd +
-                1000 * internal::cohortSetOutputId( cohortSet ) +
+                1000 * cohortSetOutputId( cohortSet ) +
                 1000000 * genotype;
             emit(ageGroup, cohortSet, 0, genotype, 0, col2);
         } } }
@@ -852,7 +898,7 @@ bool checkCondition( size_t conditionKey ){
     return impl::conditions[conditionKey].value;
 }
 
-void internal::write( ostream& stream ){
+void write( ostream& stream ){
     for( size_t survey = 0; survey < impl::nSurveys; ++survey ){
         for( const OutMeasure& om : reportedMeasures ){
             if( om.m >= MeasureCount ){
@@ -1077,10 +1123,10 @@ void writeSurveyData ()
     if (util::CommandLine::option(util::CommandLine::COMPRESS_OUTPUT)) {
         filename.append(".gz");
         ogzstream stream(filename.c_str(), mode);
-        internal::write(stream);
+        write(stream);
     } else {
         ofstream stream(filename, mode);
-        internal::write(stream);
+        write(stream);
     }
 }
 
@@ -1113,13 +1159,7 @@ void updateAgeGroup(size_t& index, SimTime age) {
     }
 }
 
-
 // ———  Cohort sets  ———
-
-using interventions::ComponentId;
-vector<uint32_t> cohortSubPopNumbers;   // value is output number
-map<ComponentId,uint32_t> cohortSubPopIds;      // value is internal index (used above)
-
 bool notPowerOfTwo( uint32_t num ){
     return num == 0 || num > (static_cast<uint32_t>(1) << 21) || (num & (num - 1)) != 0;
 }
@@ -1157,15 +1197,6 @@ uint32_t updateCohortSet( uint32_t old, ComponentId subPop, bool isMember ){
     return (old & ~subPopId) | (isMember ? subPopId : 0);
 }
 
-uint32_t internal::cohortSetOutputId(uint32_t cohortSet){
-    uint32_t outNum = 0;
-    assert( (cohortSet >> cohortSubPopNumbers.size()) == 0 );
-    for( uint32_t i = 0; i < cohortSubPopNumbers.size(); ++i ){
-        if( cohortSet & (static_cast<uint32_t>(1) << i) ){
-            outNum += cohortSubPopNumbers[i];
-        }
-    }
-    return outNum;
-}
+
 
 } }

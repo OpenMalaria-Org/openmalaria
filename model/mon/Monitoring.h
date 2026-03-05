@@ -169,15 +169,11 @@ void initCohorts(const scnXml::Monitoring& monitoring);
 void initMainSim();
 void concludeSurvey();
 void writeSurveyData();
+
 template <typename Stream>
 void checkpoint(Stream& stream);
 extern template void checkpoint<std::ostream>(std::ostream& stream);
 extern template void checkpoint<std::istream>(std::istream& stream);
-
-namespace internal {
-void write(std::ostream& stream);
-uint32_t cohortSetOutputId(uint32_t cohortSet);
-}
 
 // ----- direct recording API -----
 
@@ -188,48 +184,6 @@ void recordStat(Measure measure, const Host::Human& human, double val, size_t sp
 void recordEvent(Measure measure, const Host::Human& human, int val);
 void recordDeploy(Measure measure, const Host::Human& human, Deploy::Method method, int val = 1);
 bool isUsed(Measure measure);
-
-// ----- output-measure registry -----
-
-struct OutMeasure {
-    int outId;
-    Measure m;
-    bool isDouble;
-    bool byAge;
-    bool byCohort;
-    bool bySpecies;
-    bool byGenotype;
-    bool byDrug;
-    uint8_t method;
-
-    OutMeasure()
-        : outId(-1), m(MeasureCount), isDouble(false), byAge(false), byCohort(false), bySpecies(false), byGenotype(false), byDrug(false), method(0)
-    {
-    }
-
-    OutMeasure(int outId, Measure m, bool isDouble, bool byAge, bool byCohort, bool bySpecies, bool byGenotype, bool byDrug, uint8_t method)
-        : outId(outId), m(m), isDouble(isDouble), byAge(byAge), byCohort(byCohort), bySpecies(bySpecies), byGenotype(byGenotype), byDrug(byDrug), method(method)
-    {
-    }
-
-    static OutMeasure value(int outId, Measure m, bool isDouble) { return OutMeasure(outId, m, isDouble, false, false, false, false, false, Deploy::NA); }
-    static OutMeasure humanAC(int outId, Measure m, bool isDouble) { return OutMeasure(outId, m, isDouble, true, true, false, false, false, Deploy::NA); }
-    static OutMeasure humanACG(int outId, Measure m, bool isDouble) { return OutMeasure(outId, m, isDouble, true, true, false, true, false, Deploy::NA); }
-    static OutMeasure humanACP(int outId, Measure m, bool isDouble) { return OutMeasure(outId, m, isDouble, true, true, false, false, true, Deploy::NA); }
-    static OutMeasure species(int outId, Measure m, bool byGenotype) { return OutMeasure(outId, m, true, false, false, true, byGenotype, false, Deploy::NA); }
-    static OutMeasure humanDeploy(int outId, Measure m, Deploy::Method method)
-    {
-        assert(method >= 0 && method <= (Deploy::TIMED | Deploy::CTS | Deploy::TREAT));
-        return OutMeasure(outId, m, false, true, true, false, false, false, method);
-    }
-    static OutMeasure obsolete(int outId) { return OutMeasure(outId, obsoleteMeasure, false, false, false, false, false, false, Deploy::NA); }
-};
-
-typedef std::map<std::string, OutMeasure> NamedMeasureMapT;
-extern NamedMeasureMapT namedOutMeasures;
-extern std::set<Measure> validCondMeasures;
-
-void defineOutMeasures();
 
 } // namespace mon
 } // namespace OM
