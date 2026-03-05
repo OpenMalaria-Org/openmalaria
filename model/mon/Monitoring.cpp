@@ -43,33 +43,24 @@
 namespace OM {
 namespace mon {
 
+enum class Dim : uint8_t {
+    None = 0,
+    Age = 1 << 0,
+    Cohort = 1 << 1,
+    Species = 1 << 2,
+    Genotype = 1 << 3,
+    Drug = 1 << 4
+};
+inline Dim operator|(Dim a, Dim b) { return static_cast<Dim>(static_cast<uint8_t>(a) | static_cast<uint8_t>(b)); }
+inline bool hasDim(Dim dims, Dim f) { return (static_cast<uint8_t>(dims) & static_cast<uint8_t>(f)) != 0; }
+inline void clearDim(Dim& dims, Dim f) { dims = static_cast<Dim>(static_cast<uint8_t>(dims) & ~static_cast<uint8_t>(f)); }
+
 struct OutMeasure {
     int outId = -1;
     Measure m = MeasureCount;
     bool isDouble = false;
-    bool byAge = false;
-    bool byCohort = false;
-    bool bySpecies = false;
-    bool byGenotype = false;
-    bool byDrug = false;
-    uint8_t method = 0;
-
-    OutMeasure(int outId, Measure m, bool isDouble, bool byAge, bool byCohort, bool bySpecies, bool byGenotype, bool byDrug, uint8_t method)
-        : outId(outId), m(m), isDouble(isDouble), byAge(byAge), byCohort(byCohort), bySpecies(bySpecies), byGenotype(byGenotype), byDrug(byDrug), method(method)
-    {
-    }
-
-    static OutMeasure value(int outId, Measure m, bool isDouble) { return OutMeasure(outId, m, isDouble, false, false, false, false, false, Deploy::NA); }
-    static OutMeasure humanAC(int outId, Measure m, bool isDouble) { return OutMeasure(outId, m, isDouble, true, true, false, false, false, Deploy::NA); }
-    static OutMeasure humanACG(int outId, Measure m, bool isDouble) { return OutMeasure(outId, m, isDouble, true, true, false, true, false, Deploy::NA); }
-    static OutMeasure humanACP(int outId, Measure m, bool isDouble) { return OutMeasure(outId, m, isDouble, true, true, false, false, true, Deploy::NA); }
-    static OutMeasure species(int outId, Measure m, bool byGenotype) { return OutMeasure(outId, m, true, false, false, true, byGenotype, false, Deploy::NA); }
-    static OutMeasure humanDeploy(int outId, Measure m, Deploy::Method method)
-    {
-        assert(method >= 0 && method <= (Deploy::TIMED | Deploy::CTS | Deploy::TREAT));
-        return OutMeasure(outId, m, false, true, true, false, false, false, method);
-    }
-    static OutMeasure obsolete(int outId) { return OutMeasure(outId, obsoleteMeasure, false, false, false, false, false, false, Deploy::NA); }
+    Dim dims = Dim::None;
+    uint8_t method = Deploy::NA;
 };
 
 typedef std::map<std::string, OutMeasure> NamedMeasureMapT;
@@ -96,141 +87,145 @@ void defineOutMeasures(){
 
     struct NamedDef {
         const char* name;
-        OutMeasure om;
+        int outId;
+        Measure m;
+        bool isDouble;
+        Dim dims;
+        uint8_t method = Deploy::NA;
     };
 
     static const NamedDef defs[] = {
 
         /// Total number of humans
-        {"nHost", OutMeasure::humanAC( 0, nHost, false )},
+        {"nHost", 0, nHost, false, Dim::Age | Dim::Cohort},
         /** The number of human hosts with an infection (patent or not) at the time
         * the survey is taken. */
-        {"nInfect", OutMeasure::humanAC( 1, nInfect, false )},
-        {"nInfect_Imported", OutMeasure::humanAC( 1001, nInfect_Imported, false )},
-        {"nInfect_Introduced", OutMeasure::humanAC( 2001, nInfect_Introduced, false )},
-        {"nInfect_Indigenous", OutMeasure::humanAC( 3001, nInfect_Indigenous, false )},
+        {"nInfect", 1, nInfect, false, Dim::Age | Dim::Cohort},
+        {"nInfect_Imported", 1001, nInfect_Imported, false, Dim::Age | Dim::Cohort},
+        {"nInfect_Introduced", 2001, nInfect_Introduced, false, Dim::Age | Dim::Cohort},
+        {"nInfect_Indigenous", 3001, nInfect_Indigenous, false, Dim::Age | Dim::Cohort},
         /** Expected number of infected hosts
         *
         * This is the sum of the probabilities, across all time steps since the
         * last survey, of each host becoming infected on that time step. */
-        {"nExpectd", OutMeasure::humanAC( 2, nExpectd, true )},
+        {"nExpectd", 2, nExpectd, true, Dim::Age | Dim::Cohort},
         /** The number of human hosts whose total (blood-stage) parasite density is
         * above the detection threshold */
-        {"nPatent", OutMeasure::humanAC( 3, nPatent, false )},
-        {"nPatent_Imported", OutMeasure::humanAC( 1003, nPatent_Imported, false )},
-        {"nPatent_Introduced", OutMeasure::humanAC( 2003, nPatent_Introduced, false )},
-        {"nPatent_Indigenous", OutMeasure::humanAC( 3003, nPatent_Indigenous, false )},
+        {"nPatent", 3, nPatent, false, Dim::Age | Dim::Cohort},
+        {"nPatent_Imported", 1003, nPatent_Imported, false, Dim::Age | Dim::Cohort},
+        {"nPatent_Introduced", 2003, nPatent_Introduced, false, Dim::Age | Dim::Cohort},
+        {"nPatent_Indigenous", 3003, nPatent_Indigenous, false, Dim::Age | Dim::Cohort},
         /// Sum of log(1 + p) where p is the pyrogenic threshold
-        {"sumLogPyrogenThres", OutMeasure::humanAC( 4, sumLogPyrogenThres, true )},
+        {"sumLogPyrogenThres", 4, sumLogPyrogenThres, true, Dim::Age | Dim::Cohort},
         /** Sum (across hosts) of the natural logarithm of the parasite density of
         * hosts with detectable parasite density (patent according to the
         * monitoring diagnostic). */
-        {"sumlogDens", OutMeasure::humanAC( 5, sumlogDens, true )},
+        {"sumlogDens", 5, sumlogDens, true, Dim::Age | Dim::Cohort},
         /** The total number of infections in the population: includes both blood
         * and liver stages. Vivax: this is the number of broods. */
-        {"totalInfs", OutMeasure::humanACG( 6, totalInfs, false )},
-        {"totalInfs_Imported", OutMeasure::humanACG( 1006, totalInfs_Imported, false )},
-        {"totalInfs_Introduced", OutMeasure::humanACG( 2006, totalInfs_Introduced, false )},
-        {"totalInfs_Indigenous", OutMeasure::humanACG( 3006, totalInfs_Indigenous, false )},
+        {"totalInfs", 6, totalInfs, false, Dim::Age | Dim::Cohort | Dim::Genotype},
+        {"totalInfs_Imported", 1006, totalInfs_Imported, false, Dim::Age | Dim::Cohort | Dim::Genotype},
+        {"totalInfs_Introduced", 2006, totalInfs_Introduced, false, Dim::Age | Dim::Cohort | Dim::Genotype},
+        {"totalInfs_Indigenous", 3006, totalInfs_Indigenous, false, Dim::Age | Dim::Cohort | Dim::Genotype},
         /** Infectiousness of human population to mosquitoes
         *
         * Number of hosts transmitting to mosquitoes (i.e. proportion of
         * mosquitoes that get infected multiplied by human population size).
         * Single value, not per age-group. */
-        {"nTransmit", OutMeasure::value( 7, nTransmit, true )},
+        {"nTransmit", 7, nTransmit, true, Dim::None},
         /** The sum of all detectable infections (where blood stage parasite
         * density is above the detection limit) across all human hosts.
         * Vivax: the number of broods with an active blood stage. */
-        {"totalPatentInf", OutMeasure::humanACG( 8, totalPatentInf, false )},
-        {"totalPatentInf_Imported", OutMeasure::humanACG( 1008, totalPatentInf_Imported, false )},
-        {"totalPatentInf_Introduced", OutMeasure::humanACG( 2008, totalPatentInf_Introduced, false )},
-        {"totalPatentInf_Indigenous", OutMeasure::humanACG( 3008, totalPatentInf_Indigenous, false )},
+        {"totalPatentInf", 8, totalPatentInf, false, Dim::Age | Dim::Cohort | Dim::Genotype},
+        {"totalPatentInf_Imported", 1008, totalPatentInf_Imported, false, Dim::Age | Dim::Cohort | Dim::Genotype},
+        {"totalPatentInf_Introduced", 2008, totalPatentInf_Introduced, false, Dim::Age | Dim::Cohort | Dim::Genotype},
+        {"totalPatentInf_Indigenous", 3008, totalPatentInf_Indigenous, false, Dim::Age | Dim::Cohort | Dim::Genotype},
         /// Contribuion to immunity functions (removed)
-        {"contrib", OutMeasure::obsolete( 9 )},
+        {"contrib", 9, obsoleteMeasure, false, Dim::None},
         /// Sum of the pyrogenic threshold
-        {"sumPyrogenThresh", OutMeasure::humanAC( 10, sumPyrogenThresh, true )},
+        {"sumPyrogenThresh", 10, sumPyrogenThresh, true, Dim::Age | Dim::Cohort},
         /// number of blood-stage treatments (1st line)
-        {"nTreatments1", OutMeasure::humanAC( 11, nTreatments1, false )},
+        {"nTreatments1", 11, nTreatments1, false, Dim::Age | Dim::Cohort},
         /// number of blood-stage treatments (2nd line)
-        {"nTreatments2", OutMeasure::humanAC( 12, nTreatments2, false )},
+        {"nTreatments2", 12, nTreatments2, false, Dim::Age | Dim::Cohort},
         /// number of blood-stage treatments (inpatient)
-        {"nTreatments3", OutMeasure::humanAC( 13, nTreatments3, false )},
+        {"nTreatments3", 13, nTreatments3, false, Dim::Age | Dim::Cohort},
         /// number of episodes (uncomplicated)
-        {"nUncomp", OutMeasure::humanAC( 14, nUncomp, false )},
-        {"nUncomp_Imported", OutMeasure::humanAC( 1014, nUncomp_Imported, false )},
-        {"nUncomp_Introduced", OutMeasure::humanAC( 2014, nUncomp_Introduced, false )},
-        {"nUncomp_Indigenous", OutMeasure::humanAC( 3014, nUncomp_Indigenous, false )},
+        {"nUncomp", 14, nUncomp, false, Dim::Age | Dim::Cohort},
+        {"nUncomp_Imported", 1014, nUncomp_Imported, false, Dim::Age | Dim::Cohort},
+        {"nUncomp_Introduced", 2014, nUncomp_Introduced, false, Dim::Age | Dim::Cohort},
+        {"nUncomp_Indigenous", 3014, nUncomp_Indigenous, false, Dim::Age | Dim::Cohort},
         /// Number of severe episodes (severe malaria or malaria + coinfection)
-        {"nSevere", OutMeasure::humanAC( 15, nSevere, false )},
+        {"nSevere", 15, nSevere, false, Dim::Age | Dim::Cohort},
         /// cases with sequelae
-        {"nSeq", OutMeasure::humanAC( 16, nSeq, false )},
+        {"nSeq", 16, nSeq, false, Dim::Age | Dim::Cohort},
         /// deaths in hospital
-        {"nHospitalDeaths", OutMeasure::humanAC( 17, nHospitalDeaths, false )},
+        {"nHospitalDeaths", 17, nHospitalDeaths, false, Dim::Age | Dim::Cohort},
         /// Number of deaths indirectly caused by malaria
-        {"nIndDeaths", OutMeasure::humanAC( 18, nIndDeaths, false )},
+        {"nIndDeaths", 18, nIndDeaths, false, Dim::Age | Dim::Cohort},
         /// Number of deaths directly caused by malaria
-        {"nDirDeaths", OutMeasure::humanAC( 19, nDirDeaths, false )},
+        {"nDirDeaths", 19, nDirDeaths, false, Dim::Age | Dim::Cohort},
         /** Number of vaccine doses given via EPI.
         *
         * Since schema 22, each vaccine type may be deployed independently. To be
         * roughly backwards-compatible, the first type (PEV, BSV or TBV) described
         * (with an "effect" element) will be reported. */
-        {"nEPIVaccinations", OutMeasure::humanDeploy( 20, vaccinations, Deploy::CTS )},
+        {"nEPIVaccinations", 20, vaccinations, false, Dim::Age | Dim::Cohort, Deploy::CTS},
         /** All cause infant mortality rate
         *
         * Reports death rate of infants due to all causes (malaria as modelled
         * plus fixed non-malaria attribution). Calculated via Kaplan-Meier method.
         * Units: deaths per thousand births. */
-        {"allCauseIMR", OutMeasure::value( 21, allCauseIMR, true )},
+        {"allCauseIMR", 21, allCauseIMR, true, Dim::None},
         /** Number of vaccine doses given via mass campaign.
         *
         * Since schema 22, each vaccine type may be deployed independently. To be
         * roughly backwards-compatible, the first type (PEV, BSV or TBV) described
         * (with an "effect" element) will be reported. */
-        {"nMassVaccinations", OutMeasure::humanDeploy( 22, vaccinations, Deploy::TIMED )},
+        {"nMassVaccinations", 22, vaccinations, false, Dim::Age | Dim::Cohort, Deploy::TIMED},
         /// recoveries in hospital
-        {"nHospitalRecovs", OutMeasure::humanAC( 23, nHospitalRecovs, false )},
+        {"nHospitalRecovs", 23, nHospitalRecovs, false, Dim::Age | Dim::Cohort},
         /// sequelae in hospital
-        {"nHospitalSeqs", OutMeasure::humanAC( 24, nHospitalSeqs, false )},
+        {"nHospitalSeqs", 24, nHospitalSeqs, false, Dim::Age | Dim::Cohort},
         /// Number of IPT Doses (removed together with IPT model)
-        {"nIPTDoses", OutMeasure::obsolete( 25 )},
+        {"nIPTDoses", 25, obsoleteMeasure, false, Dim::None},
         /** Annual Average Kappa
         *
         * Calculated once a year as sum of human infectiousness divided by initial
         * EIR summed over a year. Single value, not per age-group. */
-        {"annAvgK", OutMeasure::value( 26, annAvgK, true )},
+        {"annAvgK", 26, annAvgK, true, Dim::None},
         /// Number of episodes (non-malaria fever)
-        {"nNMFever", OutMeasure::humanAC( 27, nNMFever, false )},
+        {"nNMFever", 27, nNMFever, false, Dim::Age | Dim::Cohort},
         /// Inoculations per human (all ages) per day of year, over the last year.
         /// (Reporting removed.)
-        {"innoculationsPerDayOfYear", OutMeasure::obsolete( 28 )},
+        {"innoculationsPerDayOfYear", 28, obsoleteMeasure, false, Dim::None},
         /// Kappa (human infectiousness) weighted by availability per day-of-year for the last year.
         /// (Reporting removed.)
-        {"kappaPerDayOfYear", OutMeasure::obsolete( 29 )},
+        {"kappaPerDayOfYear", 29, obsoleteMeasure, false, Dim::None},
         /** The total number of inoculations, by age group, cohort and parasite
         * genotype, summed over the reporting period. */
-        {"innoculationsPerAgeGroup", OutMeasure::humanACG( 30, innoculationsPerAgeGroup, true )},
+        {"innoculationsPerAgeGroup", 30, innoculationsPerAgeGroup, true, Dim::Age | Dim::Cohort | Dim::Genotype},
         /// N_v0: emergence of feeding vectors during the last time step. Units: mosquitoes/day
-        {"Vector_Nv0", OutMeasure::species( 31, Vector_Nv0, false )},
+        {"Vector_Nv0", 31, Vector_Nv0, true, Dim::Species},
         /// N_v: vectors seeking to feed during the last time step. Units: mosquitoes/day
-        {"Vector_Nv", OutMeasure::species( 32, Vector_Nv, false )},
+        {"Vector_Nv", 32, Vector_Nv, true, Dim::Species},
         /// N_v: infected vectors seeking to feed during the last time step. Units: mosquitoes/day
-        {"Vector_Ov", OutMeasure::species( 33, Vector_Ov, true )},
+        {"Vector_Ov", 33, Vector_Ov, true, Dim::Species | Dim::Genotype},
         /// N_v: infectious vectors seeking to feed during the last time step. Units: mosquitoes/day
-        {"Vector_Sv", OutMeasure::species( 34, Vector_Sv, true )},
+        {"Vector_Sv", 34, Vector_Sv, true, Dim::Species | Dim::Genotype},
         /** Input EIR (Expected EIR entered into scenario file)
         *
         * Units: inoculations per adult per time step. */
-        {"inputEIR", OutMeasure::value( 35, inputEIR, true )},
+        {"inputEIR", 35, inputEIR, true, Dim::None},
         /** Simulated EIR (EIR output by the transmission model)
         *
         * Units: inoculations per adult per time step (children are excluded
         * when measuring). */
-        {"simulatedEIR", OutMeasure::value( 36, simulatedEIR, true )},
-        {"simulatedEIR_Introduced", OutMeasure::value( 2036, simulatedEIR_Introduced, true )},
-        {"simulatedEIR_Indigenous", OutMeasure::value( 3036, simulatedEIR_Indigenous, true )},
+        {"simulatedEIR", 36, simulatedEIR, true, Dim::None},
+        {"simulatedEIR_Introduced", 2036, simulatedEIR_Introduced, true, Dim::None},
+        {"simulatedEIR_Indigenous", 3036, simulatedEIR_Indigenous, true, Dim::None},
         /// Number of Rapid Diagnostic Tests used
-        {"Clinical_RDTs", OutMeasure::obsolete( 39 )},
+        {"Clinical_RDTs", 39, obsoleteMeasure, false, Dim::None},
         /* Effective total quanty of each drug used orally, in mg.
         * (Per active ingredient abbreviation.)
         *
@@ -238,121 +233,121 @@ void defineOutMeasures(){
         * schedule definition).
         *
         * Reporting removed. */
-        {"Clinical_DrugUsage", OutMeasure::obsolete( 40 )},
+        {"Clinical_DrugUsage", 40, obsoleteMeasure, false, Dim::None},
         /// Direct death on first day of CM (before treatment takes effect)
-        {"Clinical_FirstDayDeaths", OutMeasure::humanAC( 41, Clinical_FirstDayDeaths, false )},
+        {"Clinical_FirstDayDeaths", 41, Clinical_FirstDayDeaths, false, Dim::Age | Dim::Cohort},
         /// Direct death on first day of CM (before treatment takes effect); hospital only
-        {"Clinical_HospitalFirstDayDeaths", OutMeasure::humanAC( 42, Clinical_HospitalFirstDayDeaths, false )},
+        {"Clinical_HospitalFirstDayDeaths", 42, Clinical_HospitalFirstDayDeaths, false, Dim::Age | Dim::Cohort},
         /** The number of actual infections since the last survey. */
-        {"nNewInfections", OutMeasure::humanAC( 43, nNewInfections, false )},
-        {"nNewInfections_Imported", OutMeasure::humanAC( 1043, nNewInfections_Imported, false )},
-        {"nNewInfections_Introduced", OutMeasure::humanAC( 2043, nNewInfections_Introduced, false )},
-        {"nNewInfections_Indigenous", OutMeasure::humanAC( 3043, nNewInfections_Indigenous, false )},
+        {"nNewInfections", 43, nNewInfections, false, Dim::Age | Dim::Cohort},
+        {"nNewInfections_Imported", 1043, nNewInfections_Imported, false, Dim::Age | Dim::Cohort},
+        {"nNewInfections_Introduced", 2043, nNewInfections_Introduced, false, Dim::Age | Dim::Cohort},
+        {"nNewInfections_Indigenous", 3043, nNewInfections_Indigenous, false, Dim::Age | Dim::Cohort},
         /** The number of ITNs delivered by mass distribution since last survey.
         *
         * These are "modelled ITNs": cover only a single person, cannot be passed
         * to someone else for reuse or used for fishing, etc. */
-        {"nMassITNs", OutMeasure::humanDeploy( 44, itn, Deploy::TIMED )},
+        {"nMassITNs", 44, itn, false, Dim::Age | Dim::Cohort, Deploy::TIMED},
         /** The number of ITNs delivered through EPI since last survey.
         *
         * Comments from nMassITNs apply. */
-        {"nEPI_ITNs", OutMeasure::humanDeploy( 45, itn, Deploy::CTS )},
+        {"nEPI_ITNs", 45, itn, false, Dim::Age | Dim::Cohort, Deploy::CTS},
         /** The number of people newly protected by IRS since last survey.
         *
         * Modelled IRS: affects one person, cannot be plastered over. */
-        {"nMassIRS", OutMeasure::humanDeploy( 46, irs, Deploy::TIMED )},
+        {"nMassIRS", 46, irs, false, Dim::Age | Dim::Cohort, Deploy::TIMED},
         /** Defunct; was used by "vector availability" intervention (which is now a
         * sub-set of GVI). */
-        {"nMassVA", OutMeasure::obsolete( 47 )},
+        {"nMassVA", 47, obsoleteMeasure, false, Dim::None},
         /// Number of malarial tests via microscopy used
-        {"Clinical_Microscopy", OutMeasure::obsolete( 48 )},
+        {"Clinical_Microscopy", 48, obsoleteMeasure, false, Dim::None},
         /* As Clinical_DrugUsage, but for quatities of drug delivered via IV. */
-        {"Clinical_DrugUsageIV", OutMeasure::obsolete( 49 )},
+        {"Clinical_DrugUsageIV", 49, obsoleteMeasure, false, Dim::None},
         /// Number of cohort recruitments removed)
-        {"nAddedToCohort", OutMeasure::obsolete( 50 )},
+        {"nAddedToCohort", 50, obsoleteMeasure, false, Dim::None},
         /// Number of individuals removed from cohort (removed)
-        {"nRemovedFromCohort", OutMeasure::obsolete( 51 )},
+        {"nRemovedFromCohort", 51, obsoleteMeasure, false, Dim::None},
         /** Number of people (per age group) treated by mass drug administration
         * campaign. (Note that in one day time-step model MDA can be configured
         * as screen-and-treat. This option reports treatments administered not
         * the number of tests used.) */
-        {"nMDAs", OutMeasure::humanDeploy( 52, treat, Deploy::TIMED )},
+        {"nMDAs", 52, treat, false, Dim::Age | Dim::Cohort, Deploy::TIMED},
         /// Number of deaths caused by non-malaria fevers
-        {"nNmfDeaths", OutMeasure::humanAC( 53, nNmfDeaths, false )},
+        {"nNmfDeaths", 53, nNmfDeaths, false, Dim::Age | Dim::Cohort},
         /// Number of antibiotic treatments given (disabled — not used)
-        {"nAntibioticTreatments", OutMeasure::obsolete( 54 )},
+        {"nAntibioticTreatments", 54, obsoleteMeasure, false, Dim::None},
         /** Report the number of screenings used in a mass screen-and-treat
         * operation. */
-        {"nMassScreenings", OutMeasure::humanDeploy( 55, screen, Deploy::TIMED )},
+        {"nMassScreenings", 55, screen, false, Dim::Age | Dim::Cohort, Deploy::TIMED},
         /// Report the number of mass deployments of generic vector interventions.
-        {"nMassGVI", OutMeasure::humanDeploy( 56, gvi, Deploy::TIMED )},
+        {"nMassGVI", 56, gvi, false, Dim::Age | Dim::Cohort, Deploy::TIMED},
         /** Number of IRS deployments via continuous deployment. */
-        {"nCtsIRS", OutMeasure::humanDeploy( 57, irs, Deploy::CTS )},
+        {"nCtsIRS", 57, irs, false, Dim::Age | Dim::Cohort, Deploy::CTS},
         /** Number of GVI deployments via continuous deployment. */
-        {"nCtsGVI", OutMeasure::humanDeploy( 58, gvi, Deploy::CTS )},
+        {"nCtsGVI", 58, gvi, false, Dim::Age | Dim::Cohort, Deploy::CTS},
         /** Number of "MDA" deployments via continuous deployment.
         *
         * Note: MDA stands for mass drug administration, but the term has come to
         * be used more flexibly by OpenMalaria, including optional screening and
         * deployment through age-based systems. */
-        {"nCtsMDA", OutMeasure::humanDeploy( 59, treat, Deploy::CTS )},
+        {"nCtsMDA", 59, treat, false, Dim::Age | Dim::Cohort, Deploy::CTS},
         /** Number of diagnostics used by "MDA" distribution through continuous
         * methods. Can be higher than nCtsMDA since drugs are administered only
         * when the diagnostic is positive. Also see nCtsMDA description. */
-        {"nCtsScreenings", OutMeasure::humanDeploy( 60, screen, Deploy::CTS )},
+        {"nCtsScreenings", 60, screen, false, Dim::Age | Dim::Cohort, Deploy::CTS},
         /** Number of removals from a sub-population due to expiry of duration of
         * membership (e.g. intervention too old). */
-        {"nSubPopRemovalTooOld", OutMeasure::humanAC( 61, nSubPopRemovalTooOld, false )},
+        {"nSubPopRemovalTooOld", 61, nSubPopRemovalTooOld, false, Dim::Age | Dim::Cohort},
         /** Number of removals from a sub-population due to first
         * infection/bout/treatment (see onFirstBout & co). */
-        {"nSubPopRemovalFirstEvent", OutMeasure::humanAC( 62, nSubPopRemovalFirstEvent, false )},
+        {"nSubPopRemovalFirstEvent", 62, nSubPopRemovalFirstEvent, false, Dim::Age | Dim::Cohort},
         /** Report the number of liver-stage treatments (likely Primaquine) administered. */
-        {"nLiverStageTreatments", OutMeasure::humanAC( 63, nLiverStageTreatments, false )},
+        {"nLiverStageTreatments", 63, nLiverStageTreatments, false, Dim::Age | Dim::Cohort},
         /** Report the number of diagnostics used during treatment.
         *
         * This is not the same as Clinical_RDTs + Clinical_Microscopy: those
         * outputs are used by the "event scheduler" 1-day time step clinical
         * model, whereas this output is used by the 5-day time step model. */
-        {"nTreatDiagnostics", OutMeasure::humanAC( 64, nTreatDiagnostics, false )},
+        {"nTreatDiagnostics", 64, nTreatDiagnostics, false, Dim::Age | Dim::Cohort},
         /** Number of "recruitment only" recruitments via timed deployment. */
-        {"nMassRecruitOnly", OutMeasure::humanDeploy( 65, recruit, Deploy::TIMED )},
+        {"nMassRecruitOnly", 65, recruit, false, Dim::Age | Dim::Cohort, Deploy::TIMED},
         /** Number of "recruitment only" recruitments via age-based deployment. */
-        {"nCtsRecruitOnly", OutMeasure::humanDeploy( 66, recruit, Deploy::CTS )},
+        {"nCtsRecruitOnly", 66, recruit, false, Dim::Age | Dim::Cohort, Deploy::CTS},
         /** Number of deployments (of all intervention components) triggered by
         * treatment (case management). */
-        {"nTreatDeployments", OutMeasure::humanDeploy( 67, nTreatDeployments, Deploy::TREAT )},
+        {"nTreatDeployments", 67, nTreatDeployments, false, Dim::Age | Dim::Cohort, Deploy::TREAT},
         /** Report the total age of all humans in this a group (sum across humans,
         * in years). Divide by nHost to get the average age. */
-        {"sumAge", OutMeasure::humanAC( 68, sumAge, true )},
+        {"sumAge", 68, sumAge, true, Dim::Age | Dim::Cohort},
         /** The number of human hosts with an infection (patent or not), for each
         * genotype, at the time the survey is taken. */
-        {"nInfectByGenotype", OutMeasure::humanACG( 69, nInfectByGenotype, false )},
+        {"nInfectByGenotype", 69, nInfectByGenotype, false, Dim::Age | Dim::Cohort | Dim::Genotype},
         /** The number of human hosts whose total (blood-stage) parasite density,
         * for each genotype, is above the detection threshold */
-        {"nPatentByGenotype", OutMeasure::humanACG( 70, nPatentByGenotype, false )},
+        {"nPatentByGenotype", 70, nPatentByGenotype, false, Dim::Age | Dim::Cohort | Dim::Genotype},
         /** For each infection genotype, sum across humans the natural log of
         * parasite density (like sumlogDens but per genotype). */
-        {"logDensByGenotype", OutMeasure::humanACG( 71, logDensByGenotype, true )},
+        {"logDensByGenotype", 71, logDensByGenotype, true, Dim::Age | Dim::Cohort | Dim::Genotype},
         /** For each drug type in the pharmacology section of the XML, report the
         * number of humans with non-zero concentration of this drug in their
         * blood. */
-        {"nHostDrugConcNonZero", OutMeasure::humanACP( 72, nHostDrugConcNonZero, false )},
+        {"nHostDrugConcNonZero", 72, nHostDrugConcNonZero, false, Dim::Age | Dim::Cohort | Dim::Drug},
         /** For each drug type in the pharmacology section of the XML, report the
         * sum of the natural logarithm of the drug concentration in hosts with
         * non-zero concentration. */
-        {"sumLogDrugConcNonZero", OutMeasure::humanACP( 73, sumLogDrugConcNonZero, true )},
+        {"sumLogDrugConcNonZero", 73, sumLogDrugConcNonZero, true, Dim::Age | Dim::Cohort | Dim::Drug},
         /** Expected number of direct malaria deaths, from those with severe
         * disease.
         *
         * This is calculated as the sum over all steps in the reporting period of
         * the sum over humans with severe malaria of the probability of direct
         * death from malaria. */
-        {"expectedDirectDeaths", OutMeasure::humanAC( 74, expectedDirectDeaths, true )},
+        {"expectedDirectDeaths", 74, expectedDirectDeaths, true, Dim::Age | Dim::Cohort},
         /** Expected number of direct malaria deaths which occur in hospital.
         *
         * This is the a subset of `expectedDirectDeaths` and the same notes apply.
         */
-        {"expectedHospitalDeaths", OutMeasure::humanAC( 75, expectedHospitalDeaths, true )},
+        {"expectedHospitalDeaths", 75, expectedHospitalDeaths, true, Dim::Age | Dim::Cohort},
         /** Expected number of indirect malaria deaths, from sick humans.
         *
         * This is calculated as the sum over all steps in the reporting period of
@@ -371,14 +366,14 @@ void defineOutMeasures(){
         *
         * Humans already 'doomed' to die as an 'indirect mortality' are excluded
         * from the sum. */
-        {"expectedIndirectDeaths", OutMeasure::humanAC( 76, expectedIndirectDeaths, true )},
+        {"expectedIndirectDeaths", 76, expectedIndirectDeaths, true, Dim::Age | Dim::Cohort},
         /** Expected number of sequelae, from those with severe disease.
         *
         * This is calculated as the sum over all steps in the reporting period of
         * the sum over humans with severe malaria of the probability of sequelae
         * occuring, assuming the human "recovers" from the bout.
         */
-        {"expectedSequelae", OutMeasure::humanAC( 77, expectedSequelae, true )},
+        {"expectedSequelae", 77, expectedSequelae, true, Dim::Age | Dim::Cohort},
         /** Expected number of severe bouts of malaria.
         *
         * This is calculated as the sum over all steps in the reporting period of
@@ -394,27 +389,33 @@ void defineOutMeasures(){
         * bout when not already given that there will be a malaria bout, but may
         * be more noisy.
         */
-        {"expectedSevere", OutMeasure::humanAC( 78, expectedSevere, true )},
+        {"expectedSevere", 78, expectedSevere, true, Dim::Age | Dim::Cohort},
         /** The total number of inoculations, by mosquito species, summed over
         * the reporting period. */
-        {"innoculationsPerVector", OutMeasure::species( 79, innoculationsPerAgeGroup, false )},
+        {"innoculationsPerVector", 79, innoculationsPerAgeGroup, true, Dim::Species},
         /** Number of custom intervention reports done */
-        {"nCMDTReport", OutMeasure::humanAC( 80, nCMDTReport, false )},
+        {"nCMDTReport", 80, nCMDTReport, false, Dim::Age | Dim::Cohort},
         /// Similar to nSevere. Number of severe episodes WITHOUT coinfection
-        {"nSevereWithoutComorbidities", OutMeasure::humanAC( 81, nSevereWithoutComorbidities, false )},
+        {"nSevereWithoutComorbidities", 81, nSevereWithoutComorbidities, false, Dim::Age | Dim::Cohort},
         /** Similar to 'expectedSevere'.
         * Expected number of severe bouts of malaria WITHOUT "complications due
         * to coinfection" (the same as the `nSevereWithoutComorbidities` output). */
-        {"expectedSevereWithoutComorbidities", OutMeasure::humanAC( 82, expectedSevereWithoutComorbidities, true )},
+        {"expectedSevereWithoutComorbidities", 82, expectedSevereWithoutComorbidities, true, Dim::Age | Dim::Cohort},
     };
 
     for (const NamedDef& d : defs) {
-        auto [it, inserted] = namedOutMeasures.emplace(d.name, d.om);
+        OutMeasure om;
+        om.outId = d.outId;
+        om.m = d.m;
+        om.isDouble = d.isDouble;
+        om.dims = d.dims;
+        om.method = d.method;
+        auto [it, inserted] = namedOutMeasures.emplace(d.name, om);
         if (!inserted) {
             throw std::runtime_error("Duplicate OutMeasure name detected: " + std::string(d.name));
         }
-        if (!seenIDs.insert(d.om.outId).second) {
-            throw std::runtime_error("Duplicate OutMeasure (outId) detected: " + std::to_string(d.om.outId));
+        if (!seenIDs.insert(d.outId).second) {
+            throw std::runtime_error("Duplicate OutMeasure (outId) detected: " + std::to_string(d.outId));
         }
     }
 
@@ -527,7 +528,7 @@ struct MonIndex {
     {
         assert(results.size() >= surveyStart + size());
         // First age group starts at 1, unless there isn't an age group:
-        const int ageGroupAdd = om.byAge ? 1 : 0;
+        const int ageGroupAdd = hasDim(om.dims, Dim::Age) ? 1 : 0;
         // Number of *reported* age categories: either no categorisation (1) or there is an extra unreported category
         const size_t nAgeCats = nAges == 1 ? 1 : nAges - 1;
 
@@ -536,7 +537,7 @@ struct MonIndex {
             stream << surveyNum << '\t' << col2 << '\t' << om.outId << '\t' << value << lineEnd;
         };
 
-        if( om.bySpecies ){
+        if( hasDim(om.dims, Dim::Species) ){
             assert( nAges == 1 && nCohorts == 1 && nDrugs == 1 );
             for( size_t species = 0; species < nSpecies; ++species ){
             for( size_t genotype = 0; genotype < nGenotypes; ++genotype ){
@@ -547,7 +548,7 @@ struct MonIndex {
             return;
         }
 
-        if( om.byDrug ){
+        if( hasDim(om.dims, Dim::Drug) ){
             assert( nSpecies == 1 && nGenotypes == 1 );
             for( size_t cohortSet = 0; cohortSet < nCohorts; ++cohortSet ){
             // Last age category is not reported
@@ -591,11 +592,11 @@ template <typename State>
 void fillStateLayout(State& state, const OutMeasure& om, size_t nSp, size_t nD, bool forceNoCategories)
 {
     state.layout.outMeasure = om.outId;
-    state.layout.nAges = forceNoCategories ? 1 : (om.byAge ? numAgeGroups() : 1);
-    state.layout.nCohorts = forceNoCategories ? 1 : (om.byCohort ? impl::nCohorts : 1);
-    state.layout.nSpecies = forceNoCategories ? 1 : (om.bySpecies ? nSp : 1);
-    state.layout.nGenotypes = forceNoCategories ? 1 : (om.byGenotype ? WithinHost::Genotypes::N() : 1);
-    state.layout.nDrugs = forceNoCategories ? 1 : (om.byDrug ? nD : 1);
+    state.layout.nAges = forceNoCategories ? 1 : (hasDim(om.dims, Dim::Age) ? numAgeGroups() : 1);
+    state.layout.nCohorts = forceNoCategories ? 1 : (hasDim(om.dims, Dim::Cohort) ? impl::nCohorts : 1);
+    state.layout.nSpecies = forceNoCategories ? 1 : (hasDim(om.dims, Dim::Species) ? nSp : 1);
+    state.layout.nGenotypes = forceNoCategories ? 1 : (hasDim(om.dims, Dim::Genotype) ? WithinHost::Genotypes::N() : 1);
+    state.layout.nDrugs = forceNoCategories ? 1 : (hasDim(om.dims, Dim::Drug) ? nD : 1);
     state.layout.deployMask = om.method;
 }
 
@@ -785,12 +786,13 @@ void initReporting( const scnXml::Scenario& scenario ){
     // This should be an upper bound on the number of options we need:
     reportedMeasures.reserve(optsElt.getOption().size() + namedOutMeasures.size());
     
-    auto applyCategory = [](bool& supports, const bool optionalPresent, const bool requested,
+    auto applyCategory = [](Dim& dims, Dim flag, const bool optionalPresent, const bool requested,
                             const string& optionName, const char* label)
     {
         if (!optionalPresent) return;
+        const bool supports = hasDim(dims, flag);
         if (supports) {
-            supports = requested;   // disable or keep
+            if (!requested) clearDim(dims, flag);   // disable or keep
         } else if (requested) {
             throw util::xml_scenario_error("measure " + optionName + " does not support categorisation by " + label);
         }
@@ -808,7 +810,7 @@ void initReporting( const scnXml::Scenario& scenario ){
         
         if( om.m >= MeasureCount ){
             if( om.m == allCauseIMR ){
-                if( om.isDouble && !om.byAge && !om.byCohort && !om.bySpecies ){
+                if( om.isDouble && !hasDim(om.dims, Dim::Age) && !hasDim(om.dims, Dim::Cohort) && !hasDim(om.dims, Dim::Species) ){
                     reportIMR = om.outId;
                 }else{
                     throw util::xml_scenario_error( "measure allCauseIMR does not support any categorisation" );
@@ -831,11 +833,11 @@ void initReporting( const scnXml::Scenario& scenario ){
         const bool bySpeciesPresent = optElt.getBySpecies().present();
         const bool byGenotypePresent = optElt.getByGenotype().present();
         const bool byDrugPresent = optElt.getByDrugType().present();
-        applyCategory(om.byAge, byAgePresent, byAgePresent ? optElt.getByAge().get() : false, optionName, "age group");
-        applyCategory(om.byCohort, byCohortPresent, byCohortPresent ? optElt.getByCohort().get() : false, optionName, "cohort");
-        applyCategory(om.bySpecies, bySpeciesPresent, bySpeciesPresent ? optElt.getBySpecies().get() : false, optionName, "species");
-        applyCategory(om.byGenotype, byGenotypePresent, byGenotypePresent ? optElt.getByGenotype().get() : false, optionName, "genotype");
-        applyCategory(om.byDrug, byDrugPresent, byDrugPresent ? optElt.getByDrugType().get() : false, optionName, "drug type");
+        applyCategory(om.dims, Dim::Age, byAgePresent, byAgePresent ? optElt.getByAge().get() : false, optionName, "age group");
+        applyCategory(om.dims, Dim::Cohort, byCohortPresent, byCohortPresent ? optElt.getByCohort().get() : false, optionName, "cohort");
+        applyCategory(om.dims, Dim::Species, bySpeciesPresent, bySpeciesPresent ? optElt.getBySpecies().get() : false, optionName, "species");
+        applyCategory(om.dims, Dim::Genotype, byGenotypePresent, byGenotypePresent ? optElt.getByGenotype().get() : false, optionName, "genotype");
+        applyCategory(om.dims, Dim::Drug, byDrugPresent, byDrugPresent ? optElt.getByDrugType().get() : false, optionName, "drug type");
         
         // Output number may be changed:
         if( optElt.getOutputNumber().present() ) om.outId = optElt.getOutputNumber().get();
