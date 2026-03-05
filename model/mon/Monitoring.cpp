@@ -776,10 +776,6 @@ void checkpointStates(Stream& stream)
 vector<OutMeasure> reportedMeasures;
 int reportIMR = -1; // special output for fitting
 
-struct MeasureByOutId {
-    bool operator()(const OutMeasure& i, const OutMeasure& j) { return i.outId < j.outId; }
-} measureByOutId;
-
 void initReporting( const scnXml::Scenario& scenario ){
     defineOutMeasures();        // set up namedOutMeasures
     assert(reportedMeasures.empty());
@@ -851,7 +847,8 @@ void initReporting( const scnXml::Scenario& scenario ){
         reportedMeasures.push_back( om );
     }
     
-    std::sort( reportedMeasures.begin(), reportedMeasures.end(), measureByOutId );
+    std::sort(reportedMeasures.begin(), reportedMeasures.end(),
+        [](const OutMeasure& i, const OutMeasure& j) { return i.outId < j.outId; });
     
     size_t nSpecies = scenario.getEntomology().getVector().present() ?
         scenario.getEntomology().getVector().get().getAnopheles().size() : 1;
@@ -971,10 +968,7 @@ template void checkpoint<istream>(istream& stream);
 struct SurveyDate {
     SimTime date = sim::never();       // date of survey
     size_t num; // if NOT_USED, the survey is not reported; if greater, this is the survey number
-    
-    /// Construct
-    SurveyDate(SimTime date, size_t num) : date(date), num(num) {}
-    
+
     inline bool isReported() const { return num != NOT_USED; }
 };
 
@@ -984,26 +978,6 @@ namespace impl{
     size_t nCohorts = 1;     // default: just the whole population
     extern size_t surveyIndex;     // index in surveyDates of next survey
     vector<SurveyDate> surveyDates;     // dates of surveys
-}
-
-// trim from start (in place)
-static inline void ltrim(std::string &s) {
-    s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](unsigned char ch) {
-        return !std::isspace(ch);
-    }));
-}
-
-// trim from end (in place)
-static inline void rtrim(std::string &s) {
-    s.erase(std::find_if(s.rbegin(), s.rend(), [](unsigned char ch) {
-        return !std::isspace(ch);
-    }).base(), s.end());
-}
-
-// trim from both ends (in place)
-static inline void trim(std::string &s) {
-    ltrim(s);
-    rtrim(s);
 }
 
 SimTime readSurveyDates( const scnXml::Monitoring& monitoring ){
@@ -1021,7 +995,12 @@ SimTime readSurveyDates( const scnXml::Monitoring& monitoring ){
         const scnXml::SurveyTime& surv = survs[i];
         try{
             std::string s = surv;
-            trim(s);
+            s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](unsigned char ch) {
+                return !std::isspace(ch);
+            }));
+            s.erase(std::find_if(s.rbegin(), s.rend(), [](unsigned char ch) {
+                return !std::isspace(ch);
+            }).base(), s.end());
             SimTime cur = UnitParse::readDate( s, UnitParse::STEPS );
             bool reporting = surv.getReported();
             if( surv.getRepeatStep().present() != surv.getRepeatEnd().present() ){
@@ -1054,7 +1033,7 @@ SimTime readSurveyDates( const scnXml::Monitoring& monitoring ){
             num = n;
             n += 1;
         }
-        impl::surveyDates.push_back(SurveyDate(it->first, num));
+        impl::surveyDates.push_back({it->first, num});
     }
     impl::nSurveys = n;
     
@@ -1196,7 +1175,5 @@ uint32_t updateCohortSet( uint32_t old, ComponentId subPop, bool isMember ){
     uint32_t subPopId = static_cast<uint32_t>(1) << it->second;        // 1 bit positive
     return (old & ~subPopId) | (isMember ? subPopId : 0);
 }
-
-
 
 } }
