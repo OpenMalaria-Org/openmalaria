@@ -234,7 +234,7 @@ void update(Human &human, Transmission::TransmissionModel& transmission)
     util::streamValidate( age0 );
 
     // monitoringAgeGroup is the group for the start of the time step.
-    human.monitoringAgeGroup.update( age0 );
+    mon::updateAgeGroup(human.monitoringAgeGroup, age0);
     
     human.updateCohortSet();
 

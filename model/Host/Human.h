@@ -25,7 +25,6 @@
 #include "Global.h"
 #include "Transmission/PerHost.h"
 #include "InfectionIncidenceModel.h"
-#include "mon/AgeGroup.h"
 #include "interventions/HumanComponents.h"
 #include "util/checkpoint_containers.h"
 #include <map>
@@ -118,7 +117,7 @@ public:
     interventions::PerHumanVaccine vaccine;
 
     /** Made persistant to save a lookup each time step (significant performance improvement) */
-    mon::AgeGroup monitoringAgeGroup;
+    size_t monitoringAgeGroup = 0;
 
     /** The next continuous distribution in the series */
     uint32_t nextCtsDist = 0;

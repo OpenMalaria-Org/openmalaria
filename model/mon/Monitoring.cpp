@@ -21,7 +21,6 @@
  */
 
 #include "mon/Monitoring.h"
-#include "mon/AgeGroup.h"
 #include "Host/WithinHost/Diagnostic.h"
 #include "Host/WithinHost/Genotypes.h"
 #include "Clinical/ClinicalModel.h"
@@ -46,6 +45,7 @@ namespace mon {
 
 NamedMeasureMapT namedOutMeasures;
 set<Measure> validCondMeasures;
+static vector<SimTime> ageGroupUpperBound;
 // This method defines output measures accepted by name in the XML (e.g.
 // "nHost") and their numeric output identifier (i.e. measure column of
 // outputs), type of output (integer or floating point), aggregation, and the
@@ -545,7 +545,7 @@ template <typename State>
 void fillStateLayout(State& state, const OutMeasure& om, size_t nSp, size_t nD, bool forceNoCategories)
 {
     state.layout.outMeasure = om.outId;
-    state.layout.nAges = forceNoCategories ? 1 : (om.byAge ? AgeGroup::numGroups() : 1);
+    state.layout.nAges = forceNoCategories ? 1 : (om.byAge ? numAgeGroups() : 1);
     state.layout.nCohorts = forceNoCategories ? 1 : (om.byCohort ? impl::nCohorts : 1);
     state.layout.nSpecies = forceNoCategories ? 1 : (om.bySpecies ? nSp : 1);
     state.layout.nGenotypes = forceNoCategories ? 1 : (om.byGenotype ? WithinHost::Genotypes::N() : 1);
@@ -884,24 +884,24 @@ void record(Measure measure, size_t survey, size_t age, uint32_t cohort, size_t 
 
 void recordStat(Measure measure, const Host::Human& human, int val, size_t species, size_t genotype, size_t drug, int outId)
 {
-    record(measure, statSurveyNumber(), human.monitoringAgeGroup.i(), human.getCohortSet(), species, genotype, drug, val, outId);
+    record(measure, statSurveyNumber(), human.monitoringAgeGroup, human.getCohortSet(), species, genotype, drug, val, outId);
 }
 
 void recordStat(Measure measure, const Host::Human& human, double val, size_t species, size_t genotype, size_t drug)
 {
-    record(measure, statSurveyNumber(), human.monitoringAgeGroup.i(), human.getCohortSet(), species, genotype, drug, val);
+    record(measure, statSurveyNumber(), human.monitoringAgeGroup, human.getCohortSet(), species, genotype, drug, val);
 }
 
 void recordEvent(Measure measure, const Host::Human& human, int val)
 {
-    record(measure, eventSurveyNumber(), human.monitoringAgeGroup.i(), human.getCohortSet(), 0, 0, 0, val);
+    record(measure, eventSurveyNumber(), human.monitoringAgeGroup, human.getCohortSet(), 0, 0, 0, val);
 }
 
 void recordDeploy(Measure measure, const Host::Human& human, Deploy::Method method, int val)
 {
-    recordDeployValue(val, measure, eventSurveyNumber(), human.monitoringAgeGroup.i(), human.getCohortSet(), method);
+    recordDeployValue(val, measure, eventSurveyNumber(), human.monitoringAgeGroup, human.getCohortSet(), method);
     if (measure != nTreatDeployments)
-        recordDeployValue(val, nTreatDeployments, eventSurveyNumber(), human.monitoringAgeGroup.i(), human.getCohortSet(), method);
+        recordDeployValue(val, nTreatDeployments, eventSurveyNumber(), human.monitoringAgeGroup, human.getCohortSet(), method);
 }
 
 bool isUsed(Measure measure) { return isMeasureUsed(measure, false) || isMeasureUsed(measure, true); }
@@ -1037,7 +1037,7 @@ SimTime readSurveyDates( const scnXml::Monitoring& monitoring ){
         impl::nCohorts = static_cast<uint32_t>(1) << monitoring.getCohorts().get().getSubPop().size();
     }
     
-    mon::AgeGroup::init( monitoring );
+    mon::initAgeGroups( monitoring );
     
     // final survey date:
     return impl::surveyDates[impl::surveyDates.size()-1].date;
@@ -1099,27 +1099,30 @@ void writeSurveyData ()
 }
 
 
-// ———  AgeGroup  ———
+// ———  Age groups  ———
 
-vector<SimTime> AgeGroup::upperBound;
-
-void AgeGroup::init (const scnXml::Monitoring& monitoring) {
+void initAgeGroups(const scnXml::Monitoring& monitoring) {
     const scnXml::MonAgeGroup::GroupSequence& groups =
         monitoring.getAgeGroup().getGroup();
     if (!(monitoring.getAgeGroup().getLowerbound() <= 0.0))
         throw util::xml_scenario_error ("Expected survey age-group lowerbound of 0");
     
     // The last age group includes individuals too old for reporting
-    upperBound.resize( groups.size() + 1 );
+    ageGroupUpperBound.resize( groups.size() + 1 );
     for(size_t i = 0;i < groups.size(); ++i) {
         // convert to SimTime, rounding down to the next time step
-        upperBound[i] = sim::fromYearsD( groups[i].getUpperbound() );
+        ageGroupUpperBound[i] = sim::fromYearsD( groups[i].getUpperbound() );
     }
-    upperBound[groups.size()] = sim::future();
+    ageGroupUpperBound[groups.size()] = sim::future();
 }
 
-void AgeGroup::update (SimTime age) {
-    while (age >= upperBound[index]){
+size_t numAgeGroups() {
+    assert( ageGroupUpperBound.size() > 0 );      // otherwise not yet initialised
+    return ageGroupUpperBound.size();
+}
+
+void updateAgeGroup(size_t& index, SimTime age) {
+    while (age >= ageGroupUpperBound[index]){
         ++index;
     }
 }
