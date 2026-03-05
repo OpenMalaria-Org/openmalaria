@@ -1069,31 +1069,22 @@ void concludeSurvey(){
     updateSurveyNumbers();
 }
 
-void writeToStream(ostream& stream) {
-    stream.width(0);
-    internal::write(stream);
-}
-
 void writeSurveyData ()
 {
     string filename = util::CommandLine::getOutputName();
-    auto mode = std::ios::out | std::ios::binary;
+    const auto mode = std::ios::out | std::ios::binary;
     
-    if (util::CommandLine::option( util::CommandLine::COMPRESS_OUTPUT )) {
+    if (util::CommandLine::option(util::CommandLine::COMPRESS_OUTPUT)) {
         filename.append(".gz");
         ogzstream stream(filename.c_str(), mode);
-        writeToStream(stream);
+        internal::write(stream);
     } else {
         ofstream stream(filename, mode);
-        writeToStream(stream);
-        // Otherwise file may be written after OpenMalaria has returned (Mac OS Xcode 9.4)
-        stream.flush();
-        stream.close();
+        internal::write(stream);
     }
 
-    ifstream stream(filename, mode);
-    if(stream.is_open() == false || !stream.good())
-    {
+    ifstream stream(filename, std::ios::in | std::ios::binary);
+    if (!stream) {
         cerr << "STREAM BAD" << endl;
     }
 }
