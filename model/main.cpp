@@ -178,7 +178,7 @@ int main(int argc, char* argv[])
         // 3) elements depending on other elements; dependencies on (1) are not mentioned:
         // Transmission model initialisation depends on Transmission::PerHost and
         // genotypes (both from Human, from Population::init()) and
-        // mon::AgeGroup (from Surveys.init()):
+        // monitoring age groups (from Surveys.init()):
         // Note: PerHost dependency can be postponed; it is only used to set adultAge
         size_t popSize = scenario->getDemography().getPopSize();
 

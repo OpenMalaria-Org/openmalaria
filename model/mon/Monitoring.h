@@ -24,7 +24,6 @@
 #define H_OM_mon_Monitoring
 
 #include "Global.h"
-#include "mon/AgeGroup.h"
 #include <cassert>
 #include <cstdint>
 #include <iosfwd>
@@ -162,6 +161,9 @@ uint32_t updateCohortSet(uint32_t old, interventions::ComponentId subPop, bool i
 // ----- management API -----
 
 SimTime readSurveyDates(const scnXml::Monitoring& monitoring);
+void initAgeGroups(const scnXml::Monitoring& monitoring);
+void updateAgeGroup(size_t& index, SimTime age);
+size_t numAgeGroups();
 void initReporting(const scnXml::Scenario& scenario);
 void initCohorts(const scnXml::Monitoring& monitoring);
 void initMainSim();

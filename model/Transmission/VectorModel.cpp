@@ -373,7 +373,7 @@ SimTime VectorModel::initIterate()
 void VectorModel::calculateEIR(Host::Human &human, double ageYears, vector<double> &EIR_i, vector<double> &EIR_l) const
 {
 
-    auto ag = human.monitoringAgeGroup.i();
+    auto ag = human.monitoringAgeGroup;
     auto cs = human.getCohortSet();
     PerHost &host = human.perHostTransmission;
     host.update(human);
