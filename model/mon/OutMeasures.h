@@ -450,8 +450,7 @@ inline void defineOutMeasures(NamedMeasureMapT& namedOutMeasures, std::set<Measu
 
     std::set<int> seenIDs;
     for (const OutMeasure& d : defs) {
-        OutMeasure om;
-        om.outId = d.outId;
+        OutMeasure om = d;
         if (d.obsolete) {
             om.m = obsoleteMeasure;
         } else if (isAllCauseDef(d)) {
@@ -463,9 +462,6 @@ inline void defineOutMeasures(NamedMeasureMapT& namedOutMeasures, std::set<Measu
                 throw std::runtime_error("Unknown measure in definition: " + std::string(key));
             }
         }
-        om.isDouble = d.isDouble;
-        om.dims = d.dims;
-        om.method = d.method;
         if (d.outId < 0) continue;
 
         auto [it, inserted] = namedOutMeasures.emplace(d.userName, om);
