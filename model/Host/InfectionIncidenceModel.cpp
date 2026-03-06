@@ -171,7 +171,7 @@ double LogNormalMAII::getAvailabilityFactor(LocalRng& rng, double baseAvailabili
 }
 
 void InfectionIncidenceModel::summarize (const Host::Human& human) {
-    mon::recordStat(mon::nExpectd, human, m_pInfected);
+    mon::recordStat(mon::measure("nExpectd"), human, m_pInfected);
 }
 
 
@@ -265,9 +265,9 @@ int InfectionIncidenceModel::numNewInfections (Human& human, double expectedNumI
 
 void InfectionIncidenceModel::reportNumNewInfections(Human& human, int newNumInfections_i, int newNumInfections_l)
 {
-    mon::recordEvent(mon::nNewInfections, human, newNumInfections_i+newNumInfections_l);
-    mon::recordEvent(mon::nNewInfections_Introduced, human, newNumInfections_i);
-    mon::recordEvent(mon::nNewInfections_Indigenous, human, newNumInfections_l);
+    mon::recordEvent(mon::measure("nNewInfections"), human, newNumInfections_i+newNumInfections_l);
+    mon::recordEvent(mon::measure("nNewInfections_Introduced"), human, newNumInfections_i);
+    mon::recordEvent(mon::measure("nNewInfections_Indigenous"), human, newNumInfections_l);
     ctsNewInfections += newNumInfections_i+newNumInfections_l;
 }
 

@@ -102,7 +102,7 @@ void DecisionTree5Day::uncomplicatedEvent ( Human& human, Episode::State pgState
             mon::recordEvent(measures[regimen], human, 1);
         }
         if( output.screened ){
-            mon::recordEvent(mon::nTreatDiagnostics, human, 1);
+            mon::recordEvent(mon::measure("nTreatDiagnostics"), human, 1);
         }
         
         human.withinHostModel->optionalPqTreatment(human);

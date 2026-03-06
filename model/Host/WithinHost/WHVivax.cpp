@@ -345,18 +345,18 @@ double WHVivax::probTransmissionToMosquito(vector<double> &probTransGenotype_i, 
 
 bool WHVivax::summarize(Host::Human& human) const{
     if( infections.size() == 0 ) return false;  // no infections: not patent, nothing to report
-    mon::recordStat(mon::nInfect, human, 1);
+    mon::recordStat(mon::measure("nInfect"), human, 1);
     bool patentHost = false;
     // (patent) infections are reported by genotype, even though we don't have
     // genotype in this model
-    mon::recordStat(mon::totalInfs, human, static_cast<int>(infections.size()));
+    mon::recordStat(mon::measure("totalInfs"), human, static_cast<int>(infections.size()));
     for(auto inf = infections.begin(); inf != infections.end(); ++inf) {
         if (inf->isPatent()){
-            mon::recordStat(mon::totalPatentInf, human, 1);
+            mon::recordStat(mon::measure("totalPatentInf"), human, 1);
             patentHost = true;
         }
     }
-    if( patentHost ) mon::recordStat(mon::nPatent, human, 1);
+    if( patentHost ) mon::recordStat(mon::measure("nPatent"), human, 1);
     return patentHost;
 }
 
@@ -465,7 +465,7 @@ bool WHVivax::diagnosticResult( LocalRng& rng, const Diagnostic& diagnostic ) co
 }
 
 Pathogenesis::StatePair WHVivax::determineMorbidity( Host::Human& human, double ageYears, bool ){
-    mon::recordStat(mon::expectedSevere, human, pSevere);
+    mon::recordStat(mon::measure("expectedSevere"), human, pSevere);
     Pathogenesis::StatePair result;     // no indirect mortality in the vivax model
     result.state = morbidity;
     return result;
@@ -494,7 +494,7 @@ void WHVivax::optionalPqTreatment( Host::Human& human ){
                 it->treatmentLS();
             }
         }
-        mon::recordEvent(mon::nLiverStageTreatments, human, 1);
+        mon::recordEvent(mon::measure("nLiverStageTreatments"), human, 1);
     }
 }
 bool WHVivax::treatSimple( Host::Human& human, SimTime timeLiver, SimTime timeBlood ){
@@ -518,7 +518,7 @@ bool WHVivax::treatSimple( Host::Human& human, SimTime timeLiver, SimTime timeBl
                 }
             }
         }
-        mon::recordEvent(mon::nLiverStageTreatments, human, 1);
+        mon::recordEvent(mon::measure("nLiverStageTreatments"), human, 1);
     }
     
     // there probably will be blood-stage treatment

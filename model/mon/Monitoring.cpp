@@ -428,7 +428,7 @@ void initReporting( const scnXml::Scenario& scenario ){
             } else TRACED_EXCEPTION_DEFAULT("invalid measure code");
         }
         
-        if( om.m == sumlogDens || om.m == logDensByGenotype){
+        if( om.m == measure("sumlogDens") || om.m == measure("logDensByGenotype")){
             if( WithinHost::diagnostics::monitoringDiagnostic().allowsFalsePositives() ){
                 throw util::xml_scenario_error("measure " + string(optElt.getName()) + " may not be used when monitoring diagnostic sensitivity < 1");
             }
@@ -553,8 +553,9 @@ void recordEvent(Measure measure, const Host::Human& human, int val)
 void recordDeploy(Measure measure, const Host::Human& human, Deploy::Method method, int val)
 {
     recordDeployValue(val, measure, eventSurveyNumber(), human.monitoringAgeGroup, human.getCohortSet(), method);
-    if (measure != nTreatDeployments)
-        recordDeployValue(val, nTreatDeployments, eventSurveyNumber(), human.monitoringAgeGroup, human.getCohortSet(), method);
+    const Measure treatDeployments = ::OM::mon::measure("nTreatDeployments");
+    if (measure != treatDeployments)
+        recordDeployValue(val, treatDeployments, eventSurveyNumber(), human.monitoringAgeGroup, human.getCohortSet(), method);
 }
 
 bool isUsed(Measure measure) { return isMeasureUsed(measure, false) || isMeasureUsed(measure, true); }
