@@ -43,7 +43,7 @@
 namespace OM {
 namespace mon {
 
-std::map<std::string, OutMeasure> namedOutMeasures;
+NamedMeasureMapT namedOutMeasures;
 set<Measure> validCondMeasures;
 static vector<SimTime> ageGroupUpperBound;
 
