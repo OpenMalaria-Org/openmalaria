@@ -64,7 +64,7 @@ GVIComponent::GVIComponent( ComponentId id, const scnXml::GVIDescription& elt,
 
 void GVIComponent::deploy( Host::Human& human, mon::Deploy::Method method, VaccineLimits )const{
     human.perHostTransmission.deployComponent(human.rng, *this);
-    mon::recordDeploy(mon::gvi, human, method);
+    mon::recordDeploy(mon::measure("gvi"), human, method);
 }
 
 Component::Type GVIComponent::componentType()const{ return Component::GVI; }

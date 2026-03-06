@@ -211,7 +211,7 @@ public:
 
         auto ag = human.monitoringAgeGroup;
         auto cs = human.getCohortSet();
-        mon::record(mon::innoculationsPerAgeGroup, mon::statSurveyNumber(), ag, cs, 0, 0, 0, EIR_l[0]);
+        mon::record(mon::measure("innoculationsPerAgeGroup"), mon::statSurveyNumber(), ag, cs, 0, 0, 0, EIR_l[0]);
     }
 
 private:
