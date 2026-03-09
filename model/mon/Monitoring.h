@@ -25,6 +25,7 @@
 
 #include "Global.h"
 #include "mon/OutMeasures.h"
+#include <cassert>
 #include <cstdint>
 #include <iosfwd>
 #include <limits>
@@ -66,6 +67,42 @@ struct SurveyDate {
     bool isReported() const { return num != NOT_USED; }
 };
 
+struct MeasureLayout {
+    int outMeasure = 0;
+    size_t nAges = 1, nCohorts = 1, nSpecies = 1, nGenotypes = 1, nDrugs = 1;
+    uint8_t deployMask = Deploy::NA;
+
+    size_t size() const;
+    size_t index(size_t a, size_t c, size_t sp, size_t g, size_t d) const;
+    void write(std::ostream& stream, int surveyNum, const OutMeasure& om,
+               const std::vector<double>& results, size_t surveyStart) const;
+};
+
+struct MeasureStore {
+    MeasureLayout layout;
+    std::vector<double> reports;
+};
+
+struct SurveyStore {
+    std::vector<MeasureStore> stores;
+    std::vector<std::vector<size_t>> measureToStates;
+
+    void init(const std::vector<OutMeasure>& enabledMeasures, size_t nSpecies, size_t nDrugs);
+    void ensureConditionState(const OutMeasure& om);
+    void record(double val, Measure measure, size_t survey, size_t ageIndex, uint32_t cohortSet,
+                size_t species, size_t genotype, size_t drug, int outId = 0);
+    void recordDeploy(int val, Measure measure, size_t survey, size_t ageIndex,
+                      uint32_t cohortSet, Deploy::Method method);
+    double sum(Measure measure, uint8_t method, size_t survey) const;
+    void write(std::ostream& stream, size_t survey, const OutMeasure& om) const;
+    bool uses(Measure measure) const;
+    void checkpoint(std::ostream& stream);
+    void checkpoint(std::istream& stream);
+
+private:
+    void add(const OutMeasure& om, size_t nSpecies, size_t nDrugs, bool forceNoCategories);
+};
+
 struct RuntimeState {
     bool isInit = false;
     size_t surveyIndex = 0;
@@ -82,20 +119,20 @@ struct RuntimeState {
     std::vector<SimTime> ageGroupUpperBound;
     std::vector<uint32_t> cohortSubPopNumbers;
     std::map<interventions::ComponentId, uint32_t> cohortSubPopIds;
+    SurveyStore surveyStore;
 };
 
 extern RuntimeState runtime;
-void initStateRegistry(const std::vector<OutMeasure>& enabledMeasures, size_t nSpecies, size_t nDrugs);
 
 } // namespace internal
 
 // ----- info API -----
 
-size_t eventSurveyNumber();
-size_t statSurveyNumber();
-bool isReported();
-SimTime nextSurveyDate();
-size_t numCohortSets();
+inline size_t eventSurveyNumber() { return internal::runtime.survNumEvent; }
+inline size_t statSurveyNumber() { return internal::runtime.survNumStat; }
+inline bool isReported() { return !internal::runtime.isInit || internal::runtime.survNumStat != NOT_USED; }
+inline SimTime nextSurveyDate() { return internal::runtime.nextSurveyDate; }
+inline size_t numCohortSets() { return internal::runtime.nCohorts; }
 
 size_t setupCondition(const std::string& measureName, double minValue, double maxValue, bool initialState);
 bool checkCondition(size_t conditionKey);
@@ -105,7 +142,6 @@ uint32_t updateCohortSet(uint32_t old, interventions::ComponentId subPop, bool i
 
 void initAgeGroups(const scnXml::Monitoring& monitoring);
 void updateAgeGroup(size_t& index, SimTime age);
-size_t numAgeGroups();
 void initMainSim();
 void concludeSurvey();
 void writeSurveyData();
@@ -123,7 +159,10 @@ void recordStat(Measure measure, const Host::Human& human, int val, size_t speci
 void recordStat(Measure measure, const Host::Human& human, double val, size_t species = 0, size_t genotype = 0, size_t drug = 0);
 void recordEvent(Measure measure, const Host::Human& human, int val);
 void recordDeploy(Measure measure, const Host::Human& human, Deploy::Method method, int val = 1);
-bool isUsed(Measure measure);
+inline bool isUsed(Measure measure)
+{
+    return internal::runtime.surveyStore.uses(measure);
+}
 
 } // namespace mon
 } // namespace OM

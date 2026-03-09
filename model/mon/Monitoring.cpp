@@ -39,7 +39,6 @@ namespace OM {
 namespace mon {
 
 using internal::Condition;
-using internal::RuntimeState;
 using internal::SurveyDate;
 using internal::runtime;
 
@@ -56,127 +55,14 @@ uint32_t cohortSetOutputId(uint32_t cohortSet){
     return outNum;
 }
 
-/// One of these is used for every output index, and is specific to a measure
-/// and repeated for every survey.
-struct MonIndex {
-    // Measure number used in output file
-    int outMeasure;
-    // Number of categories. Must be > 0. If 1, index is set to zero, otherwise
-    // indices *should* be less than this.
-    // 
-    // nAges may include a final, unreported category.
-    size_t nAges, nCohorts, nSpecies, nGenotypes, nDrugs;
-    // Either Deploy::NA (not tracking deployments) or a binary 'or' of at
-    // least one of Deploy::TIMED, Deploy::CTS, Deploy::TREAT.
-    uint8_t deployMask;
-    
-    inline size_t size() const{
-        return nAges * nCohorts * nSpecies * nGenotypes * nDrugs;
-    }
-    // Get the index in the result array to store this data at
-    // (age group, cohort, species, genotype, drug).
-    size_t index( size_t a, size_t c, size_t sp, size_t g, size_t d ) const{
-#ifndef NDEBUG
-        if( (nAges > 1 && a >= nAges) ||
-            (nCohorts > 1 && c >= nCohorts) ||
-            (nSpecies > 1 && sp >= nSpecies) ||
-            (nGenotypes > 1 && g >= nGenotypes) ||
-            (nDrugs > 1 && d >= nDrugs)
-        ){
-            cout << "Index out of bounds for age group\t" << a << " of " << nAges
-                << "\ncohort set\t" << c << " of " << nCohorts
-                << "\nspecies\t" << sp << " of " << nSpecies
-                << "\ngenotype\t" << g << " of " << nGenotypes
-                << "\ndrug\t" << d << " of " << nDrugs
-                << endl;
-        }
-#endif
-        // We use `a % nAges` etc. to enforce `a < nAges` and handle
-        // the case `nAges == 1` (i.e. classification is turned off).
-        return (d % nDrugs) + nDrugs *
-            ((g % nGenotypes) + nGenotypes *
-            ((sp % nSpecies) + nSpecies *
-            ((c % nCohorts) + nCohorts *
-            (a % nAges))));
-    }
-
-    // Write out some data from results.
-    // 
-    // @param stream Data sink
-    // @param surveyNum Number to write in output (should start from 1 unlike in code)
-    // @param results Vector of results
-    // @param surveyStart Index in results where data for the current survey starts
-    void write( ostream& stream, int surveyNum, const OutMeasure& om,
-            const vector<double>& results, size_t surveyStart ) const
-    {
-        assert(results.size() >= surveyStart + size());
-        // First age group starts at 1, unless there isn't an age group:
-        const int ageGroupAdd = hasDim(om.dims, Dim::Age) ? 1 : 0;
-        // Number of *reported* age categories: either no categorisation (1) or there is an extra unreported category
-        const size_t nAgeCats = nAges == 1 ? 1 : nAges - 1;
-
-        auto emit = [&](size_t ageGroup, size_t cohortSet, size_t species, size_t genotype, size_t drug, int col2) {
-            const double value = results[surveyStart + index(ageGroup, cohortSet, species, genotype, drug)];
-            stream << surveyNum << '\t' << col2 << '\t' << om.outId << '\t';
-            if (om.isDouble) {
-                stream << value;
-            } else {
-                assert(std::trunc(value) == value);
-                stream << static_cast<long long>(value);
-            }
-            stream << lineEnd;
-        };
-
-        if( hasDim(om.dims, Dim::Species) ){
-            assert( nAges == 1 && nCohorts == 1 && nDrugs == 1 );
-            for( size_t species = 0; species < nSpecies; ++species ){
-            for( size_t genotype = 0; genotype < nGenotypes; ++genotype ){
-                const int col2 = species + 1 +
-                    1000000 * genotype;
-                emit(0, 0, species, genotype, 0, col2);
-            } }
-            return;
-        }
-
-        if( hasDim(om.dims, Dim::Drug) ){
-            assert( nSpecies == 1 && nGenotypes == 1 );
-            for( size_t cohortSet = 0; cohortSet < nCohorts; ++cohortSet ){
-            // Last age category is not reported
-            for( size_t ageGroup = 0; ageGroup < nAgeCats; ++ageGroup ){
-            for( size_t drug = 0; drug < nDrugs; ++drug ){
-                // Yeah, >999 age groups clashes with cohort sets, but unlikely a real issue
-                const int col2 = ageGroup + ageGroupAdd +
-                    1000 * cohortSetOutputId( cohortSet ) +
-                    1000000 * (drug + 1);
-                emit(ageGroup, cohortSet, 0, 0, drug, col2);
-            } } }
-            return;
-        }
-
-        assert( nSpecies == 1 && nDrugs == 1 );
-        for( size_t cohortSet = 0; cohortSet < nCohorts; ++cohortSet ){
-        // Last age category is not reported
-        for( size_t ageGroup = 0; ageGroup < nAgeCats; ++ageGroup ){
-        for( size_t genotype = 0; genotype < nGenotypes; ++genotype ){
-            // Yeah, >999 age groups clashes with cohort sets, but unlikely a real issue
-            const int col2 = ageGroup + ageGroupAdd +
-                1000 * cohortSetOutputId( cohortSet ) +
-                1000000 * genotype;
-            emit(ageGroup, cohortSet, 0, genotype, 0, col2);
-        } } }
-    }
-};
-
-struct State {
-    MonIndex layout;
-    vector<double> reports;
-};
-
-MonIndex makeLayout(const OutMeasure& om, size_t nSpecies, size_t nDrugs, bool forceNoCategories)
+internal::MeasureLayout makeMeasureLayout(const OutMeasure& om, size_t nSpecies, size_t nDrugs, bool forceNoCategories)
 {
-    MonIndex layout;
+    internal::MeasureLayout layout;
     layout.outMeasure = om.outId;
-    layout.nAges = forceNoCategories ? 1 : (hasDim(om.dims, Dim::Age) ? numAgeGroups() : 1);
+    if (!forceNoCategories && hasDim(om.dims, Dim::Age)) {
+        assert(!runtime.ageGroupUpperBound.empty());
+    }
+    layout.nAges = forceNoCategories ? 1 : (hasDim(om.dims, Dim::Age) ? runtime.ageGroupUpperBound.size() : 1);
     layout.nCohorts = forceNoCategories ? 1 : (hasDim(om.dims, Dim::Cohort) ? runtime.nCohorts : 1);
     layout.nSpecies = forceNoCategories ? 1 : (hasDim(om.dims, Dim::Species) ? nSpecies : 1);
     layout.nGenotypes = forceNoCategories ? 1 : (hasDim(om.dims, Dim::Genotype) ? WithinHost::Genotypes::N() : 1);
@@ -202,124 +88,199 @@ void checkpointVec(istream& stream, vector<double>& values, size_t expectedSize)
     for (double& y : values) y & stream;
 }
 
-struct StateRegistry {
-    vector<State> states;
-    vector<vector<size_t>> measureToStates;
-
-    void init(const vector<OutMeasure>& enabledMeasures, size_t nSpecies, size_t nDrugs)
-    {
-        states.clear();
-        measureToStates.assign(MeasureCount, {});
-        for (const OutMeasure& om : enabledMeasures) {
-            add(om, nSpecies, nDrugs, false);
-        }
-    }
-
-    void ensureConditionState(const OutMeasure& om)
-    {
-        assert(om.m < MeasureCount);
-        for (size_t idx : measureToStates[om.m]) {
-            if (states[idx].layout.deployMask == om.method) return;
-        }
-        add(om, 1, 1, true);
-    }
-
-    void record(double val, Measure measure, size_t survey, size_t ageIndex, uint32_t cohortSet,
-                size_t species, size_t genotype, size_t drug, int outId = 0)
-    {
-        if (survey == NOT_USED) return;
-        assert(measure < measureToStates.size());
-        for (size_t idx : measureToStates[measure]) {
-            State& state = states[idx];
-            if (state.layout.deployMask != Deploy::NA) continue;
-            if (outId != 0 && state.layout.outMeasure != outId) continue;
-            const size_t offset = survey * state.layout.size();
-            const size_t index = offset + state.layout.index(ageIndex, cohortSet, species, genotype, drug);
-            assert(index < state.reports.size());
-            state.reports[index] += val;
-        }
-    }
-
-    void recordDeploy(int val, Measure measure, size_t survey, size_t ageIndex,
-                      uint32_t cohortSet, Deploy::Method method)
-    {
-        if (survey == NOT_USED) return;
-        assert(method == Deploy::TIMED || method == Deploy::CTS || method == Deploy::TREAT);
-        assert(measure < measureToStates.size());
-        for (size_t idx : measureToStates[measure]) {
-            State& state = states[idx];
-            if ((state.layout.deployMask & method) == Deploy::NA) continue;
-            assert(state.layout.nSpecies == 1 && state.layout.nGenotypes == 1);
-            const size_t offset = survey * state.layout.size();
-            const size_t index = offset + state.layout.index(ageIndex, cohortSet, 0, 0, 0);
-            assert(index < state.reports.size());
-            state.reports[index] += val;
-        }
-    }
-
-    double sum(Measure measure, uint8_t method, size_t survey) const
-    {
-        assert(measure < measureToStates.size());
-        for (size_t idx : measureToStates[measure]) {
-            const State& state = states[idx];
-            if (state.layout.deployMask != method) continue;
-            const size_t begin = survey * state.layout.size();
-            const size_t end = begin + state.layout.size();
-            return std::accumulate(state.reports.begin() + begin, state.reports.begin() + end, 0.0);
-        }
-        throw SWITCH_DEFAULT_EXCEPTION;
-    }
-
-    void write(ostream& stream, size_t survey, const OutMeasure& om) const
-    {
-        assert(om.m < measureToStates.size());
-        for (size_t idx : measureToStates[om.m]) {
-            const State& state = states[idx];
-            if (state.layout.outMeasure != om.outId) continue;
-            state.layout.write(stream, survey + 1, om, state.reports, survey * state.layout.size());
-            return;
-        }
-        assert(false && "measure not found in records");
-    }
-
-    bool uses(Measure measure) const
-    {
-        assert(measure < MeasureCount);
-        return !measureToStates[measure].empty();
-    }
-
-    template <typename Stream>
-    void checkpoint(Stream& stream)
-    {
-        for (State& state : states) {
-            checkpointVec(stream, state.reports, state.layout.size() * runtime.nSurveys);
-        }
-    }
-
-private:
-    void add(const OutMeasure& om, size_t nSpecies, size_t nDrugs, bool forceNoCategories)
-    {
-        assert(om.m < MeasureCount);
-        State state;
-        state.layout = makeLayout(om, nSpecies, nDrugs, forceNoCategories);
-        state.reports.assign(state.layout.size() * runtime.nSurveys, 0.0);
-        measureToStates[om.m].push_back(states.size());
-        states.push_back(std::move(state));
-    }
-};
-
-StateRegistry stateRegistry;
-
 } // namespace
 
 namespace internal {
 
-RuntimeState runtime;
-
-void initStateRegistry(const vector<OutMeasure>& enabledMeasures, size_t nSpecies, size_t nDrugs)
+size_t MeasureLayout::size() const
 {
-    stateRegistry.init(enabledMeasures, nSpecies, nDrugs);
+    return nAges * nCohorts * nSpecies * nGenotypes * nDrugs;
 }
+
+size_t MeasureLayout::index(size_t a, size_t c, size_t sp, size_t g, size_t d) const
+{
+#ifndef NDEBUG
+    if ((nAges > 1 && a >= nAges) ||
+        (nCohorts > 1 && c >= nCohorts) ||
+        (nSpecies > 1 && sp >= nSpecies) ||
+        (nGenotypes > 1 && g >= nGenotypes) ||
+        (nDrugs > 1 && d >= nDrugs))
+    {
+        cout << "Index out of bounds for age group\t" << a << " of " << nAges
+            << "\ncohort set\t" << c << " of " << nCohorts
+            << "\nspecies\t" << sp << " of " << nSpecies
+            << "\ngenotype\t" << g << " of " << nGenotypes
+            << "\ndrug\t" << d << " of " << nDrugs
+            << endl;
+    }
+#endif
+    return (d % nDrugs) + nDrugs *
+        ((g % nGenotypes) + nGenotypes *
+        ((sp % nSpecies) + nSpecies *
+        ((c % nCohorts) + nCohorts *
+        (a % nAges))));
+}
+
+void MeasureLayout::write(ostream& stream, int surveyNum, const OutMeasure& om,
+                          const vector<double>& results, size_t surveyStart) const
+{
+    assert(results.size() >= surveyStart + size());
+    const int ageGroupAdd = hasDim(om.dims, Dim::Age) ? 1 : 0;
+    const size_t nAgeCats = nAges == 1 ? 1 : nAges - 1;
+
+    auto emit = [&](size_t ageGroup, size_t cohortSet, size_t species, size_t genotype, size_t drug, int col2) {
+        const double value = results[surveyStart + index(ageGroup, cohortSet, species, genotype, drug)];
+        stream << surveyNum << '\t' << col2 << '\t' << om.outId << '\t';
+        if (om.isDouble) {
+            stream << value;
+        } else {
+            assert(std::trunc(value) == value);
+            stream << static_cast<long long>(value);
+        }
+        stream << lineEnd;
+    };
+
+    if (hasDim(om.dims, Dim::Species)) {
+        assert(nAges == 1 && nCohorts == 1 && nDrugs == 1);
+        for (size_t species = 0; species < nSpecies; ++species) {
+        for (size_t genotype = 0; genotype < nGenotypes; ++genotype) {
+            const int col2 = species + 1 + 1000000 * genotype;
+            emit(0, 0, species, genotype, 0, col2);
+        } }
+        return;
+    }
+
+    if (hasDim(om.dims, Dim::Drug)) {
+        assert(nSpecies == 1 && nGenotypes == 1);
+        for (size_t cohortSet = 0; cohortSet < nCohorts; ++cohortSet) {
+        for (size_t ageGroup = 0; ageGroup < nAgeCats; ++ageGroup) {
+        for (size_t drug = 0; drug < nDrugs; ++drug) {
+            const int col2 = ageGroup + ageGroupAdd +
+                1000 * cohortSetOutputId(cohortSet) +
+                1000000 * (drug + 1);
+            emit(ageGroup, cohortSet, 0, 0, drug, col2);
+        } } }
+        return;
+    }
+
+    assert(nSpecies == 1 && nDrugs == 1);
+    for (size_t cohortSet = 0; cohortSet < nCohorts; ++cohortSet) {
+    for (size_t ageGroup = 0; ageGroup < nAgeCats; ++ageGroup) {
+    for (size_t genotype = 0; genotype < nGenotypes; ++genotype) {
+        const int col2 = ageGroup + ageGroupAdd +
+            1000 * cohortSetOutputId(cohortSet) +
+            1000000 * genotype;
+        emit(ageGroup, cohortSet, 0, genotype, 0, col2);
+    } } }
+}
+
+void SurveyStore::init(const vector<OutMeasure>& enabledMeasures, size_t nSpecies, size_t nDrugs)
+{
+    stores.clear();
+    measureToStates.assign(MeasureCount, {});
+    for (const OutMeasure& om : enabledMeasures) {
+        add(om, nSpecies, nDrugs, false);
+    }
+}
+
+void SurveyStore::ensureConditionState(const OutMeasure& om)
+{
+    assert(om.m < MeasureCount);
+    for (size_t idx : measureToStates[om.m]) {
+        if (stores[idx].layout.deployMask == om.method) return;
+    }
+    add(om, 1, 1, true);
+}
+
+void SurveyStore::record(double val, Measure measure, size_t survey, size_t ageIndex, uint32_t cohortSet,
+                         size_t species, size_t genotype, size_t drug, int outId)
+{
+    if (survey == NOT_USED) return;
+    assert(measure < measureToStates.size());
+    for (size_t idx : measureToStates[measure]) {
+        MeasureStore& store = stores[idx];
+        if (store.layout.deployMask != Deploy::NA) continue;
+        if (outId != 0 && store.layout.outMeasure != outId) continue;
+        const size_t offset = survey * store.layout.size();
+        const size_t index = offset + store.layout.index(ageIndex, cohortSet, species, genotype, drug);
+        assert(index < store.reports.size());
+        store.reports[index] += val;
+    }
+}
+
+void SurveyStore::recordDeploy(int val, Measure measure, size_t survey, size_t ageIndex,
+                               uint32_t cohortSet, Deploy::Method method)
+{
+    if (survey == NOT_USED) return;
+    assert(method == Deploy::TIMED || method == Deploy::CTS || method == Deploy::TREAT);
+    assert(measure < measureToStates.size());
+    for (size_t idx : measureToStates[measure]) {
+        MeasureStore& store = stores[idx];
+        if ((store.layout.deployMask & method) == Deploy::NA) continue;
+        assert(store.layout.nSpecies == 1 && store.layout.nGenotypes == 1);
+        const size_t offset = survey * store.layout.size();
+        const size_t index = offset + store.layout.index(ageIndex, cohortSet, 0, 0, 0);
+        assert(index < store.reports.size());
+        store.reports[index] += val;
+    }
+}
+
+double SurveyStore::sum(Measure measure, uint8_t method, size_t survey) const
+{
+    assert(measure < measureToStates.size());
+    for (size_t idx : measureToStates[measure]) {
+        const MeasureStore& store = stores[idx];
+        if (store.layout.deployMask != method) continue;
+        const size_t begin = survey * store.layout.size();
+        const size_t end = begin + store.layout.size();
+        return std::accumulate(store.reports.begin() + begin, store.reports.begin() + end, 0.0);
+    }
+    throw SWITCH_DEFAULT_EXCEPTION;
+}
+
+void SurveyStore::write(ostream& stream, size_t survey, const OutMeasure& om) const
+{
+    assert(om.m < measureToStates.size());
+    for (size_t idx : measureToStates[om.m]) {
+        const MeasureStore& store = stores[idx];
+        if (store.layout.outMeasure != om.outId) continue;
+        store.layout.write(stream, survey + 1, om, store.reports, survey * store.layout.size());
+        return;
+    }
+    assert(false && "measure not found in records");
+}
+
+bool SurveyStore::uses(Measure measure) const
+{
+    assert(measure < MeasureCount);
+    return !measureToStates[measure].empty();
+}
+
+void SurveyStore::checkpoint(ostream& stream)
+{
+    for (MeasureStore& store : stores) {
+        checkpointVec(stream, store.reports, store.layout.size() * runtime.nSurveys);
+    }
+}
+
+void SurveyStore::checkpoint(istream& stream)
+{
+    for (MeasureStore& store : stores) {
+        checkpointVec(stream, store.reports, store.layout.size() * runtime.nSurveys);
+    }
+}
+
+void SurveyStore::add(const OutMeasure& om, size_t nSpecies, size_t nDrugs, bool forceNoCategories)
+{
+    assert(om.m < MeasureCount);
+    MeasureStore store;
+    store.layout = makeMeasureLayout(om, nSpecies, nDrugs, forceNoCategories);
+    store.reports.assign(store.layout.size() * runtime.nSurveys, 0.0);
+    measureToStates[om.m].push_back(stores.size());
+    stores.push_back(std::move(store));
+}
+
+RuntimeState runtime;
 
 } // namespace internal
 
@@ -329,7 +290,7 @@ void updateConditions()
 {
     assert(runtime.survNumStat != NOT_USED);
     for (Condition& cond : runtime.conditions) {
-        const double val = stateRegistry.sum(cond.measure, cond.method, runtime.survNumStat);
+        const double val = runtime.surveyStore.sum(cond.measure, cond.method, runtime.survNumStat);
         cond.value = (val >= cond.min && val <= cond.max);
     }
 }
@@ -338,7 +299,7 @@ void write(ostream& stream)
 {
     for (size_t survey = 0; survey < runtime.nSurveys; ++survey) {
         for (const OutMeasure& om : runtime.reportedMeasures) {
-            stateRegistry.write(stream, survey, om);
+            runtime.surveyStore.write(stream, survey, om);
         }
     }
     if (runtime.reportIMR >= 0) {
@@ -367,13 +328,6 @@ void updateSurveyNumbers()
 }
 
 } // namespace
-
-size_t eventSurveyNumber() { return runtime.survNumEvent; }
-size_t statSurveyNumber() { return runtime.survNumStat; }
-bool isReported() { return !runtime.isInit || runtime.survNumStat != NOT_USED; }
-SimTime nextSurveyDate() { return runtime.nextSurveyDate; }
-size_t numCohortSets() { return runtime.nCohorts; }
-
 size_t setupCondition(const string& measureName, double minValue, double maxValue, bool initialState)
 {
     auto it = runtime.namedOutMeasures.find(measureName);
@@ -385,7 +339,7 @@ size_t setupCondition(const string& measureName, double minValue, double maxValu
     if (runtime.validCondMeasures.count(om.m) == 0) {
         throw util::xml_scenario_error("cannot use measure " + measureName + " as condition of deployment");
     }
-    stateRegistry.ensureConditionState(om);
+    runtime.surveyStore.ensureConditionState(om);
 
     runtime.conditions.push_back({initialState, om.m, om.method, minValue, maxValue});
     return runtime.conditions.size() - 1;
@@ -400,13 +354,13 @@ bool checkCondition(size_t conditionKey)
 void record(Measure measure, size_t survey, size_t age, uint32_t cohort,
             size_t species, size_t genotype, size_t drug, int val, int outId)
 {
-    stateRegistry.record(val, measure, survey, age, cohort, species, genotype, drug, outId);
+    runtime.surveyStore.record(val, measure, survey, age, cohort, species, genotype, drug, outId);
 }
 
 void record(Measure measure, size_t survey, size_t age, uint32_t cohort,
             size_t species, size_t genotype, size_t drug, double val)
 {
-    stateRegistry.record(val, measure, survey, age, cohort, species, genotype, drug);
+    runtime.surveyStore.record(val, measure, survey, age, cohort, species, genotype, drug);
 }
 
 void recordStat(Measure measure, const Host::Human& human, int val, size_t species, size_t genotype, size_t drug, int outId)
@@ -426,16 +380,11 @@ void recordEvent(Measure measure, const Host::Human& human, int val)
 
 void recordDeploy(Measure measure, const Host::Human& human, Deploy::Method method, int val)
 {
-    stateRegistry.recordDeploy(val, measure, eventSurveyNumber(), human.monitoringAgeGroup, human.getCohortSet(), method);
+    runtime.surveyStore.recordDeploy(val, measure, eventSurveyNumber(), human.monitoringAgeGroup, human.getCohortSet(), method);
     const Measure treatDeployments = ::OM::mon::measure("nTreatDeployments");
     if (measure != treatDeployments) {
-        stateRegistry.recordDeploy(val, treatDeployments, eventSurveyNumber(), human.monitoringAgeGroup, human.getCohortSet(), method);
+        runtime.surveyStore.recordDeploy(val, treatDeployments, eventSurveyNumber(), human.monitoringAgeGroup, human.getCohortSet(), method);
     }
-}
-
-bool isUsed(Measure measure)
-{
-    return stateRegistry.uses(measure);
 }
 
 template <typename Stream>
@@ -446,7 +395,7 @@ void checkpoint(Stream& stream)
     runtime.survNumEvent & stream;
     runtime.survNumStat & stream;
     runtime.nextSurveyDate & stream;
-    stateRegistry.checkpoint(stream);
+    runtime.surveyStore.checkpoint(stream);
 }
 template void checkpoint<ostream>(ostream& stream);
 template void checkpoint<istream>(istream& stream);
@@ -480,11 +429,6 @@ void writeSurveyData()
         write(stream);
     }
 }
-size_t numAgeGroups()
-{
-    assert(!runtime.ageGroupUpperBound.empty());
-    return runtime.ageGroupUpperBound.size();
-}
 
 void updateAgeGroup(size_t& index, SimTime age)
 {
@@ -492,7 +436,6 @@ void updateAgeGroup(size_t& index, SimTime age)
         ++index;
     }
 }
-// ———  Cohort sets  ———
 
 uint32_t updateCohortSet(uint32_t old, interventions::ComponentId subPop, bool isMember)
 {
