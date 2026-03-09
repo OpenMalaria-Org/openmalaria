@@ -28,7 +28,10 @@
 #include <cstdint>
 #include <iosfwd>
 #include <limits>
+#include <map>
+#include <set>
 #include <string>
+#include <vector>
 
 namespace scnXml {
 class Scenario;
@@ -44,10 +47,49 @@ struct ComponentId;
 }
 namespace mon {
 
-// ----- info API -----
-
 inline constexpr size_t NOT_USED = std::numeric_limits<size_t>::max();
 inline constexpr char lineEnd = '\n';
+
+namespace internal {
+
+struct Condition {
+    bool value;
+    Measure measure;
+    uint8_t method;
+    double min, max;
+};
+
+struct SurveyDate {
+    SimTime date = sim::never();
+    size_t num = NOT_USED;
+
+    bool isReported() const { return num != NOT_USED; }
+};
+
+struct RuntimeState {
+    bool isInit = false;
+    size_t surveyIndex = 0;
+    size_t survNumEvent = NOT_USED, survNumStat = NOT_USED;
+    SimTime nextSurveyDate = sim::future();
+    size_t nSurveys = 0;
+    size_t nCohorts = 1;
+    NamedMeasureMapT namedOutMeasures;
+    std::set<Measure> validCondMeasures;
+    std::vector<OutMeasure> reportedMeasures;
+    int reportIMR = -1;
+    std::vector<Condition> conditions;
+    std::vector<SurveyDate> surveyDates;
+    std::vector<SimTime> ageGroupUpperBound;
+    std::vector<uint32_t> cohortSubPopNumbers;
+    std::map<interventions::ComponentId, uint32_t> cohortSubPopIds;
+};
+
+extern RuntimeState runtime;
+void initStateRegistry(const std::vector<OutMeasure>& enabledMeasures, size_t nSpecies, size_t nDrugs);
+
+} // namespace internal
+
+// ----- info API -----
 
 size_t eventSurveyNumber();
 size_t statSurveyNumber();
@@ -61,12 +103,9 @@ uint32_t updateCohortSet(uint32_t old, interventions::ComponentId subPop, bool i
 
 // ----- management API -----
 
-SimTime readSurveyDates(const scnXml::Monitoring& monitoring);
 void initAgeGroups(const scnXml::Monitoring& monitoring);
 void updateAgeGroup(size_t& index, SimTime age);
 size_t numAgeGroups();
-void initReporting(const scnXml::Scenario& scenario);
-void initCohorts(const scnXml::Monitoring& monitoring);
 void initMainSim();
 void concludeSurvey();
 void writeSurveyData();
