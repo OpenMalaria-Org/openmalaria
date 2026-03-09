@@ -34,11 +34,11 @@
 
 #include <cctype>
 #include <algorithm>
+#include <cmath>
 #include <fstream>
 #include <gzstream/gzstream.h>
 #include <iostream>
 #include <numeric>
-#include <type_traits>
 
 namespace OM {
 namespace mon {
@@ -49,7 +49,6 @@ using interventions::ComponentId;
 
 struct Condition {
     bool value; // whether the condition was satisfied during the last survey
-    bool isDouble;
     Measure measure;
     uint8_t method;
     double min, max;
@@ -142,9 +141,8 @@ struct MonIndex {
     // @param surveyNum Number to write in output (should start from 1 unlike in code)
     // @param results Vector of results
     // @param surveyStart Index in results where data for the current survey starts
-    template<typename T>
     void write( ostream& stream, int surveyNum, const OutMeasure& om,
-            const vector<T>& results, size_t surveyStart ) const
+            const vector<double>& results, size_t surveyStart ) const
     {
         assert(results.size() >= surveyStart + size());
         // First age group starts at 1, unless there isn't an age group:
@@ -153,8 +151,15 @@ struct MonIndex {
         const size_t nAgeCats = nAges == 1 ? 1 : nAges - 1;
 
         auto emit = [&](size_t ageGroup, size_t cohortSet, size_t species, size_t genotype, size_t drug, int col2) {
-            const T value = results[surveyStart + index(ageGroup, cohortSet, species, genotype, drug)];
-            stream << surveyNum << '\t' << col2 << '\t' << om.outId << '\t' << value << lineEnd;
+            const double value = results[surveyStart + index(ageGroup, cohortSet, species, genotype, drug)];
+            stream << surveyNum << '\t' << col2 << '\t' << om.outId << '\t';
+            if (om.isDouble) {
+                stream << value;
+            } else {
+                assert(std::trunc(value) == value);
+                stream << static_cast<long long>(value);
+            }
+            stream << lineEnd;
         };
 
         if( hasDim(om.dims, Dim::Species) ){
@@ -197,10 +202,9 @@ struct MonIndex {
     }
 };
 
-template <typename T>
 struct State {
     MonIndex layout;
-    vector<T> reports;
+    vector<double> reports;
 };
 
 MonIndex makeLayout(const OutMeasure& om, size_t nSpecies, size_t nDrugs, bool forceNoCategories)
@@ -216,15 +220,13 @@ MonIndex makeLayout(const OutMeasure& om, size_t nSpecies, size_t nDrugs, bool f
     return layout;
 }
 
-template <typename T>
-void checkpointVec(ostream& stream, vector<T>& values, size_t /*expectedSize*/)
+void checkpointVec(ostream& stream, vector<double>& values, size_t /*expectedSize*/)
 {
     values.size() & stream;
-    for (T& y : values) y & stream;
+    for (double& y : values) y & stream;
 }
 
-template <typename T>
-void checkpointVec(istream& stream, vector<T>& values, size_t expectedSize)
+void checkpointVec(istream& stream, vector<double>& values, size_t expectedSize)
 {
     size_t storedSize = 0;
     storedSize & stream;
@@ -232,12 +234,11 @@ void checkpointVec(istream& stream, vector<T>& values, size_t expectedSize)
         throw util::checkpoint_error("mon::reports: invalid list size");
     }
     values.resize(storedSize);
-    for (T& y : values) y & stream;
+    for (double& y : values) y & stream;
 }
 
-template <typename T>
 struct StateRegistry {
-    vector<State<T>> states;
+    vector<State> states;
     vector<vector<size_t>> measureToStates;
 
     void init(const vector<OutMeasure>& enabledMeasures, size_t nSpecies, size_t nDrugs)
@@ -251,7 +252,6 @@ struct StateRegistry {
 
     void ensureConditionState(const OutMeasure& om)
     {
-        if (!matches(om)) return;
         assert(om.m < MeasureCount);
         for (size_t idx : measureToStates[om.m]) {
             if (states[idx].layout.deployMask == om.method) return;
@@ -259,13 +259,13 @@ struct StateRegistry {
         add(om, 1, 1, true);
     }
 
-    void record(T val, Measure measure, size_t survey, size_t ageIndex, uint32_t cohortSet,
+    void record(double val, Measure measure, size_t survey, size_t ageIndex, uint32_t cohortSet,
                 size_t species, size_t genotype, size_t drug, int outId = 0)
     {
         if (survey == NOT_USED) return;
         assert(measure < measureToStates.size());
         for (size_t idx : measureToStates[measure]) {
-            State<T>& state = states[idx];
+            State& state = states[idx];
             if (state.layout.deployMask != Deploy::NA) continue;
             if (outId != 0 && state.layout.outMeasure != outId) continue;
             const size_t offset = survey * state.layout.size();
@@ -282,13 +282,13 @@ struct StateRegistry {
         assert(method == Deploy::TIMED || method == Deploy::CTS || method == Deploy::TREAT);
         assert(measure < measureToStates.size());
         for (size_t idx : measureToStates[measure]) {
-            State<T>& state = states[idx];
+            State& state = states[idx];
             if ((state.layout.deployMask & method) == Deploy::NA) continue;
             assert(state.layout.nSpecies == 1 && state.layout.nGenotypes == 1);
             const size_t offset = survey * state.layout.size();
             const size_t index = offset + state.layout.index(ageIndex, cohortSet, 0, 0, 0);
             assert(index < state.reports.size());
-            state.reports[index] += static_cast<T>(val);
+            state.reports[index] += val;
         }
     }
 
@@ -296,7 +296,7 @@ struct StateRegistry {
     {
         assert(measure < measureToStates.size());
         for (size_t idx : measureToStates[measure]) {
-            const State<T>& state = states[idx];
+            const State& state = states[idx];
             if (state.layout.deployMask != method) continue;
             const size_t begin = survey * state.layout.size();
             const size_t end = begin + state.layout.size();
@@ -309,7 +309,7 @@ struct StateRegistry {
     {
         assert(om.m < measureToStates.size());
         for (size_t idx : measureToStates[om.m]) {
-            const State<T>& state = states[idx];
+            const State& state = states[idx];
             if (state.layout.outMeasure != om.outId) continue;
             state.layout.write(stream, survey + 1, om, state.reports, survey * state.layout.size());
             return;
@@ -326,71 +326,30 @@ struct StateRegistry {
     template <typename Stream>
     void checkpoint(Stream& stream)
     {
-        for (State<T>& state : states) {
+        for (State& state : states) {
             checkpointVec(stream, state.reports, state.layout.size() * runtime.nSurveys);
         }
     }
 
 private:
-    static bool matches(const OutMeasure& om)
-    {
-        return om.m < MeasureCount && om.isDouble == std::is_same_v<T, double>;
-    }
-
     void add(const OutMeasure& om, size_t nSpecies, size_t nDrugs, bool forceNoCategories)
     {
-        if (!matches(om)) return;
-        State<T> state;
+        assert(om.m < MeasureCount);
+        State state;
         state.layout = makeLayout(om, nSpecies, nDrugs, forceNoCategories);
-        state.reports.assign(state.layout.size() * runtime.nSurveys, T{});
+        state.reports.assign(state.layout.size() * runtime.nSurveys, 0.0);
         measureToStates[om.m].push_back(states.size());
         states.push_back(std::move(state));
     }
 };
 
-StateRegistry<int> intStates;
-StateRegistry<double> doubleStates;
-
-void initStates(const vector<OutMeasure>& enabledMeasures, size_t nSpecies, size_t nDrugs)
-{
-    intStates.init(enabledMeasures, nSpecies, nDrugs);
-    doubleStates.init(enabledMeasures, nSpecies, nDrugs);
-}
-
-void ensureConditionState(const OutMeasure& om)
-{
-    if (om.isDouble) doubleStates.ensureConditionState(om);
-    else intStates.ensureConditionState(om);
-}
-
-double sumState(Measure measure, bool isDouble, uint8_t method, size_t survey)
-{
-    assert(survey != NOT_USED);
-    return isDouble ? doubleStates.sum(measure, method, survey) : intStates.sum(measure, method, survey);
-}
-
-void writeState(ostream& stream, size_t survey, const OutMeasure& om)
-{
-    if (om.isDouble) doubleStates.write(stream, survey, om);
-    else intStates.write(stream, survey, om);
-}
-
-bool usesState(Measure measure)
-{
-    return intStates.uses(measure) || doubleStates.uses(measure);
-}
-
-template <typename Stream>
-void checkpointStates(Stream& stream)
-{
-    intStates.checkpoint(stream);
-    doubleStates.checkpoint(stream);
-}
+StateRegistry stateRegistry;
 
 void updateConditions()
 {
+    assert(runtime.survNumStat != NOT_USED);
     for (Condition& cond : runtime.conditions) {
-        const double val = sumState(cond.measure, cond.isDouble, cond.method, runtime.survNumStat);
+        const double val = stateRegistry.sum(cond.measure, cond.method, runtime.survNumStat);
         cond.value = (val >= cond.min && val <= cond.max);
     }
 }
@@ -399,11 +358,7 @@ void write(ostream& stream)
 {
     for (size_t survey = 0; survey < runtime.nSurveys; ++survey) {
         for (const OutMeasure& om : runtime.reportedMeasures) {
-            if (om.m >= MeasureCount) {
-                assert(om.m == allCauseIMR && runtime.reportIMR >= 0);
-                continue;
-            }
-            writeState(stream, survey, om);
+            stateRegistry.write(stream, survey, om);
         }
     }
     if (runtime.reportIMR >= 0) {
@@ -473,17 +428,25 @@ void initReporting(const scnXml::Scenario& scenario)
         }
         OutMeasure om = it->second;
         if (om.m >= MeasureCount) {
-            if (om.m == allCauseIMR) {
-                if (om.isDouble && !hasDim(om.dims, Dim::Age) && !hasDim(om.dims, Dim::Cohort) && !hasDim(om.dims, Dim::Species)) {
-                    runtime.reportIMR = om.outId;
-                } else {
-                    throw util::xml_scenario_error("measure allCauseIMR does not support any categorisation");
-                }
-            } else if (om.m == obsoleteMeasure) {
+            if (om.m == obsoleteMeasure) {
                 throw util::xml_scenario_error("obsolete survey option: " + string(optElt.getName()));
-            } else {
-                TRACED_EXCEPTION_DEFAULT("invalid measure code");
             }
+            assert(om.m == allCauseIMR);
+            const bool byAge = optElt.getByAge().present() && optElt.getByAge().get();
+            const bool byCohort = optElt.getByCohort().present() && optElt.getByCohort().get();
+            const bool bySpecies = optElt.getBySpecies().present() && optElt.getBySpecies().get();
+            const bool byGenotype = optElt.getByGenotype().present() && optElt.getByGenotype().get();
+            const bool byDrug = optElt.getByDrugType().present() && optElt.getByDrugType().get();
+            if (!om.isDouble || byAge || byCohort || bySpecies || byGenotype || byDrug) {
+                throw util::xml_scenario_error("measure allCauseIMR does not support any categorisation");
+            }
+            if (optElt.getOutputNumber().present()) om.outId = optElt.getOutputNumber().get();
+            if (outIds.count(om.outId)) {
+                throw util::xml_scenario_error("monitoring output number " + to_string(om.outId) + " used more than once");
+            }
+            outIds.insert(om.outId);
+            runtime.reportIMR = om.outId;
+            continue;
         }
 
         if ((om.m == measure("sumlogDens") || om.m == measure("logDensByGenotype")) &&
@@ -516,7 +479,7 @@ void initReporting(const scnXml::Scenario& scenario)
         ? scenario.getEntomology().getVector().get().getAnopheles().size() : 1;
     const size_t nDrugs = scenario.getPharmacology().present()
         ? scenario.getPharmacology().get().getDrugs().getDrug().size() : 1;
-    initStates(runtime.reportedMeasures, nSpecies, nDrugs);
+    stateRegistry.init(runtime.reportedMeasures, nSpecies, nDrugs);
 }
 
 size_t setupCondition(const string& measureName, double minValue, double maxValue, bool initialState)
@@ -530,9 +493,9 @@ size_t setupCondition(const string& measureName, double minValue, double maxValu
     if (runtime.validCondMeasures.count(om.m) == 0) {
         throw util::xml_scenario_error("cannot use measure " + measureName + " as condition of deployment");
     }
-    ensureConditionState(om);
+    stateRegistry.ensureConditionState(om);
 
-    runtime.conditions.push_back({initialState, om.isDouble, om.m, om.method, minValue, maxValue});
+    runtime.conditions.push_back({initialState, om.m, om.method, minValue, maxValue});
     return runtime.conditions.size() - 1;
 }
 
@@ -545,13 +508,13 @@ bool checkCondition(size_t conditionKey)
 void record(Measure measure, size_t survey, size_t age, uint32_t cohort,
             size_t species, size_t genotype, size_t drug, int val, int outId)
 {
-    intStates.record(val, measure, survey, age, cohort, species, genotype, drug, outId);
+    stateRegistry.record(val, measure, survey, age, cohort, species, genotype, drug, outId);
 }
 
 void record(Measure measure, size_t survey, size_t age, uint32_t cohort,
             size_t species, size_t genotype, size_t drug, double val)
 {
-    doubleStates.record(val, measure, survey, age, cohort, species, genotype, drug);
+    stateRegistry.record(val, measure, survey, age, cohort, species, genotype, drug);
 }
 
 void recordStat(Measure measure, const Host::Human& human, int val, size_t species, size_t genotype, size_t drug, int outId)
@@ -571,16 +534,16 @@ void recordEvent(Measure measure, const Host::Human& human, int val)
 
 void recordDeploy(Measure measure, const Host::Human& human, Deploy::Method method, int val)
 {
-    intStates.recordDeploy(val, measure, eventSurveyNumber(), human.monitoringAgeGroup, human.getCohortSet(), method);
+    stateRegistry.recordDeploy(val, measure, eventSurveyNumber(), human.monitoringAgeGroup, human.getCohortSet(), method);
     const Measure treatDeployments = ::OM::mon::measure("nTreatDeployments");
     if (measure != treatDeployments) {
-        intStates.recordDeploy(val, treatDeployments, eventSurveyNumber(), human.monitoringAgeGroup, human.getCohortSet(), method);
+        stateRegistry.recordDeploy(val, treatDeployments, eventSurveyNumber(), human.monitoringAgeGroup, human.getCohortSet(), method);
     }
 }
 
 bool isUsed(Measure measure)
 {
-    return usesState(measure);
+    return stateRegistry.uses(measure);
 }
 
 template <typename Stream>
@@ -591,7 +554,7 @@ void checkpoint(Stream& stream)
     runtime.survNumEvent & stream;
     runtime.survNumStat & stream;
     runtime.nextSurveyDate & stream;
-    checkpointStates(stream);
+    stateRegistry.checkpoint(stream);
 }
 template void checkpoint<ostream>(ostream& stream);
 template void checkpoint<istream>(istream& stream);
