@@ -25,6 +25,7 @@
 #include "util/ModelOptions.h"
 #include "util/UnitParse.h"
 #include "schema/scenario.h"
+#include "mon/init.h"
 #include "mon/Monitoring.h"
 
 namespace OM {
