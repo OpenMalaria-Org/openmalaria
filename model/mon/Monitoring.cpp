@@ -38,18 +38,14 @@
 #include <gzstream/gzstream.h>
 #include <iostream>
 #include <numeric>
-#include <stdexcept>
+#include <type_traits>
 
 namespace OM {
 namespace mon {
 
-NamedMeasureMapT namedOutMeasures;
-set<Measure> validCondMeasures;
-static vector<SimTime> ageGroupUpperBound;
+namespace {
 
 using interventions::ComponentId;
-vector<uint32_t> cohortSubPopNumbers;   // value is output number
-map<ComponentId,uint32_t> cohortSubPopIds;      // value is internal index (used above)
 
 struct Condition {
     bool value; // whether the condition was satisfied during the last survey
@@ -59,22 +55,38 @@ struct Condition {
     double min, max;
 };
 
-namespace impl {
-    // Accumulators, variables:
+struct SurveyDate {
+    SimTime date = sim::never();
+    size_t num = NOT_USED;
+
+    bool isReported() const { return num != NOT_USED; }
+};
+
+struct RuntimeState {
     bool isInit = false;
-    size_t surveyIndex = 0;     // index in surveyTimes of next survey
+    size_t surveyIndex = 0;
     size_t survNumEvent = NOT_USED, survNumStat = NOT_USED;
     SimTime nextSurveyDate = sim::future();
-    
+    size_t nSurveys = 0;
+    size_t nCohorts = 1;
+    NamedMeasureMapT namedOutMeasures;
+    set<Measure> validCondMeasures;
+    vector<OutMeasure> reportedMeasures;
+    int reportIMR = -1;
     vector<Condition> conditions;
-}
+    vector<SurveyDate> surveyDates;
+    vector<SimTime> ageGroupUpperBound;
+    vector<uint32_t> cohortSubPopNumbers;
+    map<ComponentId, uint32_t> cohortSubPopIds;
+};
 
+RuntimeState runtime;
 uint32_t cohortSetOutputId(uint32_t cohortSet){
     uint32_t outNum = 0;
-    assert( (cohortSet >> cohortSubPopNumbers.size()) == 0 );
-    for( uint32_t i = 0; i < cohortSubPopNumbers.size(); ++i ){
+    assert( (cohortSet >> runtime.cohortSubPopNumbers.size()) == 0 );
+    for( uint32_t i = 0; i < runtime.cohortSubPopNumbers.size(); ++i ){
         if( cohortSet & (static_cast<uint32_t>(1) << i) ){
-            outNum += cohortSubPopNumbers[i];
+            outNum += runtime.cohortSubPopNumbers[i];
         }
     }
     return outNum;
@@ -191,166 +203,17 @@ struct State {
     vector<T> reports;
 };
 
-vector<State<int>> intStates;
-vector<State<double>> doubleStates;
-vector<vector<size_t>> measureToIntStates;
-vector<vector<size_t>> measureToDoubleStates;
-
-template <typename State>
-void fillStateLayout(State& state, const OutMeasure& om, size_t nSp, size_t nD, bool forceNoCategories)
+MonIndex makeLayout(const OutMeasure& om, size_t nSpecies, size_t nDrugs, bool forceNoCategories)
 {
-    state.layout.outMeasure = om.outId;
-    state.layout.nAges = forceNoCategories ? 1 : (hasDim(om.dims, Dim::Age) ? numAgeGroups() : 1);
-    state.layout.nCohorts = forceNoCategories ? 1 : (hasDim(om.dims, Dim::Cohort) ? impl::nCohorts : 1);
-    state.layout.nSpecies = forceNoCategories ? 1 : (hasDim(om.dims, Dim::Species) ? nSp : 1);
-    state.layout.nGenotypes = forceNoCategories ? 1 : (hasDim(om.dims, Dim::Genotype) ? WithinHost::Genotypes::N() : 1);
-    state.layout.nDrugs = forceNoCategories ? 1 : (hasDim(om.dims, Dim::Drug) ? nD : 1);
-    state.layout.deployMask = om.method;
-}
-
-template <typename T>
-State<T> makeState(const OutMeasure& om, size_t nSp, size_t nD, bool forceNoCategories)
-{
-    State<T> state;
-    fillStateLayout(state, om, nSp, nD, forceNoCategories);
-    state.reports.assign(state.layout.size() * impl::nSurveys, T{});
-    return state;
-}
-
-void addState(const OutMeasure& om, size_t nSp, size_t nD, bool forceNoCategories)
-{
-    assert(om.m < MeasureCount);
-    if (om.isDouble) {
-        size_t idx = doubleStates.size();
-        doubleStates.push_back(makeState<double>(om, nSp, nD, forceNoCategories));
-        measureToDoubleStates[om.m].push_back(idx);
-    } else {
-        size_t idx = intStates.size();
-        intStates.push_back(makeState<int>(om, nSp, nD, forceNoCategories));
-        measureToIntStates[om.m].push_back(idx);
-    }
-}
-
-void initStates(const vector<OutMeasure>& enabledMeasures, size_t nSp, size_t nD)
-{
-    intStates.clear();
-    doubleStates.clear();
-    measureToIntStates.assign(MeasureCount, {});
-    measureToDoubleStates.assign(MeasureCount, {});
-    for (const OutMeasure& om : enabledMeasures)
-    {
-        if (om.m >= MeasureCount) continue;
-        addState(om, nSp, nD, false);
-    }
-}
-
-void ensureConditionState(const OutMeasure& om)
-{
-    assert(om.m < MeasureCount);
-    auto hasMethodState = [&](const auto& states, const auto& measureToStates) {
-        for (size_t idx : measureToStates[om.m]) {
-            if (states[idx].layout.deployMask == om.method) return true;
-        }
-        return false;
-    };
-    if ((om.isDouble && hasMethodState(doubleStates, measureToDoubleStates)) ||
-        (!om.isDouble && hasMethodState(intStates, measureToIntStates))) return;
-    addState(om, 1, 1, true);
-}
-
-template <typename T>
-inline void addValue(vector<T>& values, size_t index, T val)
-{
-    assert(index < values.size());
-    values[index] += val;
-}
-
-template <typename State, typename T>
-void recordValue(T val, vector<State>& states, const vector<vector<size_t>>& measureToStates,
-                 Measure measure, size_t survey, size_t ageIndex, uint32_t cohortSet,
-                 size_t species, size_t genotype, size_t drug, int outId = 0)
-{
-    if (survey == NOT_USED) return;
-    assert(measure < measureToStates.size());
-    for (size_t idx : measureToStates[measure])
-    {
-        State& state = states[idx];
-        if (state.layout.deployMask != Deploy::NA) continue;
-        if (outId != 0 && state.layout.outMeasure != outId) continue;
-        size_t i = survey * state.layout.size() + state.layout.index(ageIndex, cohortSet, species, genotype, drug);
-        addValue(state.reports, i, val);
-    }
-}
-
-void recordDeployValue(int val, Measure measure, size_t survey, size_t ageIndex,
-                       uint32_t cohortSet, Deploy::Method method)
-{
-    if (survey == NOT_USED) return;
-    assert(method == Deploy::TIMED || method == Deploy::CTS || method == Deploy::TREAT);
-    assert(measure < measureToIntStates.size());
-    for (size_t idx : measureToIntStates[measure])
-    {
-        State<int>& state = intStates[idx];
-        if ((state.layout.deployMask & method) == Deploy::NA) continue;
-        assert(state.layout.nSpecies == 1 && state.layout.nGenotypes == 1);
-        size_t i = survey * state.layout.size() + state.layout.index(ageIndex, cohortSet, 0, 0, 0);
-        addValue(state.reports, i, val);
-    }
-}
-
-template <typename T>
-double sumStateMeasureTyped(Measure measure, uint8_t method, size_t survey,
-                            const vector<State<T>>& states,
-                            const vector<vector<size_t>>& measureToStates)
-{
-    assert(measure < measureToStates.size());
-    for (size_t idx : measureToStates[measure])
-    {
-        const State<T>& state = states[idx];
-        if (state.layout.deployMask != method) continue;
-        const size_t off = survey * state.layout.size();
-        const size_t end = off + state.layout.size();
-        return std::accumulate(state.reports.begin() + off, state.reports.begin() + end, 0.0);
-    }
-    throw SWITCH_DEFAULT_EXCEPTION;
-}
-
-double sumStateMeasure(Measure measure, bool isDouble, uint8_t method, size_t survey)
-{
-    assert(survey != NOT_USED);
-    return isDouble
-        ? sumStateMeasureTyped(measure, method, survey, doubleStates, measureToDoubleStates)
-        : sumStateMeasureTyped(measure, method, survey, intStates, measureToIntStates);
-}
-
-template <typename T>
-void writeMeasureStateTyped(ostream& stream, size_t survey, const OutMeasure& om,
-                            const vector<State<T>>& states,
-                            const vector<vector<size_t>>& measureToStates)
-{
-    assert(om.m < measureToStates.size());
-    for (size_t idx : measureToStates[om.m]) {
-        const State<T>& state = states[idx];
-        if (state.layout.outMeasure != om.outId) continue;
-        state.layout.write(stream, survey + 1, om, state.reports, survey * state.layout.size());
-        return;
-    }
-    assert(false && "measure not found in records");
-}
-
-void writeMeasureState(ostream& stream, size_t survey, const OutMeasure& om)
-{
-    if (om.isDouble)
-        writeMeasureStateTyped(stream, survey, om, doubleStates, measureToDoubleStates);
-    else
-        writeMeasureStateTyped(stream, survey, om, intStates, measureToIntStates);
-}
-
-bool isMeasureUsed(Measure measure, bool isDouble)
-{
-    assert(measure < MeasureCount);
-    const auto& measureToStates = isDouble ? measureToDoubleStates : measureToIntStates;
-    return !measureToStates[measure].empty();
+    MonIndex layout;
+    layout.outMeasure = om.outId;
+    layout.nAges = forceNoCategories ? 1 : (hasDim(om.dims, Dim::Age) ? numAgeGroups() : 1);
+    layout.nCohorts = forceNoCategories ? 1 : (hasDim(om.dims, Dim::Cohort) ? runtime.nCohorts : 1);
+    layout.nSpecies = forceNoCategories ? 1 : (hasDim(om.dims, Dim::Species) ? nSpecies : 1);
+    layout.nGenotypes = forceNoCategories ? 1 : (hasDim(om.dims, Dim::Genotype) ? WithinHost::Genotypes::N() : 1);
+    layout.nDrugs = forceNoCategories ? 1 : (hasDim(om.dims, Dim::Drug) ? nDrugs : 1);
+    layout.deployMask = om.method;
+    return layout;
 }
 
 template <typename T>
@@ -372,69 +235,262 @@ void checkpointVec(istream& stream, vector<T>& values, size_t expectedSize)
     for (T& y : values) y & stream;
 }
 
+template <typename T>
+struct StateRegistry {
+    vector<State<T>> states;
+    vector<vector<size_t>> measureToStates;
+
+    void init(const vector<OutMeasure>& enabledMeasures, size_t nSpecies, size_t nDrugs)
+    {
+        states.clear();
+        measureToStates.assign(MeasureCount, {});
+        for (const OutMeasure& om : enabledMeasures) {
+            add(om, nSpecies, nDrugs, false);
+        }
+    }
+
+    void ensureConditionState(const OutMeasure& om)
+    {
+        if (!matches(om)) return;
+        assert(om.m < MeasureCount);
+        for (size_t idx : measureToStates[om.m]) {
+            if (states[idx].layout.deployMask == om.method) return;
+        }
+        add(om, 1, 1, true);
+    }
+
+    void record(T val, Measure measure, size_t survey, size_t ageIndex, uint32_t cohortSet,
+                size_t species, size_t genotype, size_t drug, int outId = 0)
+    {
+        if (survey == NOT_USED) return;
+        assert(measure < measureToStates.size());
+        for (size_t idx : measureToStates[measure]) {
+            State<T>& state = states[idx];
+            if (state.layout.deployMask != Deploy::NA) continue;
+            if (outId != 0 && state.layout.outMeasure != outId) continue;
+            const size_t offset = survey * state.layout.size();
+            const size_t index = offset + state.layout.index(ageIndex, cohortSet, species, genotype, drug);
+            assert(index < state.reports.size());
+            state.reports[index] += val;
+        }
+    }
+
+    void recordDeploy(int val, Measure measure, size_t survey, size_t ageIndex,
+                      uint32_t cohortSet, Deploy::Method method)
+    {
+        if (survey == NOT_USED) return;
+        assert(method == Deploy::TIMED || method == Deploy::CTS || method == Deploy::TREAT);
+        assert(measure < measureToStates.size());
+        for (size_t idx : measureToStates[measure]) {
+            State<T>& state = states[idx];
+            if ((state.layout.deployMask & method) == Deploy::NA) continue;
+            assert(state.layout.nSpecies == 1 && state.layout.nGenotypes == 1);
+            const size_t offset = survey * state.layout.size();
+            const size_t index = offset + state.layout.index(ageIndex, cohortSet, 0, 0, 0);
+            assert(index < state.reports.size());
+            state.reports[index] += static_cast<T>(val);
+        }
+    }
+
+    double sum(Measure measure, uint8_t method, size_t survey) const
+    {
+        assert(measure < measureToStates.size());
+        for (size_t idx : measureToStates[measure]) {
+            const State<T>& state = states[idx];
+            if (state.layout.deployMask != method) continue;
+            const size_t begin = survey * state.layout.size();
+            const size_t end = begin + state.layout.size();
+            return std::accumulate(state.reports.begin() + begin, state.reports.begin() + end, 0.0);
+        }
+        throw SWITCH_DEFAULT_EXCEPTION;
+    }
+
+    void write(ostream& stream, size_t survey, const OutMeasure& om) const
+    {
+        assert(om.m < measureToStates.size());
+        for (size_t idx : measureToStates[om.m]) {
+            const State<T>& state = states[idx];
+            if (state.layout.outMeasure != om.outId) continue;
+            state.layout.write(stream, survey + 1, om, state.reports, survey * state.layout.size());
+            return;
+        }
+        assert(false && "measure not found in records");
+    }
+
+    bool uses(Measure measure) const
+    {
+        assert(measure < MeasureCount);
+        return !measureToStates[measure].empty();
+    }
+
+    template <typename Stream>
+    void checkpoint(Stream& stream)
+    {
+        for (State<T>& state : states) {
+            checkpointVec(stream, state.reports, state.layout.size() * runtime.nSurveys);
+        }
+    }
+
+private:
+    static bool matches(const OutMeasure& om)
+    {
+        return om.m < MeasureCount && om.isDouble == std::is_same_v<T, double>;
+    }
+
+    void add(const OutMeasure& om, size_t nSpecies, size_t nDrugs, bool forceNoCategories)
+    {
+        if (!matches(om)) return;
+        State<T> state;
+        state.layout = makeLayout(om, nSpecies, nDrugs, forceNoCategories);
+        state.reports.assign(state.layout.size() * runtime.nSurveys, T{});
+        measureToStates[om.m].push_back(states.size());
+        states.push_back(std::move(state));
+    }
+};
+
+StateRegistry<int> intStates;
+StateRegistry<double> doubleStates;
+
+void initStates(const vector<OutMeasure>& enabledMeasures, size_t nSpecies, size_t nDrugs)
+{
+    intStates.init(enabledMeasures, nSpecies, nDrugs);
+    doubleStates.init(enabledMeasures, nSpecies, nDrugs);
+}
+
+void ensureConditionState(const OutMeasure& om)
+{
+    if (om.isDouble) doubleStates.ensureConditionState(om);
+    else intStates.ensureConditionState(om);
+}
+
+double sumState(Measure measure, bool isDouble, uint8_t method, size_t survey)
+{
+    assert(survey != NOT_USED);
+    return isDouble ? doubleStates.sum(measure, method, survey) : intStates.sum(measure, method, survey);
+}
+
+void writeState(ostream& stream, size_t survey, const OutMeasure& om)
+{
+    if (om.isDouble) doubleStates.write(stream, survey, om);
+    else intStates.write(stream, survey, om);
+}
+
+bool usesState(Measure measure)
+{
+    return intStates.uses(measure) || doubleStates.uses(measure);
+}
+
 template <typename Stream>
 void checkpointStates(Stream& stream)
 {
-    for (State<int>& state : intStates)
-        checkpointVec(stream, state.reports, state.layout.size() * impl::nSurveys);
-    for (State<double>& state : doubleStates)
-        checkpointVec(stream, state.reports, state.layout.size() * impl::nSurveys);
+    intStates.checkpoint(stream);
+    doubleStates.checkpoint(stream);
 }
 
-// Enabled measures:
-vector<OutMeasure> reportedMeasures;
-int reportIMR = -1; // special output for fitting
+void updateConditions()
+{
+    for (Condition& cond : runtime.conditions) {
+        const double val = sumState(cond.measure, cond.isDouble, cond.method, runtime.survNumStat);
+        cond.value = (val >= cond.min && val <= cond.max);
+    }
+}
 
-void initReporting( const scnXml::Scenario& scenario ){
-    defineOutMeasures(namedOutMeasures, validCondMeasures);
-    assert(reportedMeasures.empty());
-    
-    // First we put used measures in this list:
+void write(ostream& stream)
+{
+    for (size_t survey = 0; survey < runtime.nSurveys; ++survey) {
+        for (const OutMeasure& om : runtime.reportedMeasures) {
+            if (om.m >= MeasureCount) {
+                assert(om.m == allCauseIMR && runtime.reportIMR >= 0);
+                continue;
+            }
+            writeState(stream, survey, om);
+        }
+    }
+    if (runtime.reportIMR >= 0) {
+        stream << 1 << "\t" << 1 << "\t" << runtime.reportIMR
+            << "\t" << Clinical::InfantMortality::allCause() << lineEnd;
+    }
+}
+
+void updateSurveyNumbers()
+{
+    if (runtime.surveyIndex >= runtime.surveyDates.size()) {
+        runtime.survNumEvent = NOT_USED;
+        runtime.survNumStat = NOT_USED;
+        runtime.nextSurveyDate = sim::future();
+        return;
+    }
+
+    for (size_t i = runtime.surveyIndex; i < runtime.surveyDates.size(); ++i) {
+        runtime.survNumEvent = runtime.surveyDates[i].num;
+        if (runtime.survNumEvent != NOT_USED) break;
+    }
+
+    const SurveyDate& nextSurvey = runtime.surveyDates[runtime.surveyIndex];
+    runtime.survNumStat = nextSurvey.num;
+    runtime.nextSurveyDate = nextSurvey.date;
+}
+
+bool notPowerOfTwo(uint32_t num)
+{
+    return num == 0 || num > (static_cast<uint32_t>(1) << 21) || (num & (num - 1)) != 0;
+}
+
+} // namespace
+
+size_t eventSurveyNumber() { return runtime.survNumEvent; }
+size_t statSurveyNumber() { return runtime.survNumStat; }
+bool isReported() { return !runtime.isInit || runtime.survNumStat != NOT_USED; }
+SimTime nextSurveyDate() { return runtime.nextSurveyDate; }
+size_t numCohortSets() { return runtime.nCohorts; }
+
+void initReporting(const scnXml::Scenario& scenario)
+{
+    defineOutMeasures(runtime.namedOutMeasures, runtime.validCondMeasures);
+    assert(runtime.reportedMeasures.empty());
+    runtime.reportIMR = -1;
     const scnXml::MonitoringOptions& optsElt = scenario.getMonitoring().getSurveyOptions();
-    // This should be an upper bound on the number of options we need:
-    reportedMeasures.reserve(optsElt.getOption().size() + namedOutMeasures.size());
-    
+    runtime.reportedMeasures.reserve(optsElt.getOption().size() + runtime.namedOutMeasures.size());
     auto applyCategory = [](Dim& dims, Dim flag, const bool optionalPresent, const bool requested,
                             const string& optionName, const char* label)
     {
         if (!optionalPresent) return;
         const bool supports = hasDim(dims, flag);
         if (supports) {
-            if (!requested) clearDim(dims, flag);   // disable or keep
+            if (!requested) clearDim(dims, flag);
         } else if (requested) {
             throw util::xml_scenario_error("measure " + optionName + " does not support categorisation by " + label);
         }
     };
 
-    set<int> outIds;    // all measure numbers used in output
-    for( const scnXml::MonitoringOption& optElt : optsElt.getOption() ){
-        if( optElt.getValue() == false ) continue;      // option is disabled
-        
-        auto it = namedOutMeasures.find( optElt.getName() );
-        if( it == namedOutMeasures.end() ){
+    set<int> outIds;
+    for (const scnXml::MonitoringOption& optElt : optsElt.getOption()) {
+        if (!optElt.getValue()) continue;
+
+        auto it = runtime.namedOutMeasures.find(optElt.getName());
+        if (it == runtime.namedOutMeasures.end()) {
             throw util::xml_scenario_error("unrecognised survey option: " + string(optElt.getName()));
         }
-        OutMeasure om = it->second;     // copy; we may modify below
-        
-        if( om.m >= MeasureCount ){
-            if( om.m == allCauseIMR ){
-                if( om.isDouble && !hasDim(om.dims, Dim::Age) && !hasDim(om.dims, Dim::Cohort) && !hasDim(om.dims, Dim::Species) ){
-                    reportIMR = om.outId;
-                }else{
-                    throw util::xml_scenario_error( "measure allCauseIMR does not support any categorisation" );
+        OutMeasure om = it->second;
+        if (om.m >= MeasureCount) {
+            if (om.m == allCauseIMR) {
+                if (om.isDouble && !hasDim(om.dims, Dim::Age) && !hasDim(om.dims, Dim::Cohort) && !hasDim(om.dims, Dim::Species)) {
+                    runtime.reportIMR = om.outId;
+                } else {
+                    throw util::xml_scenario_error("measure allCauseIMR does not support any categorisation");
                 }
-            } else if( om.m == obsoleteMeasure ){
+            } else if (om.m == obsoleteMeasure) {
                 throw util::xml_scenario_error("obsolete survey option: " + string(optElt.getName()));
-            } else TRACED_EXCEPTION_DEFAULT("invalid measure code");
-        }
-        
-        if( om.m == measure("sumlogDens") || om.m == measure("logDensByGenotype")){
-            if( WithinHost::diagnostics::monitoringDiagnostic().allowsFalsePositives() ){
-                throw util::xml_scenario_error("measure " + string(optElt.getName()) + " may not be used when monitoring diagnostic sensitivity < 1");
+            } else {
+                TRACED_EXCEPTION_DEFAULT("invalid measure code");
             }
         }
-        
-        // Categorisation can be disabled but not enabled.
+
+        if ((om.m == measure("sumlogDens") || om.m == measure("logDensByGenotype")) &&
+            WithinHost::diagnostics::monitoringDiagnostic().allowsFalsePositives())
+        {
+            throw util::xml_scenario_error("measure " + string(optElt.getName()) + " may not be used when monitoring diagnostic sensitivity < 1");
+        }
         const string optionName(optElt.getName());
         const bool byAgePresent = optElt.getByAge().present();
         const bool byCohortPresent = optElt.getByCohort().present();
@@ -446,93 +502,56 @@ void initReporting( const scnXml::Scenario& scenario ){
         applyCategory(om.dims, Dim::Species, bySpeciesPresent, bySpeciesPresent ? optElt.getBySpecies().get() : false, optionName, "species");
         applyCategory(om.dims, Dim::Genotype, byGenotypePresent, byGenotypePresent ? optElt.getByGenotype().get() : false, optionName, "genotype");
         applyCategory(om.dims, Dim::Drug, byDrugPresent, byDrugPresent ? optElt.getByDrugType().get() : false, optionName, "drug type");
-        
-        // Output number may be changed:
-        if( optElt.getOutputNumber().present() ) om.outId = optElt.getOutputNumber().get();
-        if( outIds.count(om.outId) ){
+
+        if (optElt.getOutputNumber().present()) om.outId = optElt.getOutputNumber().get();
+        if (outIds.count(om.outId)) {
             throw util::xml_scenario_error("monitoring output number " + to_string(om.outId) + " used more than once");
         }
-        outIds.insert( om.outId );
-        
-        reportedMeasures.push_back( om );
+        outIds.insert(om.outId);
+        runtime.reportedMeasures.push_back(om);
     }
-    
-    std::sort(reportedMeasures.begin(), reportedMeasures.end(),
-        [](const OutMeasure& i, const OutMeasure& j) { return i.outId < j.outId; });
-    
-    size_t nSpecies = scenario.getEntomology().getVector().present() ?
-        scenario.getEntomology().getVector().get().getAnopheles().size() : 1;
-    size_t nDrugs = scenario.getPharmacology().present() ?
-        scenario.getPharmacology().get().getDrugs().getDrug().size() : 1;
-    
-    initStates(reportedMeasures, nSpecies, nDrugs);
+    std::sort(runtime.reportedMeasures.begin(), runtime.reportedMeasures.end(),
+        [](const OutMeasure& lhs, const OutMeasure& rhs) { return lhs.outId < rhs.outId; });
+    const size_t nSpecies = scenario.getEntomology().getVector().present()
+        ? scenario.getEntomology().getVector().get().getAnopheles().size() : 1;
+    const size_t nDrugs = scenario.getPharmacology().present()
+        ? scenario.getPharmacology().get().getDrugs().getDrug().size() : 1;
+    initStates(runtime.reportedMeasures, nSpecies, nDrugs);
 }
 
-size_t setupCondition( const string& measureName, double minValue,
-                       double maxValue, bool initialState )
+size_t setupCondition(const string& measureName, double minValue, double maxValue, bool initialState)
 {
-    auto it = namedOutMeasures.find( measureName );
-    if( it == namedOutMeasures.end() )
-        throw util::xml_scenario_error("unrecognised measure: " + string(measureName));
+    auto it = runtime.namedOutMeasures.find(measureName);
+    if (it == runtime.namedOutMeasures.end()) {
+        throw util::xml_scenario_error("unrecognised measure: " + measureName);
+    }
 
-    OutMeasure om = it->second;         // copy so that we can modify
-    // Refuse to use some measures, since these are not reported reliably in
-    // "non-reporting" surveys or are reported after the survey is taken:
-    if( validCondMeasures.count(om.m) == 0 ){
-        throw util::xml_scenario_error("cannot use measure " + string(measureName) + " as condition of deployment");
+    const OutMeasure om = it->second;
+    if (runtime.validCondMeasures.count(om.m) == 0) {
+        throw util::xml_scenario_error("cannot use measure " + measureName + " as condition of deployment");
     }
     ensureConditionState(om);
-    
-    Condition condition;
-    condition.value = initialState;
-    condition.isDouble = om.isDouble;
-    condition.measure = om.m;
-    condition.method = om.method;
-    condition.min = minValue;
-    condition.max = maxValue;
-    impl::conditions.push_back(condition);
-    return impl::conditions.size() - 1;
+
+    runtime.conditions.push_back({initialState, om.isDouble, om.m, om.method, minValue, maxValue});
+    return runtime.conditions.size() - 1;
 }
 
-void updateConditions() {
-    for( Condition& cond : impl::conditions ){
-        double val = sumStateMeasure(cond.measure, cond.isDouble, cond.method, impl::survNumStat);
-        cond.value = (val >= cond.min && val <= cond.max);
-    }
-}
-bool checkCondition( size_t conditionKey ){
-    assert( conditionKey < impl::conditions.size() );
-    return impl::conditions[conditionKey].value;
-}
-
-void write( ostream& stream ){
-    for( size_t survey = 0; survey < impl::nSurveys; ++survey ){
-        for( const OutMeasure& om : reportedMeasures ){
-            if( om.m >= MeasureCount ){
-                // "Special" measures are not reported this way. The only such measure is IMR.
-                assert( om.m == allCauseIMR && reportIMR >= 0 );
-                continue;
-            }
-            writeMeasureState(stream, survey, om);
-        }
-    }
-    if( reportIMR >= 0 ){
-        // Infant mortality rate is a single number, therefore treated specially.
-        // It is calculated across the entire intervention period and used in
-        // model fitting.
-        stream << 1 << "\t" << 1 << "\t" << reportIMR
-            << "\t" << Clinical::InfantMortality::allCause() << lineEnd;
-    }
-}
-
-void record(Measure measure, size_t survey, size_t age, uint32_t cohort, size_t species, size_t genotype, size_t drug, int val, int outId)
+bool checkCondition(size_t conditionKey)
 {
-    recordValue(val, intStates, measureToIntStates, measure, survey, age, cohort, species, genotype, drug, outId);
+    assert(conditionKey < runtime.conditions.size());
+    return runtime.conditions[conditionKey].value;
 }
 
-void record(Measure measure, size_t survey, size_t age, uint32_t cohort, size_t species, size_t genotype, size_t drug, double val)
+void record(Measure measure, size_t survey, size_t age, uint32_t cohort,
+            size_t species, size_t genotype, size_t drug, int val, int outId)
 {
-    recordValue(val, doubleStates, measureToDoubleStates, measure, survey, age, cohort, species, genotype, drug);
+    intStates.record(val, measure, survey, age, cohort, species, genotype, drug, outId);
+}
+
+void record(Measure measure, size_t survey, size_t age, uint32_t cohort,
+            size_t species, size_t genotype, size_t drug, double val)
+{
+    doubleStates.record(val, measure, survey, age, cohort, species, genotype, drug);
 }
 
 void recordStat(Measure measure, const Host::Human& human, int val, size_t species, size_t genotype, size_t drug, int outId)
@@ -552,164 +571,127 @@ void recordEvent(Measure measure, const Host::Human& human, int val)
 
 void recordDeploy(Measure measure, const Host::Human& human, Deploy::Method method, int val)
 {
-    recordDeployValue(val, measure, eventSurveyNumber(), human.monitoringAgeGroup, human.getCohortSet(), method);
+    intStates.recordDeploy(val, measure, eventSurveyNumber(), human.monitoringAgeGroup, human.getCohortSet(), method);
     const Measure treatDeployments = ::OM::mon::measure("nTreatDeployments");
-    if (measure != treatDeployments)
-        recordDeployValue(val, treatDeployments, eventSurveyNumber(), human.monitoringAgeGroup, human.getCohortSet(), method);
+    if (measure != treatDeployments) {
+        intStates.recordDeploy(val, treatDeployments, eventSurveyNumber(), human.monitoringAgeGroup, human.getCohortSet(), method);
+    }
 }
 
-bool isUsed(Measure measure) { return isMeasureUsed(measure, false) || isMeasureUsed(measure, true); }
+bool isUsed(Measure measure)
+{
+    return usesState(measure);
+}
 
 template <typename Stream>
 void checkpoint(Stream& stream)
 {
-    impl::isInit & stream;
-    impl::surveyIndex & stream;
-    impl::survNumEvent & stream;
-    impl::survNumStat & stream;
-    impl::nextSurveyDate & stream;
-
+    runtime.isInit & stream;
+    runtime.surveyIndex & stream;
+    runtime.survNumEvent & stream;
+    runtime.survNumStat & stream;
+    runtime.nextSurveyDate & stream;
     checkpointStates(stream);
 }
 template void checkpoint<ostream>(ostream& stream);
 template void checkpoint<istream>(istream& stream);
-
 // ———  surveys  ———
 
-struct SurveyDate {
-    SimTime date = sim::never();       // date of survey
-    size_t num; // if NOT_USED, the survey is not reported; if greater, this is the survey number
+SimTime readSurveyDates(const scnXml::Monitoring& monitoring)
+{
+    const scnXml::Surveys::SurveyTimeSequence& survs = monitoring.getSurveys().getSurveyTime();
+    map<SimTime, bool> surveys;
 
-    inline bool isReported() const { return num != NOT_USED; }
-};
-
-namespace impl{
-    // Constants or defined during init:
-    size_t nSurveys = 0;        // number of reported surveys
-    size_t nCohorts = 1;     // default: just the whole population
-    extern size_t surveyIndex;     // index in surveyDates of next survey
-    vector<SurveyDate> surveyDates;     // dates of surveys
-}
-
-SimTime readSurveyDates( const scnXml::Monitoring& monitoring ){
-    const scnXml::Surveys::SurveyTimeSequence& survs =
-        monitoring.getSurveys().getSurveyTime();
-    
-    map<SimTime, bool> surveys;        // dates of all surveys (from XML) and whether these are reporting
-    
     auto addSurvey = [&surveys](SimTime date, bool reporting) {
-        if( reporting ) surveys[date] = true;
-        else surveys.insert(make_pair(date, false));   // do not override existing reported entries
+        if (reporting) surveys[date] = true;
+        else surveys.insert(make_pair(date, false));
     };
 
-    for(size_t i = 0; i < survs.size(); ++i) {
+    for (size_t i = 0; i < survs.size(); ++i) {
         const scnXml::SurveyTime& surv = survs[i];
-        try{
-            std::string s = surv;
+        try {
+            string s = surv;
             s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](unsigned char ch) {
                 return !std::isspace(ch);
             }));
             s.erase(std::find_if(s.rbegin(), s.rend(), [](unsigned char ch) {
                 return !std::isspace(ch);
             }).base(), s.end());
-            SimTime cur = UnitParse::readDate( s, UnitParse::STEPS );
-            bool reporting = surv.getReported();
-            if( surv.getRepeatStep().present() != surv.getRepeatEnd().present() ){
-                throw util::xml_scenario_error( "surveyTime: use of repeatStep or repeatEnd without other" );
+            SimTime cur = UnitParse::readDate(s, UnitParse::STEPS);
+            const bool reporting = surv.getReported();
+            if (surv.getRepeatStep().present() != surv.getRepeatEnd().present()) {
+                throw util::xml_scenario_error("surveyTime: use of repeatStep or repeatEnd without other");
             }
-            if( surv.getRepeatStep().present() ){
-                SimTime step = UnitParse::readDuration( surv.getRepeatStep().get(), UnitParse::NONE );
-                if( step < sim::oneTS() ){
-                    throw util::xml_scenario_error( "surveyTime: repeatStep must be >= 1" );
+            if (surv.getRepeatStep().present()) {
+                const SimTime step = UnitParse::readDuration(surv.getRepeatStep().get(), UnitParse::NONE);
+                if (step < sim::oneTS()) {
+                    throw util::xml_scenario_error("surveyTime: repeatStep must be >= 1");
                 }
-                SimTime end = UnitParse::readDate( surv.getRepeatEnd().get(), UnitParse::NONE );
-                while(cur < end){
+                const SimTime end = UnitParse::readDate(surv.getRepeatEnd().get(), UnitParse::NONE);
+                while (cur < end) {
                     addSurvey(cur, reporting);
                     cur = cur + step;
                 }
-            }else{
+            } else {
                 addSurvey(cur, reporting);
             }
-        }catch( const util::format_error& e ){
-            throw util::xml_scenario_error( string("surveyTime: ").append(e.message()) );
+        } catch (const util::format_error& e) {
+            throw util::xml_scenario_error(string("surveyTime: ").append(e.message()));
         }
     }
-    
-    impl::surveyDates.clear();
-    impl::surveyDates.reserve(surveys.size());
-    size_t n = 0;
-    for( auto it = surveys.begin(); it != surveys.end(); ++it ){
-        size_t num = NOT_USED;
-        if( it->second ){
-            num = n;
-            n += 1;
-        }
-        impl::surveyDates.push_back({it->first, num});
+
+    runtime.surveyDates.clear();
+    runtime.surveyDates.reserve(surveys.size());
+    runtime.nSurveys = 0;
+    for (const auto& [date, reporting] : surveys) {
+        const size_t num = reporting ? runtime.nSurveys++ : NOT_USED;
+        runtime.surveyDates.push_back({date, num});
     }
-    impl::nSurveys = n;
-    
-    if( impl::surveyDates.size() == 0 ){
-        throw util::xml_scenario_error( "Scenario defines no surveys; at least one is required." );
+    if (runtime.surveyDates.empty()) {
+        throw util::xml_scenario_error("Scenario defines no surveys; at least one is required.");
     }
-    if( !impl::surveyDates.back().isReported() ){
+    if (!runtime.surveyDates.back().isReported()) {
         std::cerr << "Warning: the last survey is unreported. Having surveys beyond the last reported survey is pointless." << std::endl;
     }
-    
-    if( util::CommandLine::option( util::CommandLine::PRINT_SURVEY_TIMES ) ){
-        std::cout << "Survey\tsteps\tdate";
-        std::cout << std::endl;
-        for( size_t i = 0; i < impl::surveyDates.size(); ++i ){
-            const SurveyDate& surveyDate = impl::surveyDates[i];
-            if( !surveyDate.isReported() ) continue;
+
+    if (util::CommandLine::option(util::CommandLine::PRINT_SURVEY_TIMES)) {
+        std::cout << "Survey\tsteps\tdate\n";
+        for (const SurveyDate& surveyDate : runtime.surveyDates) {
+            if (!surveyDate.isReported()) continue;
             std::cout
-                << (surveyDate.num+1) << '\t'
+                << (surveyDate.num + 1) << '\t'
                 << sim::inSteps(surveyDate.date - sim::startDate()) << '\t'
                 << surveyDate.date << std::endl;
         }
     }
-    
-    if( monitoring.getCohorts().present() ){
-        // this needs to be set early, but we can't set cohortSubPopIds until after InterventionManager is initialised
-        impl::nCohorts = static_cast<uint32_t>(1) << monitoring.getCohorts().get().getSubPop().size();
+
+    runtime.nCohorts = 1;
+    if (monitoring.getCohorts().present()) {
+        runtime.nCohorts = static_cast<uint32_t>(1) << monitoring.getCohorts().get().getSubPop().size();
     }
-    
-    mon::initAgeGroups( monitoring );
-    
-    // final survey date:
-    return impl::surveyDates[impl::surveyDates.size()-1].date;
+    initAgeGroups(monitoring);
+    return runtime.surveyDates.back().date;
 }
 
-void updateSurveyNumbers() {
-    if( impl::surveyIndex >= impl::surveyDates.size() ){
-        impl::survNumEvent = NOT_USED;
-        impl::survNumStat = NOT_USED;
-        impl::nextSurveyDate = sim::future();
-    }else{
-        for( size_t i = impl::surveyIndex; i < impl::surveyDates.size(); ++i ){
-            impl::survNumEvent = impl::surveyDates[i].num;  // set to survey number or NOT_USED; this happens at least once!
-            if( impl::survNumEvent != NOT_USED ) break;        // stop at first reported survey
-        }
-        const SurveyDate& nextSurvey = impl::surveyDates[impl::surveyIndex];
-        impl::survNumStat = nextSurvey.num;     // may be NOT_USED; this is intended
-        impl::nextSurveyDate = nextSurvey.date;
-    }
-}
-void initMainSim(){
-    impl::surveyIndex = 0;
-    impl::isInit = true;
+void initMainSim()
+{
+    runtime.surveyIndex = 0;
+    runtime.isInit = true;
     updateSurveyNumbers();
 }
-void concludeSurvey(){
+
+void concludeSurvey()
+{
     updateConditions();
-    impl::surveyIndex += 1;
+    runtime.surveyIndex += 1;
     updateSurveyNumbers();
 }
 
-void writeSurveyData ()
+void writeSurveyData()
 {
     string filename = util::CommandLine::getOutputName();
     const auto mode = std::ios::out | std::ios::binary;
-    
+
     if (util::CommandLine::option(util::CommandLine::COMPRESS_OUTPUT)) {
         filename.append(".gz");
         ogzstream stream(filename.c_str(), mode);
@@ -719,72 +701,68 @@ void writeSurveyData ()
         write(stream);
     }
 }
-
-
 // ———  Age groups  ———
 
-void initAgeGroups(const scnXml::Monitoring& monitoring) {
-    const scnXml::MonAgeGroup::GroupSequence& groups =
-        monitoring.getAgeGroup().getGroup();
-    if (!(monitoring.getAgeGroup().getLowerbound() <= 0.0))
-        throw util::xml_scenario_error ("Expected survey age-group lowerbound of 0");
-    
-    // The last age group includes individuals too old for reporting
-    ageGroupUpperBound.resize( groups.size() + 1 );
-    for(size_t i = 0;i < groups.size(); ++i) {
-        // convert to SimTime, rounding down to the next time step
-        ageGroupUpperBound[i] = sim::fromYearsD( groups[i].getUpperbound() );
+void initAgeGroups(const scnXml::Monitoring& monitoring)
+{
+    const scnXml::MonAgeGroup::GroupSequence& groups = monitoring.getAgeGroup().getGroup();
+    if (!(monitoring.getAgeGroup().getLowerbound() <= 0.0)) {
+        throw util::xml_scenario_error("Expected survey age-group lowerbound of 0");
     }
-    ageGroupUpperBound[groups.size()] = sim::future();
+
+    runtime.ageGroupUpperBound.resize(groups.size() + 1);
+    for (size_t i = 0; i < groups.size(); ++i) {
+        runtime.ageGroupUpperBound[i] = sim::fromYearsD(groups[i].getUpperbound());
+    }
+    runtime.ageGroupUpperBound[groups.size()] = sim::future();
 }
 
-size_t numAgeGroups() {
-    assert( ageGroupUpperBound.size() > 0 );      // otherwise not yet initialised
-    return ageGroupUpperBound.size();
+size_t numAgeGroups()
+{
+    assert(!runtime.ageGroupUpperBound.empty());
+    return runtime.ageGroupUpperBound.size();
 }
 
-void updateAgeGroup(size_t& index, SimTime age) {
-    while (age >= ageGroupUpperBound[index]){
+void updateAgeGroup(size_t& index, SimTime age)
+{
+    while (age >= runtime.ageGroupUpperBound[index]) {
         ++index;
     }
 }
-
 // ———  Cohort sets  ———
-bool notPowerOfTwo( uint32_t num ){
-    return num == 0 || num > (static_cast<uint32_t>(1) << 21) || (num & (num - 1)) != 0;
-}
-// Init cohort sets. Depends on interventions (initialise those first).
-void initCohorts( const scnXml::Monitoring& monitoring )
+
+void initCohorts(const scnXml::Monitoring& monitoring)
 {
-    if( monitoring.getCohorts().present() ){
-        const scnXml::Cohorts monCohorts = monitoring.getCohorts().get();
-        uint32_t nextId = 0;
-        for( auto it = monCohorts.getSubPop().begin(),
-            end = monCohorts.getSubPop().end(); it != end; ++it )
-        {
-            ComponentId compId = interventions::InterventionManager::getComponentId( it->getId() );
-            bool inserted = cohortSubPopIds.insert( make_pair(compId,nextId) ).second;
-            if( !inserted ){
-                throw util::xml_scenario_error(
-                    string("cohort specification uses sub-population \"").append(it->getId())
-                    .append("\" more than once") );
-            }
-            if( it->getNumber() < 0 || notPowerOfTwo( it->getNumber() ) ){
-                throw util::xml_scenario_error(
-                    string( "cohort specification assigns sub-population \"").append(it->getId())
-                    .append("\" a number which is not a power of 2 (up to 2^21)") );
-            }
-            cohortSubPopNumbers.push_back( it->getNumber() );
-            nextId += 1;
+    runtime.cohortSubPopNumbers.clear();
+    runtime.cohortSubPopIds.clear();
+    if (!monitoring.getCohorts().present()) return;
+
+    const scnXml::Cohorts monCohorts = monitoring.getCohorts().get();
+    uint32_t nextId = 0;
+    for (auto it = monCohorts.getSubPop().begin(), end = monCohorts.getSubPop().end(); it != end; ++it) {
+        const ComponentId compId = interventions::InterventionManager::getComponentId(it->getId());
+        const bool inserted = runtime.cohortSubPopIds.insert(make_pair(compId, nextId)).second;
+        if (!inserted) {
+            throw util::xml_scenario_error(
+                string("cohort specification uses sub-population \"").append(it->getId()).append("\" more than once"));
         }
+        if (it->getNumber() < 0 || notPowerOfTwo(it->getNumber())) {
+            throw util::xml_scenario_error(
+                string("cohort specification assigns sub-population \"").append(it->getId())
+                    .append("\" a number which is not a power of 2 (up to 2^21)"));
+        }
+        runtime.cohortSubPopNumbers.push_back(it->getNumber());
+        nextId += 1;
     }
 }
 
-uint32_t updateCohortSet( uint32_t old, ComponentId subPop, bool isMember ){
-    auto it = cohortSubPopIds.find( subPop );
-    if( it == cohortSubPopIds.end() ) return old;       // sub-pop not used in cohorts
-    uint32_t subPopId = static_cast<uint32_t>(1) << it->second;        // 1 bit positive
+uint32_t updateCohortSet(uint32_t old, ComponentId subPop, bool isMember)
+{
+    auto it = runtime.cohortSubPopIds.find(subPop);
+    if (it == runtime.cohortSubPopIds.end()) return old;
+    const uint32_t subPopId = static_cast<uint32_t>(1) << it->second;
     return (old & ~subPopId) | (isMember ? subPopId : 0);
 }
 
-} }
+} // namespace mon
+} // namespace OM

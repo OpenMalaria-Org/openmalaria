@@ -25,7 +25,6 @@
 
 #include "Global.h"
 #include "mon/OutMeasures.h"
-#include <cassert>
 #include <cstdint>
 #include <iosfwd>
 #include <limits>
@@ -47,22 +46,14 @@ namespace mon {
 
 // ----- info API -----
 
-namespace impl {
-extern size_t nSurveys;
-extern size_t nCohorts;
-extern bool isInit;
-extern size_t survNumEvent, survNumStat;
-extern SimTime nextSurveyDate;
-}
+inline constexpr size_t NOT_USED = std::numeric_limits<size_t>::max();
+inline constexpr char lineEnd = '\n';
 
-const size_t NOT_USED = std::numeric_limits<size_t>::max();
-const char lineEnd = '\n';
-
-inline size_t eventSurveyNumber() { return impl::survNumEvent; }
-inline size_t statSurveyNumber() { return impl::survNumStat; }
-inline bool isReported() { return !impl::isInit || impl::survNumStat != NOT_USED; }
-inline SimTime nextSurveyDate() { return impl::nextSurveyDate; }
-inline size_t numCohortSets() { return impl::nCohorts; }
+size_t eventSurveyNumber();
+size_t statSurveyNumber();
+bool isReported();
+SimTime nextSurveyDate();
+size_t numCohortSets();
 
 size_t setupCondition(const std::string& measureName, double minValue, double maxValue, bool initialState);
 bool checkCondition(size_t conditionKey);
