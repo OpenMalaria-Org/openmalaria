@@ -297,7 +297,22 @@ public:
                             probability = gsl_cdf_beta_Pinv(uy, alpha, beta);
                         }
                         else // Gamma with CV=0
-                            probability = human.rng.beta(alpha, beta);
+                        {
+                            /* Ensure consitency over time by drawing the probability of receiving the intervention 
+                            only once per host and per intervention. If a host’s probability of receiving the intervention 
+                            is high for an initial deployment, it will remain consistently high for subsequent deployments 
+                            of the same intervention. */
+                            const ComponentId cid = subPop;
+                            double probability = -1.0;
+                            const auto it = human.perHostTransmission.copulaGaussianSamples.find(cid);
+                            if (it != human.perHostTransmission.copulaGaussianSamples.end())
+                                probability = it->second;
+                            else
+                            {
+                                probability = human.rng.beta(alpha, beta);
+                                human.perHostTransmission.copulaGaussianSamples[cid] = probability;
+                            }
+                        }
                     }
                     catch (const std::exception& e) {
                         std::ostringstream oss;
