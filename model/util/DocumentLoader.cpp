@@ -42,16 +42,18 @@ namespace OM
                 string msg = "Error: unable to open " + lXmlFile;
                 throw util::xml_scenario_error(msg);
             }
-            unique_ptr<scnXml::Scenario> scenario;
+            std::unique_ptr<scnXml::Scenario> scenario;
             try
             {
                 scenario = scnXml::parseScenario (fileStream);
             }
             catch(const std::exception& e)
             {
-                std::cerr << "Error: parsing scenario file failed.\n\tPossibly the XSD file is not present at an expected location/with expected filename." << std::endl;
+                std::cerr << "Error: parsing scenario file failed."
+                << "\n\tLikely the XSD file is not present at an expected location/with expected filename,"
+                << "\n\tor the scenario file " << lXmlFile << " does not conform to the relevant schema." << std::endl;
                 std::cerr << e.what() << std::endl;
-                throw e;
+                throw;
             }
             fileStream.close ();
 
@@ -60,7 +62,7 @@ namespace OM
             if (scenarioVersion < SCHEMA_VERSION) {
                 // Don't bother aborting. Mostly if something really is incompatible
                 // loading will not succeed anyway.
-                cerr<<"Warning: "<<lXmlFile<<" uses an old schema version (latest is "<<SCHEMA_VERSION<<")."<<endl;
+                std::cerr<<"Warning: "<<lXmlFile<<" uses an old schema version (latest is "<<SCHEMA_VERSION<<")."<<endl;
             }
             else if (scenarioVersion > SCHEMA_VERSION)
                 throw util::xml_scenario_error ("Error: new schema version unsupported");
