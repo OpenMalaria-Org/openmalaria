@@ -42,7 +42,17 @@ namespace OM
                 string msg = "Error: unable to open " + lXmlFile;
                 throw util::xml_scenario_error(msg);
             }
-            unique_ptr<scnXml::Scenario> scenario = scnXml::parseScenario (fileStream);
+            unique_ptr<scnXml::Scenario> scenario;
+            try
+            {
+                scenario = scnXml::parseScenario (fileStream);
+            }
+            catch(const std::exception& e)
+            {
+                std::cerr << "Error: parsing scenario file failed.\n\tPossibly the XSD file is not present at an expected location/with expected filename." << std::endl;
+                std::cerr << e.what() << std::endl;
+                throw e;
+            }
             fileStream.close ();
 
             int scenarioVersion = scenario->getSchemaVersion();
