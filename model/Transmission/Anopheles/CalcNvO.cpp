@@ -216,6 +216,220 @@ static double compute_lambdaRidge_from_JtJ_trace(const gsl_matrix* J, double cRi
     return cRidge * mean_diag_JtJ;
 }
 
+struct SvDiffParams
+{
+	const gsl_vector* SvfromEIR;
+	const std::vector<gsl_matrix*>* Upsilon;
+	gsl_matrix* inv1Xtp;
+	int eta;
+	int mt;
+	int thetap;
+};
+
+static void CalcLambda(gsl_vector** Lambda, gsl_vector* Nv0, int eta, int thetap) {
+	for (int t = 0; t < thetap; ++t) {
+		Lambda[t] = gsl_vector_calloc(eta);
+		gsl_vector_set(Lambda[t], 0, gsl_vector_get(Nv0, t));
+	}
+}
+
+[[maybe_unused]] static void CalcXP_pre_performance_patch(gsl_vector** xp,
+		const std::vector<gsl_matrix*> &Upsilon, gsl_vector** Lambda,
+		gsl_matrix* inv1Xtp, int eta, int thetap) {
+	gsl_vector* vtemp = gsl_vector_calloc(eta);
+	gsl_matrix* mtemp = gsl_matrix_calloc(eta, eta);
+	gsl_vector* x0p = gsl_vector_calloc(eta);
+
+	// Pre-7b6a2b91 version: recompute X(thetap, i+1) with FuncX() for each i.
+	for (int i = 0; i < thetap; ++i) {
+		FuncX(mtemp, Upsilon, thetap, i + 1, eta);
+		gsl_blas_dgemv(CblasNoTrans, 1.0, mtemp, Lambda[i], 1.0, vtemp);
+	}
+	gsl_blas_dgemv(CblasNoTrans, 1.0, inv1Xtp, vtemp, 0.0, x0p);
+
+	xp[0] = gsl_vector_calloc(eta);
+	FuncX(mtemp, Upsilon, 0, 0, eta);
+	gsl_blas_dgemv(CblasNoTrans, 1.0, mtemp, x0p, 1.0, xp[0]);
+
+	for (int t = 1; t < thetap; ++t) {
+		xp[t] = gsl_vector_calloc(eta);
+		gsl_blas_dgemv(CblasNoTrans, 1.0, Upsilon[t - 1], xp[t - 1], 1.0, xp[t]);
+		gsl_vector_add(xp[t], Lambda[t - 1]);
+	}
+
+	gsl_vector_free(vtemp);
+	gsl_vector_free(x0p);
+	gsl_matrix_free(mtemp);
+}
+
+static void CalcXP_optimized(gsl_vector** xp, const std::vector<gsl_matrix*> &Upsilon,
+		gsl_vector** Lambda, gsl_matrix* inv1Xtp, int eta, int thetap) {
+	gsl_vector* vtemp = gsl_vector_calloc(eta);
+	gsl_matrix* mtemp = gsl_matrix_calloc(eta, eta);
+	gsl_matrix* tail = gsl_matrix_calloc(eta, eta);
+	gsl_matrix* mmul = gsl_matrix_calloc(eta, eta);
+	gsl_vector* x0p = gsl_vector_calloc(eta);
+
+	// Performance patch from 7b6a2b91: compute x0p with a backward tail-product
+	// pass instead of calling FuncX() repeatedly inside the forcing sum.
+	gsl_matrix_set_identity(tail);
+	gsl_vector_set_zero(vtemp);
+	for (int i = thetap - 1; i >= 0; --i) {
+		gsl_blas_dgemv(CblasNoTrans, 1.0, tail, Lambda[i], 1.0, vtemp);
+		gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1.0, Upsilon[i], tail, 0.0, mmul);
+		gsl_matrix_memcpy(tail, mmul);
+	}
+	gsl_blas_dgemv(CblasNoTrans, 1.0, inv1Xtp, vtemp, 0.0, x0p);
+
+	xp[0] = gsl_vector_calloc(eta);
+	FuncX(mtemp, Upsilon, 0, 0, eta);
+	gsl_blas_dgemv(CblasNoTrans, 1.0, mtemp, x0p, 1.0, xp[0]);
+
+	for (int t = 1; t < thetap; ++t) {
+		xp[t] = gsl_vector_calloc(eta);
+		gsl_blas_dgemv(CblasNoTrans, 1.0, Upsilon[t - 1], xp[t - 1], 1.0, xp[t]);
+		gsl_vector_add(xp[t], Lambda[t - 1]);
+	}
+
+	gsl_vector_free(vtemp);
+	gsl_vector_free(x0p);
+	gsl_matrix_free(mtemp);
+	gsl_matrix_free(tail);
+	gsl_matrix_free(mmul);
+}
+
+static void CalcXP(gsl_vector** xp, const std::vector<gsl_matrix*> &Upsilon,
+		gsl_vector** Lambda, gsl_matrix* inv1Xtp, int eta, int thetap) {
+	// Uncomment the next line and comment out the optimized call below to use
+	// the exact pre-performance-patch CalcXP implementation for comparison.
+	//CalcXP_pre_performance_patch(xp, Upsilon, Lambda, inv1Xtp, eta, thetap);
+	CalcXP_optimized(xp, Upsilon, Lambda, inv1Xtp, eta, thetap);
+}
+
+static void CalcSvDiff(gsl_vector* SvDiff, const gsl_vector* SvfromEIR,
+		const std::vector<gsl_matrix*> &Upsilon, gsl_vector* Nv0, gsl_matrix* inv1Xtp,
+		int eta, int mt, int thetap) {
+	gsl_vector** Lambda = (gsl_vector**) malloc(thetap * sizeof(gsl_vector*));
+	gsl_vector** xp = (gsl_vector**) malloc(thetap * sizeof(gsl_vector*));
+	gsl_vector* SvfromNv0 = gsl_vector_calloc(thetap);
+
+	CalcLambda(Lambda, Nv0, eta, thetap);
+	CalcXP(xp, Upsilon, Lambda, inv1Xtp, eta, thetap);
+
+	const int indexSv = 2 * mt;
+	for (int i = 0; i < thetap; ++i) {
+		gsl_vector_set(SvfromNv0, i, gsl_vector_get(xp[i], indexSv));
+	}
+
+	gsl_vector_memcpy(SvDiff, SvfromNv0);
+	gsl_vector_sub(SvDiff, SvfromEIR);
+
+	for (int i = 0; i < thetap; ++i) {
+		gsl_vector_free(Lambda[i]);
+		gsl_vector_free(xp[i]);
+	}
+
+	free(Lambda);
+	free(xp);
+	gsl_vector_free(SvfromNv0);
+}
+
+static int CalcSvDiff_rf(const gsl_vector* x, void* p, gsl_vector* f) {
+	struct SvDiffParams* params = (struct SvDiffParams*) p;
+
+	gsl_vector* Nv0 = gsl_vector_calloc(params->thetap);
+	gsl_vector_memcpy(Nv0, x);
+
+	CalcSvDiff(f, params->SvfromEIR, *params->Upsilon, Nv0, params->inv1Xtp,
+		params->eta, params->mt, params->thetap);
+
+	gsl_vector_free(Nv0);
+	return GSL_SUCCESS;
+}
+
+[[maybe_unused]] static int solve_Nv0_rootfind(gsl_vector* Nv0, const gsl_vector* SvfromEIR,
+		const std::vector<gsl_matrix*> &Upsilon, gsl_matrix* inv1Xtp,
+		int eta, int mt, int thetap) {
+	const double EpsAbsRF = 1e-6;
+	const size_t maxiterRF = 1000;
+
+	printf("Solving with GSL multiroot (Sv(Nv0) - SvfromEIR)... ");
+
+	struct SvDiffParams pararootfind = {
+		SvfromEIR,
+		&Upsilon,
+		inv1Xtp,
+		eta,
+		mt,
+		thetap
+	};
+
+	gsl_multiroot_function frootfind;
+	frootfind.f = &CalcSvDiff_rf;
+	frootfind.n = thetap;
+	frootfind.params = &pararootfind;
+
+	gsl_vector* xrootfind = gsl_vector_alloc(thetap);
+	gsl_vector_memcpy(xrootfind, Nv0);
+
+	const gsl_multiroot_fsolver_type* Trootfind = gsl_multiroot_fsolver_hybrids;
+	gsl_multiroot_fsolver* srootfind = gsl_multiroot_fsolver_alloc(Trootfind, thetap);
+
+	int status = gsl_multiroot_fsolver_set(srootfind, &frootfind, xrootfind);
+	size_t iter = 0;
+	while (status == GSL_SUCCESS && iter < maxiterRF) {
+		++iter;
+		status = gsl_multiroot_fsolver_iterate(srootfind);
+		if (status != GSL_SUCCESS) {
+			break;
+		}
+		status = gsl_multiroot_test_residual(srootfind->f, EpsAbsRF);
+		if (status == GSL_SUCCESS) {
+			break;
+		}
+	}
+
+	gsl_vector_memcpy(Nv0, srootfind->x);
+
+	if (status == GSL_CONTINUE) {
+		status = GSL_EMAXITER;
+	}
+	if (status != GSL_SUCCESS) {
+		printf("root finding failed: %s\n", gsl_strerror(status));
+	} else {
+		printf("Done\n");
+	}
+
+	gsl_multiroot_fsolver_free(srootfind);
+	gsl_vector_free(xrootfind);
+	return status;
+}
+
+[[maybe_unused]] static int solve_Nv0_linear(gsl_vector* Nv0, const gsl_vector* SvfromEIR,
+		const std::vector<gsl_matrix*> &Upsilon, gsl_matrix* inv1Xtp,
+		int eta, int mt, int thetap) {
+	printf("Solving linear system with analytic Jacobian (Nv0 -> Sv)... ");
+
+	gsl_matrix* J = gsl_matrix_calloc(thetap, thetap);
+	CalcSvJacobian(J, Upsilon, inv1Xtp, eta, mt, thetap);
+
+	const double cSmooth = 1e5;
+	const double lambdaSmooth = compute_lambdaSmooth_from_J(J, cSmooth);
+
+	const double cRidge = 1.5e-1;
+	const double lambdaRidge = compute_lambdaRidge_from_JtJ_trace(J, cRidge);
+
+	int status = solve_Nv0_smooth_reg(Nv0, J, SvfromEIR, lambdaSmooth, lambdaRidge);
+	if (status) {
+		printf("Smooth regularized Nv0 solve failed: %s\n", gsl_strerror(status));
+	} else {
+		printf("Done\n");
+	}
+
+	gsl_matrix_free(J);
+	return status;
+}
+
 using namespace std;
 
 /* calcInitMosqEmergeRate() calculates the mosquito emergence rate given
@@ -394,43 +608,11 @@ double CalcInitMosqEmergeRate(
 	// Calculate the inverse of (I-Xtp). 
 	CalcInv1minusA(inv1Xtp, Xtp, eta);
 
-	/************* Analytic solve: build Jacobian and solve linear system. **************/
-	printf("Solving linear system with analytic Jacobian (Nv0 -> Sv)... ");
-
-	gsl_matrix* J = gsl_matrix_calloc(thetap, thetap);
-	CalcSvJacobian(J, Upsilon, inv1Xtp, eta, mt, thetap);
-
-	// // Solve J * Nv0 = SvfromEIR
-	// gsl_matrix* JLU = gsl_matrix_alloc(thetap, thetap);
-	// gsl_matrix_memcpy(JLU, J);
-	// gsl_permutation* perm = gsl_permutation_alloc(thetap);
-	// int signum = 0;
-	// int status = gsl_linalg_LU_decomp(JLU, perm, &signum);
-	// if (status) {
-	// 	printf("LU_decomp failed: %s\n", gsl_strerror(status));
-	// }
-	// gsl_linalg_LU_solve(JLU, perm, SvfromEIR, Nv0);
-
-	// J: thetap×thetap Jacobian
-	// SvfromEIR: length thetap
-	// Nv0: length thetap
-
-	// Pick ONE constant (global) or per-species.
-	// If you want one global number, a good compromise from your runs is ~1.1e5.
-	// const double cSmooth = 1e5;
-
-	const double cSmooth = 1e5;
-	const double lambdaSmooth = compute_lambdaSmooth_from_J(J, cSmooth);
-
-	const double cRidge = 1.5e-1;                    // start here; scan 1e-10 .. 1e-2 if needed
-	const double lambdaRidge = compute_lambdaRidge_from_JtJ_trace(J, cRidge);
-
-	int st = solve_Nv0_smooth_reg(Nv0, J, SvfromEIR, lambdaSmooth, lambdaRidge);	
-	if (st) {
-		printf("Smooth regularized Nv0 solve failed: %s\n", gsl_strerror(st));
-	}
-
-	printf("Done\n");
+	// Uncomment the next line and comment out the linear solve below to switch
+	// back to the recovered root-finding method.
+	int st = solve_Nv0_rootfind(Nv0, SvfromEIR, Upsilon, inv1Xtp, eta, mt, thetap);
+	//int st = solve_Nv0_linear(Nv0, SvfromEIR, Upsilon, inv1Xtp, eta, mt, thetap);
+	(void) st;
 
 	bool hasNegativeNv0 = false;
 	for (int i = 0; i < thetap; ++i) {
@@ -439,10 +621,6 @@ double CalcInitMosqEmergeRate(
 			break;
 		}
 	}
-
-	// gsl_permutation_free(perm);
-	// gsl_matrix_free(JLU);
-	gsl_matrix_free(J);
 
 	// Deallocate memory for vectors and matrices.
 	gsl_vector_free(Nvp);
