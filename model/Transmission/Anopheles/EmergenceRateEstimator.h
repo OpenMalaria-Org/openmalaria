@@ -208,7 +208,6 @@ public:
 
         // Append active NHH host types (malaria-non-susceptible)
         for (const auto &[name, nhh] : m.nhhInstances) {
-            cout << name << endl;
             // Interpret nhh.avail_i as total availability α_i * N_i
             Ni.push_back(1.0);
             alphai.push_back(nhh.avail_i);
@@ -230,7 +229,7 @@ public:
             const size_t end   = std::min(start + 5, static_cast<size_t>(thetap));
 
             const double v0 = laggedKappa[i];
-            const double v1 = (i + 1 < laggedKappa.size()) ? laggedKappa[i + 1] : laggedKappa[i];
+            const double v1 = laggedKappa[(i + 1) % laggedKappa.size()];
 
             for (size_t d = start; d < end; ++d) {
                 const double t = double(d - start) / 5.0;

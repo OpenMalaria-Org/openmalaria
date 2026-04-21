@@ -276,7 +276,7 @@ static void CalcXP_optimized(gsl_vector** xp, const std::vector<gsl_matrix*> &Up
 	gsl_vector_set_zero(vtemp);
 	for (int i = thetap - 1; i >= 0; --i) {
 		gsl_blas_dgemv(CblasNoTrans, 1.0, tail, Lambda[i], 1.0, vtemp);
-		gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1.0, Upsilon[i], tail, 0.0, mmul);
+		gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1.0, tail, Upsilon[i], 0.0, mmul);
 		gsl_matrix_memcpy(tail, mmul);
 	}
 	gsl_blas_dgemv(CblasNoTrans, 1.0, inv1Xtp, vtemp, 0.0, x0p);
@@ -350,7 +350,7 @@ static int CalcSvDiff_rf(const gsl_vector* x, void* p, gsl_vector* f) {
 [[maybe_unused]] static int solve_Nv0_rootfind(gsl_vector* Nv0, const gsl_vector* SvfromEIR,
 		const std::vector<gsl_matrix*> &Upsilon, gsl_matrix* inv1Xtp,
 		int eta, int mt, int thetap) {
-	const double EpsAbsRF = 1e-6;
+	const double EpsAbsRF = 1e-7;
 	const size_t maxiterRF = 1000;
 
 	printf("Solving with GSL multiroot (Sv(Nv0) - SvfromEIR)... ");
@@ -369,24 +369,35 @@ static int CalcSvDiff_rf(const gsl_vector* x, void* p, gsl_vector* f) {
 	frootfind.n = thetap;
 	frootfind.params = &pararootfind;
 
+	gsl_vector* SvDiff = gsl_vector_calloc(thetap);
+	CalcSvDiff(SvDiff, SvfromEIR, Upsilon, Nv0, inv1Xtp, eta, mt, thetap);
+	printf("The $l^1$ norm of SvDiff is %.17e \n", gsl_blas_dasum(SvDiff));
+	gsl_vector_free(SvDiff);
+
 	gsl_vector* xrootfind = gsl_vector_alloc(thetap);
 	gsl_vector_memcpy(xrootfind, Nv0);
 
 	const gsl_multiroot_fsolver_type* Trootfind = gsl_multiroot_fsolver_hybrids;
 	gsl_multiroot_fsolver* srootfind = gsl_multiroot_fsolver_alloc(Trootfind, thetap);
 
+	printf("Starting root-finding \n");
+	printf("About to set root-finding solver \n");
 	int status = gsl_multiroot_fsolver_set(srootfind, &frootfind, xrootfind);
+	printf("Set root-finding \n");
 	size_t iter = 0;
-	while (status == GSL_SUCCESS && iter < maxiterRF) {
-		++iter;
-		status = gsl_multiroot_fsolver_iterate(srootfind);
-		if (status != GSL_SUCCESS) {
-			break;
-		}
-		status = gsl_multiroot_test_residual(srootfind->f, EpsAbsRF);
-		if (status == GSL_SUCCESS) {
-			break;
-		}
+	printf("iter = %5lu Nv0(1) = % .3f ||f||_1 = % .3f \n",
+		iter, gsl_vector_get(srootfind->x, 0), gsl_blas_dasum(srootfind->f));
+	if (status == GSL_SUCCESS) {
+		do {
+			++iter;
+			status = gsl_multiroot_fsolver_iterate(srootfind);
+			printf("iter = %5lu Nv0(1) = % .3f ||f||_1 = % .3f \n",
+				iter, gsl_vector_get(srootfind->x, 0), gsl_blas_dasum(srootfind->f));
+			if (status != GSL_SUCCESS) {
+				break;
+			}
+			status = gsl_multiroot_test_residual(srootfind->f, EpsAbsRF);
+		} while (status == GSL_CONTINUE && iter < maxiterRF);
 	}
 
 	gsl_vector_memcpy(Nv0, srootfind->x);
@@ -406,6 +417,35 @@ static int CalcSvDiff_rf(const gsl_vector* x, void* p, gsl_vector* f) {
 }
 
 [[maybe_unused]] static int solve_Nv0_linear(gsl_vector* Nv0, const gsl_vector* SvfromEIR,
+		const std::vector<gsl_matrix*> &Upsilon, gsl_matrix* inv1Xtp,
+		int eta, int mt, int thetap) {
+	printf("Solving linear system with analytic Jacobian (Nv0 -> Sv)... ");
+
+	gsl_matrix* J = gsl_matrix_calloc(thetap, thetap);
+	CalcSvJacobian(J, Upsilon, inv1Xtp, eta, mt, thetap);
+
+	gsl_matrix* JLU = gsl_matrix_alloc(thetap, thetap);
+	gsl_matrix_memcpy(JLU, J);
+	gsl_permutation* perm = gsl_permutation_alloc(thetap);
+	int signum = 0;
+
+	int status = gsl_linalg_LU_decomp(JLU, perm, &signum);
+	if (status == GSL_SUCCESS) {
+		status = gsl_linalg_LU_solve(JLU, perm, SvfromEIR, Nv0);
+	}
+	if (status) {
+		printf("Linear LU Nv0 solve failed: %s\n", gsl_strerror(status));
+	} else {
+		printf("Done\n");
+	}
+
+	gsl_permutation_free(perm);
+	gsl_matrix_free(JLU);
+	gsl_matrix_free(J);
+	return status;
+}
+
+[[maybe_unused]] static int solve_Nv0_linear_smooth(gsl_vector* Nv0, const gsl_vector* SvfromEIR,
 		const std::vector<gsl_matrix*> &Upsilon, gsl_matrix* inv1Xtp,
 		int eta, int mt, int thetap) {
 	printf("Solving linear system with analytic Jacobian (Nv0 -> Sv)... ");
@@ -608,10 +648,10 @@ double CalcInitMosqEmergeRate(
 	// Calculate the inverse of (I-Xtp). 
 	CalcInv1minusA(inv1Xtp, Xtp, eta);
 
-	// Uncomment the next line and comment out the linear solve below to switch
-	// back to the recovered root-finding method.
+	// Uncomment exactly one solve below.
 	int st = solve_Nv0_rootfind(Nv0, SvfromEIR, Upsilon, inv1Xtp, eta, mt, thetap);
 	//int st = solve_Nv0_linear(Nv0, SvfromEIR, Upsilon, inv1Xtp, eta, mt, thetap);
+	//int st = solve_Nv0_linear_smooth(Nv0, SvfromEIR, Upsilon, inv1Xtp, eta, mt, thetap);
 	(void) st;
 
 	bool hasNegativeNv0 = false;
@@ -859,8 +899,8 @@ void CalcSvJacobian(gsl_matrix* J, const std::vector<gsl_matrix*> &Upsilon, gsl_
 		gsl_vector_view Dcol = gsl_matrix_column(Dcur, s);
 		gsl_vector_memcpy(&Dcol.vector, tmp);
 
-		// Update tail = Upsilon[s] * tail
-		gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1.0, Upsilon[s], tail, 0.0, mmul);
+		// Update tail = tail * Upsilon[s]
+		gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1.0, tail, Upsilon[s], 0.0, mmul);
 		gsl_matrix_memcpy(tail, mmul);
 	}
 
