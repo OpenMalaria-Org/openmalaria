@@ -314,6 +314,8 @@ int main(int argc, char* argv[])
         // Whereas inserting e into a stream inserts the (possibly long and repetitive) list of error
         // messages arising from the parsing attempt.
         std::cerr << "XSD error: " << e.what() << '\n' << e << endl;
+        // We print this *after* the above since users are more likely to take note of the tail of
+        // stderr/stdout output than the head.
         std::cerr << "Parsing scenario file failed."
                 << "\n\tLikely the XSD schema file is not present at an expected location/with expected filename,"
                 << "\n\tor the scenario file does not conform to the relevant XSD schema file." << std::endl;
