@@ -310,15 +310,20 @@ int main(int argc, char* argv[])
             exitStatus = e.getCode();
         }
     } catch (const ::xsd::cxx::tree::exception<char>& e) {
-        // e.what() returns a concise error message e.g. "instance document parsing failed".
-        // Whereas inserting e into a stream inserts the (possibly long and repetitive) list of error messages arising from the parsing attempt.
-        std::cerr << "XSD error: " << e.what() << '\n' << e << endl;
-
-        // We print this *after* the above since users are more likely to take note of the tail of stderr/stdout output than the head.
         if (errno == 2) // Errno value 2 corresponds to "No such file or directory" i.e. this is not a mismatch between scenario contents and schema rules.
+        {
+            // We don't print the content of the xsdcxx exception since the error messages are not relevant to the user in this case.
             std::cerr << "Parsing scenario file failed.\n\tLikely the XSD schema file is not present at an expected location/with expected filename." << std::endl;
+        }
         else
+        {
+            // e.what() returns a concise error message e.g. "instance document parsing failed".
+            // Whereas inserting e into a stream inserts the (possibly long and repetitive) list of error messages arising from the parsing attempt.
+            std::cerr << "XSD error: " << e.what() << '\n' << e << endl;
+
+            // We print this *after* the above since users are more likely to take note of the tail of stderr/stdout output than the head.
             std::cerr << "Parsing scenario file failed.\n\tLikely the XSD schema is named/located correctly but the scenario does not conform to the schema." << std::endl;
+        }
         exitStatus = OM::util::Error::XSD;
     } catch (const OM::util::checkpoint_error& e) {
         std::cerr << "Checkpoint error: " << e.what() << endl;
