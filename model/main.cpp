@@ -304,35 +304,41 @@ int main(int argc, char* argv[])
     } catch (const OM::util::cmd_exception& e) {
         if( e.getCode() == 0 ){
             // this is not an error, but exiting due to command line
-            cerr << e.what() << "; exiting..." << endl;
+            std::cerr << e.what() << "; exiting..." << endl;
         }else{
-            cerr << "Command-line error: "<<e.what();
+            std::cerr << "Command-line error: "<<e.what();
             exitStatus = e.getCode();
         }
     } catch (const ::xsd::cxx::tree::exception<char>& e) {
-        cerr << "XSD error: " << e.what() << '\n' << e << endl;
+        // e.what() returns a concise error message e.g. "instance document parsing failed".
+        // Whereas inserting e into a stream inserts the (possibly long and repetitive) list of error
+        // messages arising from the parsing attempt.
+        std::cerr << "XSD error: " << e.what() << '\n' << e << endl;
+        std::cerr << "Parsing scenario file failed."
+                << "\n\tLikely the XSD schema file is not present at an expected location/with expected filename,"
+                << "\n\tor the scenario file does not conform to the relevant XSD schema file." << std::endl;
         exitStatus = OM::util::Error::XSD;
     } catch (const OM::util::checkpoint_error& e) {
-        cerr << "Checkpoint error: " << e.what() << endl;
-        cerr << e << flush;
+        std::cerr << "Checkpoint error: " << e.what() << endl;
+        std::cerr << e << flush;
         exitStatus = e.getCode();
     } catch (const OM::util::traced_exception& e) {
-        cerr << "Code error: " << e.what() << endl;
-        cerr << e << flush;
-        cerr << "This is likely an error in the C++ code. Please report!" << endl;
+        std::cerr << "Code error: " << e.what() << endl;
+        std::cerr << e << flush;
+        std::cerr << "This is likely an error in the C++ code. Please report!" << endl;
         exitStatus = e.getCode();
     } catch (const OM::util::xml_scenario_error& e) {
-        cerr << "Error: " << e.what() << endl;
-        cerr << "In: " << scenarioFile << endl;
+        std::cerr << "Error: " << e.what() << endl;
+        std::cerr << "In: " << scenarioFile << endl;
         exitStatus = e.getCode();
     } catch (const OM::util::base_exception& e) {
-        cerr << "Error: " << e.message() << endl;
+        std::cerr << "Error: " << e.message() << endl;
         exitStatus = e.getCode();
     } catch (const exception& e) {
-        cerr << "Error: " << e.what() << endl;
+        std::cerr << "Error: " << e.what() << endl;
         exitStatus = EXIT_FAILURE;
     } catch (...) {
-        cerr << "Unknown error" << endl;
+        std::cerr << "Unknown error" << endl;
         exitStatus = EXIT_FAILURE;
     }
     

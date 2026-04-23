@@ -28,7 +28,7 @@ namespace OM
 { 
     namespace util
     {
-        unique_ptr<scnXml::Scenario> loadScenario(std::string lXmlFile)
+        std::unique_ptr<scnXml::Scenario> loadScenario(std::string lXmlFile)
         {
             // Opening by filename causes a schema lookup in the scenario file's dir,
             // which does always work. Opening with a stream uses the working directory.
@@ -36,28 +36,16 @@ namespace OM
             // Note that the schema location can be set manually by passing properties,
             // but we won't necessarily have the right schema version associated with
             // the XML file in that case.
-            ifstream fileStream(lXmlFile.c_str(), ios::binary);
+            std::ifstream fileStream(lXmlFile.c_str(), ios::binary);
             if (!fileStream.good())
             {
-                string msg = "Error: unable to open " + lXmlFile;
+                std::string msg = "Error: unable to open " + lXmlFile;
                 throw util::xml_scenario_error(msg);
             }
-            std::unique_ptr<scnXml::Scenario> scenario;
-            try
-            {
-                scenario = scnXml::parseScenario (fileStream);
-            }
-            catch(const std::exception& e)
-            {
-                std::cerr << "Error: parsing scenario file failed."
-                << "\n\tLikely the XSD file is not present at an expected location/with expected filename,"
-                << "\n\tor the scenario file " << lXmlFile << " does not conform to the relevant schema." << std::endl;
-                std::cerr << e.what() << std::endl;
-                throw;
-            }
+            std::unique_ptr<scnXml::Scenario> scenario = scnXml::parseScenario (fileStream);
             fileStream.close ();
 
-            int scenarioVersion = scenario->getSchemaVersion();
+            const int scenarioVersion = scenario->getSchemaVersion();
 
             if (scenarioVersion < SCHEMA_VERSION) {
                 // Don't bother aborting. Mostly if something really is incompatible
