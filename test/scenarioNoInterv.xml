@@ -218,6 +218,7 @@
   </entomology>
   <model>
     <ModelOptions>
+      <option name="USE_EXACT_NV0_SOLVER" value="false"/>
       <option name="LOGNORMAL_MASS_ACTION" value="true"/>
       <option name="NO_PRE_ERYTHROCYTIC" value="true"/>
       <option name="INNATE_MAX_DENS" value="false"/>

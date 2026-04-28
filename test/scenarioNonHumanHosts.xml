@@ -288,6 +288,7 @@
     </diagnostics>
     <model>
     <ModelOptions>
+      <option name="USE_EXACT_NV0_SOLVER" value="false"/>
       <option name="NON_MALARIA_FEVERS" value="true"/>
     </ModelOptions>
         <clinical healthSystemMemory="6">

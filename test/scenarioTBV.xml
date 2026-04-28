@@ -266,6 +266,7 @@
     </pharmacology>
     <model>
         <ModelOptions>
+          <option name="USE_EXACT_NV0_SOLVER" value="false"/>
             <option name="MOLINEAUX_WITHIN_HOST_MODEL" value="true"/>
             <option name="INCLUDES_PK_PD" value="true"/>
             <option name="INDIRECT_MORTALITY_FIX" value="false"/>

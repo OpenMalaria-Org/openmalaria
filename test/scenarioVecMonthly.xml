@@ -221,6 +221,7 @@
   </diagnostics>
   <model>
     <ModelOptions>
+      <option name="USE_EXACT_NV0_SOLVER" value="false"/>
       <option name="LOGNORMAL_MASS_ACTION" value="true"/>
       <option name="NO_PRE_ERYTHROCYTIC" value="true"/>
       <option name="MAX_DENS_CORRECTION" value="false"/>
