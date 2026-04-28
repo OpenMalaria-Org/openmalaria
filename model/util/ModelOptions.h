@@ -269,6 +269,12 @@ namespace OM { namespace util {
          */
         HEALTH_SYSTEM_MEMORY_FIX,
 
+        /** Use the exact emergence-rate solver to initialize Nv0.
+         *
+         * Disable this option to use the legacy adaptive fitting method.
+         */
+        USE_EXACT_NV0_SOLVER,
+
         
 	// Used by tests; should be 1 more than largest option
 	NUM_OPTIONS,
@@ -297,8 +303,8 @@ namespace OM { namespace util {
 
     private:
     /*
-    * Returns a bitset representing a collection of model options that correspond
-    * exactly to the "base" model.
+    * Returns a bitset representing the model options used by the named "base"
+    * model.
     *
     * Note: at present the base model sets values that are not considered "default".
     * This is because there are default model options which are often not desired,
@@ -308,8 +314,8 @@ namespace OM { namespace util {
     static std::bitset<NUM_OPTIONS> getBaseModelOptions();
 
     /*
-    * Returns a bitset representing all and only model options which are required
-    * to be turned on by default for backwards compatibility.
+    * Returns a bitset representing the default model options used when no named
+    * model is selected.
     */
     static std::bitset<NUM_OPTIONS> getLegacyDefaultModelOptions();
 
@@ -318,6 +324,7 @@ namespace OM { namespace util {
             options.reset();
             options.set( MAX_DENS_CORRECTION );
             options.set( INNATE_MAX_DENS );
+            options.set( USE_EXACT_NV0_SOLVER );
         }
         static inline void set(OptionCodes code) {
             options.set( code );

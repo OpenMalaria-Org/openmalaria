@@ -28,7 +28,9 @@
 #include "Transmission/Anopheles/AnophelesModel.h"
 #include "Transmission/Anopheles/SimpleMPDAnophelesModel.h"
 #include "Transmission/Anopheles/EmergenceRateEstimator.h"
+#include "util/ModelOptions.h"
 
+#include <memory>
 #include <vector>
 
 namespace OM
@@ -343,11 +345,14 @@ inline VectorModel *createVectorModel(const scnXml::Entomology &entoData, int po
         PerHostAnophParams::init(anoph.getMosq());
 
         Anopheles::AnophelesModel *anophModel = createAnophelesModel(i, anoph, initialisationEIR, populationSize, interventionMode);
-        // Anopheles::EmergenceRateAdaptiveFitter *estimator = new Anopheles::EmergenceRateAdaptiveFitter(*anophModel);
-        Anopheles::EmergenceRateSolver *estimator = new Anopheles::EmergenceRateSolver(*anophModel, populationSize);
+        std::unique_ptr<Anopheles::EmergenceRateEstimator> estimator;
+        if (util::ModelOptions::option(util::USE_EXACT_NV0_SOLVER))
+            estimator.reset(new Anopheles::EmergenceRateSolver(*anophModel, populationSize));
+        else
+            estimator.reset(new Anopheles::EmergenceRateAdaptiveFitter(*anophModel));
 
         species.push_back(std::unique_ptr<Anopheles::AnophelesModel>(anophModel));
-        emergenceRateEstimators.push_back(std::unique_ptr<Anopheles::EmergenceRateEstimator>(estimator));
+        emergenceRateEstimators.push_back(std::move(estimator));
         speciesIndex[anophModel->mosq.name] = i;
     }
 

@@ -80,6 +80,7 @@ namespace OM { namespace util {
         codeMap["VACCINE_GENOTYPE"] = VACCINE_GENOTYPE;
         codeMap["CFR_PF_USE_HOSPITAL"] = CFR_PF_USE_HOSPITAL;
         codeMap["HEALTH_SYSTEM_MEMORY_FIX"] = HEALTH_SYSTEM_MEMORY_FIX;
+        codeMap["USE_EXACT_NV0_SOLVER"] = USE_EXACT_NV0_SOLVER;
 	}
 	
 	OptionCodes operator[] (const string s) {
@@ -118,8 +119,9 @@ namespace OM { namespace util {
 
     std::bitset<NUM_OPTIONS> ModelOptions::getBaseModelOptions()
     {
-        // The "base" model is very simple: *no* model options are turned on.
+        // The "base" model is very simple, but still uses current defaults.
         bitset<NUM_OPTIONS> allOptionsOff;
+        allOptionsOff.set (USE_EXACT_NV0_SOLVER);
 
         return allOptionsOff;
     }
@@ -135,6 +137,9 @@ namespace OM { namespace util {
         defaultOptSet.set (INNATE_MAX_DENS);
         defaultOptSet.set (INDIRECT_MORTALITY_FIX);
         defaultOptSet.set (HEALTH_SYSTEM_MEMORY_FIX);
+
+        // Current default. Disable to use the legacy adaptive fitter.
+        defaultOptSet.set (USE_EXACT_NV0_SOLVER);
 
         return defaultOptSet;
     }
