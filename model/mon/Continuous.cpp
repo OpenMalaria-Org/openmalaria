@@ -21,7 +21,7 @@
  */
 
 #include "mon/Continuous.h"
-#include "mon/info.h"   // lineEnd
+#include "mon/Monitoring.h"   // lineEnd
 #include "util/errors.h"
 #include "util/CommandLine.h"
 #include "util/UnitParse.h"

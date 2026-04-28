@@ -373,7 +373,7 @@ SimTime VectorModel::initIterate()
 void VectorModel::calculateEIR(Host::Human &human, double ageYears, vector<double> &EIR_i, vector<double> &EIR_l) const
 {
 
-    auto ag = human.monitoringAgeGroup.i();
+    auto ag = human.monitoringAgeGroup;
     auto cs = human.getCohortSet();
     PerHost &host = human.perHostTransmission;
     host.update(human);
@@ -389,7 +389,7 @@ void VectorModel::calculateEIR(Host::Human &human, double ageYears, vector<doubl
              *
              * See comment in AnophelesModel::advancePeriod for method. */
             double eir = species[i]->getInterventionEIR() * host.relativeAvailabilityAge(ageYears) * host.entoAvailabilityHetVecItv(i);
-            mon::reportStatMACSGF(mon::MVF_INOCS, ag, cs, i, 0, eir);
+            mon::record(mon::measure("innoculationsPerAgeGroup"), mon::statSurveyNumber(), ag, cs, i, 0, 0, eir);
             // cout << host.availBite(i) << endl;
             // cout << "species: " << eir << " " << host.entoAvailabilityHetVecItv(i) << " " << host.entoAvailabilityHetVecItv(i) * (1000*0.00112608) << endl;
             EIR_l[0] += eir;
@@ -400,7 +400,7 @@ void VectorModel::calculateEIR(Host::Human &human, double ageYears, vector<doubl
         // double eir = initialisationEIR[sim::moduloYearSteps(sim::ts0())] * host.relativeAvailabilityHetAge(ageYears);
 
         // cout << "global: " << eir << " " <<  endl;
-        // mon::reportStatMACGF(mon::MVF_INOCS, ag, cs, 0, eir);
+        // mon::record(mon::measure("innoculationsPerAgeGroup"), mon::statSurveyNumber(), ag, cs, 0, 0, 0, eir);
         // EIR.assign(1, eir);
 
         EIR_i.assign(1, 0.0);
@@ -413,7 +413,7 @@ void VectorModel::calculateEIR(Host::Human &human, double ageYears, vector<doubl
              *
              * See comment in AnophelesModel::advancePeriod for method. */
             double eir = species[i]->getInitPartialEIR() * host.relativeAvailabilityAge(ageYears) * host.entoAvailabilityHetVecItv(i);
-            mon::reportStatMACSGF(mon::MVF_INOCS, ag, cs, i, 0, eir);
+            mon::record(mon::measure("innoculationsPerAgeGroup"), mon::statSurveyNumber(), ag, cs, i, 0, 0, eir);
             // cout << host.availBite(i) << endl;
             // cout << "species: " << eir << " " << host.entoAvailabilityHetVecItv(i) << " " << host.entoAvailabilityHetVecItv(i) * (1000*0.00112608) << endl;
             EIR_l[0] += eir;
@@ -443,7 +443,7 @@ void VectorModel::calculateEIR(Host::Human &human, double ageYears, vector<doubl
             {
                 double eir_i = partialEIR_i[g] * entoFactor;
                 double eir_l = partialEIR_l[g] * entoFactor;
-                mon::reportStatMACSGF(mon::MVF_INOCS, ag, cs, i, g, eir_i + eir_l);
+                mon::record(mon::measure("innoculationsPerAgeGroup"), mon::statSurveyNumber(), ag, cs, i, g, 0, eir_i + eir_l);
                 EIR_i[g] += eir_i;
                 EIR_l[g] += eir_l;
             }

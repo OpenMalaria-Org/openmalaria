@@ -31,7 +31,7 @@
 #include "Host/WithinHost/Diagnostic.h"
 #include "Host/WithinHost/Treatments.h"
 #include "Host/WithinHost/Genotypes.h"
-#include "mon/reporting.h"
+#include "mon/Monitoring.h"
 #include "util/random.h"
 #include "util/ModelOptions.h"
 #include "util/errors.h"
@@ -266,7 +266,7 @@ bool WHFalciparum::treatSimple( Host::Human& human, SimTime timeLiver, SimTime t
             clearInfections( Treatments::LIVER );
         else
             treatExpiryLiver = max( int(treatExpiryLiver), int(sim::nowOrTs1()) + timeLiver );
-        mon::reportEventMHI( mon::MHT_LS_TREATMENTS, human, 1 );
+        mon::recordEvent(mon::measure("nLiverStageTreatments"), human, 1);
     }
     if( timeBlood != sim::zero() ){
         if( timeBlood < sim::zero() )

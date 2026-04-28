@@ -26,8 +26,7 @@
 #include "Global.h"
 #include "Host/WithinHost/Pathogenesis/State.h"
 #include "Host/WithinHost/Infection/Infection.h"
-#include "mon/AgeGroup.h"
-#include "mon/info.h"
+#include "mon/Monitoring.h"
 #include "util/ModelOptions.h"
 #include <ostream>
 
@@ -84,7 +83,7 @@ public:
     Episode() :
             time(sim::never()),
             surveyPeriod(mon::NOT_USED),
-            ageGroup(),
+            ageGroup(0),
             cohortSet(0),
             state(NONE)
     {
@@ -112,7 +111,7 @@ public:
     /// Survey during which the event occured
     size_t surveyPeriod;
     /// Age group of the individual when the episode's first bout occurred
-    mon::AgeGroup ageGroup;
+    size_t ageGroup;
     /// Cohort membership
     uint32_t cohortSet;
     /// Descriptor of state, containing reporting info. Not all information will

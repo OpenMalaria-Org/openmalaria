@@ -25,7 +25,7 @@
 #include "PkPd/LSTMModel.h"
 #include "PkPd/LSTMMedicate.h"
 #include "PkPd/LSTMTreatments.h"
-#include "mon/reporting.h"
+#include "mon/Monitoring.h"
 #include "util/checkpoint_containers.h"
 #include "util/errors.h"
 
@@ -157,8 +157,8 @@ void LSTMModel::summarize(const Host::Human& human) const{
         for( auto& drug : m_drugs ){
             double conc = drug->getConcentration(index);
             if( conc > 0.0 ){
-                mon::reportStatMHPI( mon::MHR_HOSTS_POS_DRUG_CONC, human, index, 1 );
-                mon::reportStatMHPF( mon::MHF_LOG_DRUG_CONC, human, index, log(conc) );
+                mon::recordStat(mon::measure("nHostDrugConcNonZero"), human, 1, 0, 0, index);
+                mon::recordStat(mon::measure("sumLogDrugConcNonZero"), human, log(conc), 0, 0, index);
             }
         }
     }

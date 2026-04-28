@@ -33,7 +33,7 @@
 #include "Transmission/TransmissionModel.h"
 #include "Host/WithinHost/Diagnostic.h"
 #include "PkPd/LSTMTreatments.h"
-#include "mon/info.h"
+#include "mon/Monitoring.h"
 #include "util/random.h"
 #include <schema/healthSystem.h>
 #include <schema/interventions.h>
@@ -207,7 +207,7 @@ public:
     
     /// Reports to monitoring, nothing else
     virtual void deploy( Host::Human& human, mon::Deploy::Method method, VaccineLimits ) const{
-        mon::reportEventMHD( mon::MHD_RECRUIT, human, method );
+        mon::recordDeploy(mon::measure("recruit"), human, method);
     }
     
     virtual Component::Type componentType() const{
@@ -229,7 +229,7 @@ public:
     {}
     
     void deploy( Human& human, mon::Deploy::Method method, VaccineLimits vaccLimits ) const{
-        mon::reportEventMHD( mon::MHD_SCREEN, human, method );
+        mon::recordDeploy(mon::measure("screen"), human, method);
         if( human.withinHostModel->diagnosticResult(human.rng, diagnostic) ){
             positive.deploy( human, method, vaccLimits );
         }else{
@@ -275,7 +275,7 @@ public:
     }
     
     void deploy( Human& human, mon::Deploy::Method method, VaccineLimits ) const{
-        mon::reportEventMHD( mon::MHD_TREAT, human, method );
+        mon::recordDeploy(mon::measure("treat"), human, method);
         human.withinHostModel->treatSimple( human, timeLiver, timeBlood );
     }
     
@@ -301,7 +301,7 @@ public:
     }
     
     void deploy( Human& human, mon::Deploy::Method method, VaccineLimits ) const{
-        mon::reportEventMHD( mon::MHD_TREAT, human, method );
+        mon::recordDeploy(mon::measure("treat"), human, method);
         double age = sim::inYears(human.age(sim::nowOrTs1()));
         human.withinHostModel->treatPkPd( schedule, dosage, age, delay_d );
     }
@@ -330,10 +330,10 @@ public:
                 sim::inYears(human.age(sim::nowOrTs1())),
                 human.clinicalModel->getLatestState()) );
         if( out.treated ){
-            mon::reportEventMHD( mon::MHD_TREAT, human, method );
+            mon::recordDeploy(mon::measure("treat"), human, method);
         }
         if( out.screened ){
-            mon::reportEventMHD( mon::MHD_SCREEN, human, method );
+            mon::recordDeploy(mon::measure("screen"), human, method);
         }
     }
     
