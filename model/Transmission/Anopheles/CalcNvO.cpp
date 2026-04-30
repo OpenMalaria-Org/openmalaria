@@ -678,7 +678,14 @@ double CalcInitMosqEmergeRate(
 
 	if (hasNegativeNv0) {
 		throw ::OM::util::base_exception(
-			"Emergence rate contains negative values. Seasonality is probably too steep even after smoothing, check EIR input.",
+			"The exact emergence solver produced negative emergence rates. "
+			"With the current mosquito mortality/survival parameters, the requested EIR likely "
+			"falls faster than the infectious mosquito population can decline biologically; "
+			"matching it exactly would require negative emergence. "
+			"Recommended action: smooth the EIR seasonality. "
+			"Alternatively, set <option name=\"USE_EXACT_NV0_SOLVER\" value=\"false\"/> "
+			"to use the legacy adaptive fitter. This may allow the simulation to run, "
+			"but be aware that the simulated EIR may deviate more from the input EIR.",
 			::OM::util::Error::VectorFitting);
 	}
 
