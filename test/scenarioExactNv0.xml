@@ -1,0 +1,319 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- This file is part of OpenMalaria.
+Copyright © 2005-2025 Swiss Tropical and Public Health Institute
+Copyright © 2005-2015 Liverpool School Of Tropical Medicine
+Copyright © 2020-2025 University of Basel
+Copyright © 2025 The Kids Research Institute Australia
+
+OpenMalaria is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public Licence as published by
+the Free Software Foundation; either version 2 of the Licence, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public Licence for more details.
+
+You should have received a copy of the GNU General Public Licence
+along with this program; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor,
+Boston, MA 02110-1301, USA. -->
+<om:scenario xmlns:om="http://openmalaria.org/schema/scenario_48" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="Full set of interventions" schemaVersion="48" xsi:schemaLocation="http://openmalaria.org/schema/scenario_48 scenario_current.xsd">
+    <!-- This is an example scenario.
+    More information is available in the official documentation: https://swisstph.github.io/openmalaria/schema-latest.html
+    And in the wiki: https://github.com/SwissTPH/openmalaria/wiki 
+    For on overview of xml parameters, see: https://github.com/SwissTPH/openmalaria/wiki/ScenarioDesign -->
+    
+    <!-- The following block describes the demography of the population -->
+    <demography maximumAgeYrs="90" name="Ifakara" popSize="150">
+        <ageGroup lowerbound="0">
+            <group poppercent="3.474714994" upperbound="1"/>
+            <group poppercent="12.76004028" upperbound="5"/>
+            <group poppercent="14.52151394" upperbound="10"/>
+            <group poppercent="12.75565434" upperbound="15"/>
+            <group poppercent="10.836323739" upperbound="20"/>
+            <group poppercent="8.393312454" upperbound="25"/>
+            <group poppercent="7.001421452" upperbound="30"/>
+            <group poppercent="5.800587654" upperbound="35"/>
+            <group poppercent="5.102136612" upperbound="40"/>
+            <group poppercent="4.182561874" upperbound="45"/>
+            <group poppercent="3.339409351" upperbound="50"/>
+            <group poppercent="2.986112356" upperbound="55"/>
+            <group poppercent="2.555766582" upperbound="60"/>
+            <group poppercent="2.332763433" upperbound="65"/>
+            <group poppercent="1.77400255" upperbound="70"/>
+            <group poppercent="1.008525491" upperbound="75"/>
+            <group poppercent="0.74167341" upperbound="80"/>
+            <group poppercent="0.271863401" upperbound="85"/>
+            <group poppercent="0.161614642" upperbound="90"/>
+        </ageGroup>
+    </demography>
+
+    <!-- The monitoring block is where you define the output of the simulation.
+    The startDate will be the beginning of the monitoring period.
+    Interventions can only be deployed AFTER the startDate/ -->
+    <monitoring name="monthly surveys" startDate="2000-01-01">
+        <!-- Specify the desired outputs here, the full list is available at:
+        https://github.com/SwissTPH/openmalaria/wiki/MonitoringOptions#survey-measures -->
+        <SurveyOptions>
+            <option name="nHost"/>          <!-- id 0 -->
+            <option name="nInfect"/>        <!-- id 1 -->
+            <option name="nPatent"/>        <!-- id 3 -->
+            <option name="totalInfs"/>      <!-- id 6 -->
+            <option name="totalPatentInf"/> <!-- id 8 -->
+            <option name="nTreatments1"/>   <!-- id 11 -->
+            <option name="nTreatments2"/>   <!-- id 12 -->
+            <option name="nTreatments3"/>   <!-- id 13 -->
+            <option name="nUncomp"/>        <!-- id 14 -->
+            <option name="nSevere"/>        <!-- id 15 -->
+            <option name="nSevereWithoutComorbidities"/> <!-- id 80 -->
+            <option name="nSeq"/>           <!-- id 16 -->
+            <option name="nIndDeaths"/>     <!-- id 18 -->
+            <option name="nDirDeaths"/>     <!-- id 19 -->
+            <option name="inputEIR"/>       <!-- id 35 -->
+            <option name="simulatedEIR"/>   <!-- id 36 -->
+            <option name="expectedDirectDeaths"/>   <!-- id 74 -->
+            <option name="expectedIndirectDeaths"/> <!-- id 76 -->
+        </SurveyOptions>
+
+        <!-- OpenMalaria will only provide outputs at the specified survey times.
+        You can indicate the actual survey time (for example here it is 2000-01-01)
+        and additionally you can repeat it every repeatStep for some repeatEnd period. 
+        The diagnostic option is used for the 'nPatent' output and the diagnostic is specified
+        in the <diagnostic></diagnostic> bloc at the of this file.
+        More information on the wiki: https://github.com/SwissTPH/openmalaria/wiki/Monitoring -->
+        <surveys diagnostic="deterministic">
+            <surveyTime repeatStep="5d" repeatEnd="2001-01-01">2000-01-01</surveyTime> 
+        </surveys>
+        <!-- The following age groups will be used in the output. By default, all the 
+        specified SurveyOptions specified above that support age groups will use them.
+        OpenMalaria will output one more line per age group.
+        To interpret the txt output, see: https://github.com/SwissTPH/openmalaria/wiki/MonitoringOutput -->
+        <ageGroup lowerbound="0">
+            <group upperbound="0.5"/>
+            <group upperbound="1"/>
+            <group upperbound="2"/>
+            <group upperbound="5"/>
+            <group upperbound="10"/>
+            <group upperbound="15"/>
+            <group upperbound="20"/>
+            <group upperbound="100"/>
+        </ageGroup>
+    </monitoring>
+
+    <!-- Deploy interventions here, see: https://github.com/SwissTPH/openmalaria/wiki/ModelInterventions -->
+    <interventions name="No Intervs">
+    </interventions>
+
+    <!-- Specify health system parameters here, see: https://github.com/SwissTPH/openmalaria/wiki/ScenarioHealthSystem -->
+    <healthSystem>
+        <!-- The more flexible DecisionTree5Day replaces the older ImmediateOutcomes. 
+        The probabilities below are greatly affected by the presence (or the absence) of a clinic or hospital on site -->
+        <DecisionTree5Day name="example name">
+            <pSeekOfficialCareUncomplicated1 value="0.04"/><!-- 5-day probability that a patient uncomplicated case seeks official care -->
+            <pSelfTreatUncomplicated value="0.0"/><!-- 5-day probability that a patient with uncomplicated case will self-treat -->
+            <pSeekOfficialCareUncomplicated2 value="0.04"/><!-- 5-day probability that a patient with recurrence seeks official care -->
+            <pSeekOfficialCareSevere value="0.48"/><!-- 5-day probability that a patient with severe case seeks official care -->
+            <treeUCOfficial>
+                <caseType>
+                    <firstLine>
+                        <treatSimple durationLiver="0" durationBlood="1t"/>
+                    </firstLine>
+                    <secondLine>
+                        <treatSimple durationLiver="0" durationBlood="1t"/>
+                    </secondLine>
+                </caseType>
+            </treeUCOfficial>
+            <treeUCSelfTreat>
+                <noTreatment/>
+            </treeUCSelfTreat>
+            <cureRateSevere value="1.0"/>
+            <treatmentSevere>
+                <clearInfections stage="blood" timesteps="1t"/>
+            </treatmentSevere>
+        </DecisionTree5Day>
+        <CFR>
+            <group lowerbound="0" value="0.09189"/>
+            <group lowerbound="0.25" value="0.0810811"/>
+            <group lowerbound="0.75" value="0.0648649"/>
+            <group lowerbound="1.5" value="0.0689189"/>
+            <group lowerbound="2.5" value="0.0675676"/>
+            <group lowerbound="3.5" value="0.0297297"/>
+            <group lowerbound="4.5" value="0.0459459"/>
+            <group lowerbound="7.5" value="0.0945946"/>
+            <group lowerbound="12.5" value="0.1243243"/>
+            <group lowerbound="15" value="0.1378378"/>
+        </CFR>
+        <pSequelaeInpatient interpolation="none">
+            <group lowerbound="0.0" value="0.0132"/>
+            <group lowerbound="5.0" value="0.005"/>
+        </pSequelaeInpatient>
+    </healthSystem>
+
+    <!-- Mosquito parameters.
+    It is possible to specify multiple species and different EIR and parameters per species.
+    A global EIR can be specified immediately below using the 'scaledAnnualEIR' parameter. 
+    If so, the EIR of the species will be scaled so that the total EIR is equal to the scaledAnualEIR.
+    mode can be "dynamic" or "forced". 
+        dynamic: the EIR will be simulated and it will be affected by interventions, changes in immunity,
+            infectivity of hosts and mosquitoes, and other parameters. 
+        forced: the EIR will always be equal to the scaledAnnualEIR. -->
+    <entomology mode="dynamic" name="Namawala" scaledAnnualEIR="1">
+        <vector>
+            <anopheles mosquito="gambiae_ss">
+                <!-- Seasonality can be passed as fourier coefficients or monthly values.
+                Note that if monthly values are used, OpenMalaria will anyway smooth the values
+                using fourier coefficients. -->
+                <seasonality annualEIR="24.826144381650714" input="EIR">
+                    <!-- 2015 P.f. passively detected cases in Bataraza, Brooke's Point and Rizal -->
+                    <!-- https://swisstph.github.io/openmalaria/fourier -->
+                    <!-- EIRRotateAngle can be used to shift the seasonality. It is specified as an angle 
+                    in radian, e.g. use 0.26 to shift the seasonality by 1 month. 
+                    This can be useful if, for example, you are using rain data at month end. -->
+                    <fourierSeries EIRRotateAngle="0">
+                        <coeffic a="-1.0313715140024822" b="0.5474993785222372"/>
+                        <coeffic a="-0.005155722300211589" b="-0.19769509633382162"/>
+                    </fourierSeries>
+                    <!-- Or, equivalent specification via monthly values -->
+                    <!-- <monthlyValues smoothing="fourier" EIRRotateAngle="0">
+                        <value>98</value>
+                        <value>132</value>
+                        <value>223</value>
+                        <value>403</value>
+                        <value>1156</value>
+                        <value>953</value>
+                        <value>755</value>
+                        <value>403</value>
+                        <value>293</value>
+                        <value>149</value>
+                        <value>116</value>
+                        <value>107</value>
+                    </monthlyValues> -->
+                </seasonality>
+                <mosq>
+                    <mosqRestDuration value="3"/>
+                    <extrinsicIncubationPeriod value="11"/>
+                    <mosqLaidEggsSameDayProportion value="0.313"/>
+                    <mosqSeekingDuration value="0.33"/>
+                    <mosqSurvivalFeedingCycleProbability value="0.623"/>
+                    <availability/>
+                    <mosqProbBiting mean="0.95" variance="0"/>
+                    <mosqProbFindRestSite mean="0.95" variance="0"/>
+                    <mosqProbResting mean="0.99" variance="0"/>
+                    <mosqProbOvipositing value="0.88"/>
+                    <mosqHumanBloodIndex value="0.939"/>
+                </mosq>
+                <nonHumanHosts name="unprotectedAnimals">
+                    <mosqRelativeEntoAvailability value="1.0"/>
+                    <mosqProbBiting value="0.95"/>
+                    <mosqProbFindRestSite value="0.95"/>
+                    <mosqProbResting value="0.99"/>
+                </nonHumanHosts>
+            </anopheles>
+
+            <anopheles mosquito="funestus">
+                <seasonality annualEIR="77.00628873180102" input="EIR">
+                    <fourierSeries EIRRotateAngle="0">
+                        <coeffic a="0.4943" b="0.6127"/>
+                        <coeffic a="-0.2386" b="-0.2851"/>
+                    </fourierSeries>
+                </seasonality>
+                <mosq>
+                    <mosqRestDuration value="3"/>
+                    <extrinsicIncubationPeriod value="11"/>
+                    <mosqLaidEggsSameDayProportion value="0.616"/>
+                    <mosqSeekingDuration value="0.33"/>
+                    <mosqSurvivalFeedingCycleProbability value="0.611"/>
+                    <availability/>
+                    <mosqProbBiting mean="0.95" variance="0"/>
+                    <mosqProbFindRestSite mean="0.95" variance="0"/>
+                    <mosqProbResting mean="0.99" variance="0"/>
+                    <mosqProbOvipositing value="0.88"/>
+                    <mosqHumanBloodIndex value="0.98"/>
+                </mosq>
+                <nonHumanHosts name="unprotectedAnimals">
+                    <mosqRelativeEntoAvailability value="1.0"/>
+                    <mosqProbBiting value="0.95"/>
+                    <mosqProbFindRestSite value="0.95"/>
+                    <mosqProbResting value="0.99"/>
+                </nonHumanHosts>
+            </anopheles>
+
+            <anopheles mosquito="arabiensis">
+                <seasonality annualEIR="223.38512656454782" input="EIR">
+                    <fourierSeries EIRRotateAngle="0">
+                        <coeffic a="-0.2072" b="0.8461"/>
+                        <coeffic a="0.0906" b="-0.0425"/>
+                    </fourierSeries>
+                </seasonality>
+                <mosq>
+                    <mosqRestDuration value="3"/>
+                    <extrinsicIncubationPeriod value="11"/>
+                    <mosqLaidEggsSameDayProportion value="0.313"/>
+                    <mosqSeekingDuration value="0.33"/>
+                    <mosqSurvivalFeedingCycleProbability value="0.623"/>
+                    <availability/>
+                    <mosqProbBiting mean="0.95" variance="0"/>
+                    <mosqProbFindRestSite mean="0.95" variance="0"/>
+                    <mosqProbResting mean="0.99" variance="0"/>
+                    <mosqProbOvipositing value="0.88"/>
+                    <mosqHumanBloodIndex value="0.871"/>
+                </mosq>
+                <nonHumanHosts name="unprotectedAnimals">
+                    <mosqRelativeEntoAvailability value="1.0"/>
+                    <mosqProbBiting value="0.95"/>
+                    <mosqProbFindRestSite value="0.95"/>
+                    <mosqProbResting value="0.99"/>
+                </nonHumanHosts>
+            </anopheles>
+            <nonHumanHosts name="unprotectedAnimals" number="1.0"/>
+        </vector>
+    </entomology>
+
+    <!-- This diagnostic object can be used in several places, including in the monitoring section and in the NeoNatalMortality model.
+    It is also possible to specify stochastic diagnostics, see: https://github.com/SwissTPH/openmalaria/wiki/Diagnostics -->
+    <diagnostics>
+        <diagnostic name="deterministic">
+            <deterministic minDensity="40"/>
+        </diagnostic>
+    </diagnostics>
+
+    <!-- Here you can specify additional model parameters, or model variants. -->
+    <model>
+        <ModelName name="base"></ModelName>
+
+        <!-- Clinical model parameters.
+        The healthSystemMemory is often overlooked. It corresponds to the follow-up period during which a recurrence is considered to be a treatment failure and is not counted as new clinical case. A recurrence after this period will be counted as new clinical case. --> 
+        <clinical healthSystemMemory="30d">
+            <NeonatalMortality diagnostic="deterministic"/>
+        </clinical>
+
+        <!-- The following affects effective EIR by age group. This is under the assumption that the number of bites 
+        is proportional to age and/or body-surface area. This should not be change unless you have a trustworthy source. -->
+        <human>
+            <availabilityToMosquitoes>
+                <group lowerbound="0.0" value="0.225940909648"/>
+                <group lowerbound="1.0" value="0.286173633441"/>
+                <group lowerbound="2.0" value="0.336898395722"/>
+                <group lowerbound="3.0" value="0.370989854675"/>
+                <group lowerbound="4.0" value="0.403114915112"/>
+                <group lowerbound="5.0" value="0.442585112522"/>
+                <group lowerbound="6.0" value="0.473839351511"/>
+                <group lowerbound="7.0" value="0.512630464378"/>
+                <group lowerbound="8.0" value="0.54487872702"/>
+                <group lowerbound="9.0" value="0.581527755812"/>
+                <group lowerbound="10.0" value="0.630257580698"/>
+                <group lowerbound="11.0" value="0.663063362714"/>
+                <group lowerbound="12.0" value="0.702417432755"/>
+                <group lowerbound="13.0" value="0.734605377277"/>
+                <group lowerbound="14.0" value="0.788908765653"/>
+                <group lowerbound="15.0" value="0.839587932303"/>
+                <group lowerbound="20.0" value="1.0"/>
+                <group lowerbound="20.0" value="1.0"/>
+            </availabilityToMosquitoes>
+        </human>
+
+        <computationParameters iseed="1"/>
+   </model>
+</om:scenario>
