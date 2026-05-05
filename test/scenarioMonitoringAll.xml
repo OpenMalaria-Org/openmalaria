@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<om:scenario xmlns:om="http://openmalaria.org/schema/scenario_48" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="Mass screen-and-treat with HRP2 deletions" schemaVersion="48" xsi:schemaLocation="http://openmalaria.org/schema/scenario_48 scenario_current.xsd">
-  <demography maximumAgeYrs="90" name="test" popSize="200">
+<om:scenario xmlns:om="http://openmalaria.org/schema/scenario_48" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="Monitoring All Measures" schemaVersion="48" xsi:schemaLocation="http://openmalaria.org/schema/scenario_48 scenario_current.xsd">
+  <demography maximumAgeYrs="90" name="test" popSize="100">
     <ageGroup lowerbound="0.0">
       <group poppercent="3.474714994" upperbound="1"/>
       <group poppercent="12.76004028" upperbound="5"/>
@@ -23,60 +23,152 @@
       <group poppercent="0.161614642" upperbound="90"/>
     </ageGroup>
   </demography>
-  <monitoring name="Quarterly Surveys" startDate="2000-01-01">
+  <monitoring name="All Monitoring Measures">
+    <continuous duringInit="false" period="30t">
+      <option name="hosts" value="true"/>
+      <option name="host demography" value="true"/>
+      <option name="recent births" value="true"/>
+      <option name="patent hosts" value="true"/>
+      <option name="immunity h" value="true"/>
+      <option name="immunity Y" value="true"/>
+      <option name="median immunity Y" value="true"/>
+      <option name="human age availability" value="true"/>
+      <option name="ITN coverage" value="true"/>
+      <option name="IRS coverage" value="true"/>
+      <option name="GVI coverage" value="true"/>
+      <option name="N_v0" value="true"/>
+      <option name="P_A" value="true"/>
+      <option name="P_Amu" value="true"/>
+      <option name="P_A1" value="true"/>
+      <option name="P_Ah" value="true"/>
+      <option name="P_df" value="true"/>
+      <option name="P_dif" value="true"/>
+      <option name="N_v" value="true"/>
+      <option name="O_v" value="true"/>
+      <option name="S_v" value="true"/>
+      <option name="alpha" value="true"/>
+      <option name="P_B" value="true"/>
+      <option name="P_C*P_D" value="true"/>
+      <option name="resource availability" value="true"/>
+      <option name="resource requirements" value="true"/>
+      <option name="input EIR" value="true"/>
+      <option name="simulated EIR" value="true"/>
+      <option name="human infectiousness" value="true"/>
+      <option name="num transmitting humans" value="true"/>
+      <option name="new infections" value="true"/>
+    </continuous>
     <SurveyOptions>
       <option name="nHost" value="true"/>
       <option name="nInfect" value="true"/>
-      <option name="nInfectByGenotype"/>
+      <option name="nInfect_Imported" value="true"/>
+      <option name="nInfect_Introduced" value="true"/>
+      <option name="nInfect_Indigenous" value="true"/>
       <option name="nExpectd" value="true"/>
       <option name="nPatent" value="true"/>
-      <option name="nPatentByGenotype"/>
-      <option name="totalInfs" value="true"/>
+      <option name="nPatent_Imported" value="true"/>
+      <option name="nPatent_Introduced" value="true"/>
+      <option name="nPatent_Indigenous" value="true"/>
+      <option name="sumLogPyrogenThres" value="true"/>
+      <option name="sumlogDens" value="true"/>
+      <option name="totalInfs" value="true" byGenotype="true"/>
+      <option name="totalInfs_Imported" value="true" byGenotype="true"/>
+      <option name="totalInfs_Introduced" value="true" byGenotype="true"/>
+      <option name="totalInfs_Indigenous" value="true" byGenotype="true"/>
       <option name="nTransmit" value="true"/>
+      <option name="totalPatentInf" value="true" byGenotype="true"/>
+      <option name="totalPatentInf_Imported" value="true" byGenotype="true"/>
+      <option name="totalPatentInf_Introduced" value="true" byGenotype="true"/>
+      <option name="totalPatentInf_Indigenous" value="true" byGenotype="true"/>
+      <option name="sumPyrogenThresh" value="true"/>
       <option name="nTreatments1" value="true"/>
       <option name="nTreatments2" value="true"/>
       <option name="nTreatments3" value="true"/>
       <option name="nUncomp" value="true"/>
+      <option name="nUncomp_Imported" value="true"/>
+      <option name="nUncomp_Introduced" value="true"/>
+      <option name="nUncomp_Indigenous" value="true"/>
+      <option name="nSevere" value="true"/>
+      <option name="nSeq" value="true"/>
+      <option name="nHospitalDeaths" value="true"/>
+      <option name="nIndDeaths" value="true"/>
+      <option name="nDirDeaths" value="true"/>
+      <option name="nEPIVaccinations" value="true"/>
+      <option name="allCauseIMR" value="true"/>
+      <option name="nMassVaccinations" value="true"/>
+      <option name="nHospitalRecovs" value="true"/>
+      <option name="nHospitalSeqs" value="true"/>
       <option name="annAvgK" value="true"/>
-      <option name="innoculationsPerAgeGroup" value="true"/>
-      <option name="Vector_Nv0" value="true"/>
-      <option name="Vector_Nv" value="true"/>
-      <option name="Vector_Ov" value="true"/>
-      <option name="Vector_Sv" value="true"/>
+      <option name="nNMFever" value="true"/>
+      <option name="innoculationsPerAgeGroup" value="true" byGenotype="true"/>
+      <option name="Vector_Nv0" value="true" bySpecies="true"/>
+      <option name="Vector_Nv" value="true" bySpecies="true"/>
+      <option name="Vector_Ov" value="true" bySpecies="true" byGenotype="true"/>
+      <option name="Vector_Sv" value="true" bySpecies="true" byGenotype="true"/>
       <option name="inputEIR" value="true"/>
       <option name="simulatedEIR" value="true"/>
+      <option name="simulatedEIR_Introduced" value="true"/>
+      <option name="simulatedEIR_Indigenous" value="true"/>
+      <option name="Clinical_FirstDayDeaths" value="true"/>
+      <option name="Clinical_HospitalFirstDayDeaths" value="true"/>
       <option name="nNewInfections" value="true"/>
-      <option name="nTreatDiagnostics" value="true"/>
+      <option name="nNewInfections_Imported" value="true"/>
+      <option name="nNewInfections_Introduced" value="true"/>
+      <option name="nNewInfections_Indigenous" value="true"/>
+      <option name="nMassITNs" value="true"/>
+      <option name="nEPI_ITNs" value="true"/>
+      <option name="nMassIRS" value="true"/>
       <option name="nMDAs" value="true"/>
-      <option name="nMassScreenings"/>
+      <option name="nNmfDeaths" value="true"/>
+      <option name="nMassScreenings" value="true"/>
+      <option name="nMassGVI" value="true"/>
+      <option name="nCtsIRS" value="true"/>
+      <option name="nCtsGVI" value="true"/>
+      <option name="nCtsMDA" value="true"/>
+      <option name="nCtsScreenings" value="true"/>
+      <option name="nSubPopRemovalTooOld" value="true"/>
+      <option name="nSubPopRemovalFirstEvent" value="true"/>
+      <option name="nLiverStageTreatments" value="true"/>
+      <option name="nTreatDiagnostics" value="true"/>
+      <option name="nMassRecruitOnly" value="true"/>
+      <option name="nCtsRecruitOnly" value="true"/>
+      <option name="nTreatDeployments" value="true"/>
+      <option name="sumAge" value="true"/>
+      <option name="nInfectByGenotype" value="true" byGenotype="true"/>
+      <option name="nPatentByGenotype" value="true" byGenotype="true"/>
+      <option name="logDensByGenotype" value="true" byGenotype="true"/>
+      <option name="nHostDrugConcNonZero" value="true" byDrugType="true"/>
+      <option name="sumLogDrugConcNonZero" value="true" byDrugType="true"/>
+      <option name="expectedDirectDeaths" value="true"/>
+      <option name="expectedHospitalDeaths" value="true"/>
+      <option name="expectedIndirectDeaths" value="true"/>
+      <option name="expectedSequelae" value="true"/>
+      <option name="expectedSevere" value="true"/>
+      <option name="innoculationsPerVector" value="true" bySpecies="true"/>
+      <option name="nCMDTReport" value="true"/>
+      <option name="nSevereWithoutComorbidities" value="true"/>
+      <option name="expectedSevereWithoutComorbidities" value="true"/>
     </SurveyOptions>
     <surveys diagnostic="standard">
-      <!-- we don't actually need many for testing -->
-      <surveyTime>2000-01-01</surveyTime>
-<!--       <surveyTime repeatStep="1y" repeatEnd="2010-01-01">2000-03-31</surveyTime> -->
-      <surveyTime repeatStep="1y" repeatEnd="2010-01-01">2000-06-30</surveyTime>
-<!--       <surveyTime repeatStep="1y" repeatEnd="2010-01-01">2000-09-30</surveyTime> -->
-<!--       <surveyTime repeatStep="1y" repeatEnd="2010-01-01">2000-12-31</surveyTime> -->
+      <surveyTime>365t</surveyTime>
+      <surveyTime>1095t</surveyTime>
+      <surveyTime>1825t</surveyTime>
     </surveys>
-    <ageGroup lowerbound="0.0">
-      <group upperbound="0.5"/>
+    <ageGroup lowerbound="0">
+      <group upperbound="0.25"/>
       <group upperbound="1"/>
-      <group upperbound="2"/>
-      <group upperbound="4"/>
-      <group upperbound="6"/>
+      <group upperbound="5"/>
       <group upperbound="10"/>
-      <group upperbound="15"/>
       <group upperbound="20"/>
-      <group upperbound="30"/>
-      <group upperbound="40"/>
-      <group upperbound="60"/>
       <group upperbound="99"/>
     </ageGroup>
+    <cohorts>
+      <subPop id="monitoringCohort" number="1"/>
+    </cohorts>
   </monitoring>
-  <interventions name="MSAT">
+  <interventions name="Monitoring Coverage">
     <importedInfections>
       <timed>
-        <rate time="2000-01-01" value="5"/>
+        <rate time="0t" value="5"/>
       </timed>
     </importedInfections>
     <human>
@@ -92,11 +184,183 @@
           </diagnostic>
         </decisionTree>
       </component>
+      <component id="ITN" name="Extended ITNs">
+        <ITN>
+          <usage value="0.8"/>
+          <holeRate mean="0.9" CV="0.946826741968" distr="lognormal"/>
+          <ripRate mean="0.7" CV="0.946826741968" distr="lognormal"/>
+          <ripFactor value="0.4"/>
+          <initialInsecticide mean="70" SD="20" distr="normal"/>
+          <insecticideDecay L="2.2y" function="exponential" CV="0.946826741968"/>
+          <attritionOfNets L="12" function="smooth-compact" k="2"/>
+          <anophelesParams mosquito="gambiae_ss">
+            <deterrency holeFactor="0.5" holeScalingFactor="0.1" insecticideFactor="0.67" insecticideScalingFactor="0.1" interactionFactor="1.492537"/>
+            <preprandialKillingEffect baseFactor="0.09" holeFactor="0.57" holeScalingFactor="0.1" insecticideFactor="0.604" insecticideScalingFactor="1" interactionFactor="-0.424"/>
+            <postprandialKillingEffect baseFactor="0.10" holeFactor="0" holeScalingFactor="0.1" insecticideFactor="0.55" insecticideScalingFactor="0.1" interactionFactor="0"/>
+          </anophelesParams>
+          <anophelesParams mosquito="funestus">
+            <deterrency holeFactor="0.5" holeScalingFactor="0.1" insecticideFactor="0.67" insecticideScalingFactor="0.1" interactionFactor="1.492537"/>
+            <preprandialKillingEffect baseFactor="0.09" holeFactor="0.57" holeScalingFactor="0.1" insecticideFactor="0.604" insecticideScalingFactor="1" interactionFactor="-0.424"/>
+            <postprandialKillingEffect baseFactor="0.10" holeFactor="0" holeScalingFactor="0.1" insecticideFactor="0.55" insecticideScalingFactor="0.1" interactionFactor="0"/>
+          </anophelesParams>
+          <anophelesParams mosquito="arabiensis">
+            <deterrency holeFactor="0.5" holeScalingFactor="0.1" insecticideFactor="0.1" insecticideScalingFactor="0.1" interactionFactor="1.492537"/>
+            <preprandialKillingEffect baseFactor="0.09" holeFactor="0.57" holeScalingFactor="0.1" insecticideFactor="0.604" insecticideScalingFactor="0.1" interactionFactor="-0.424"/>
+            <postprandialKillingEffect baseFactor="0.10" holeFactor="0" holeScalingFactor="0.1" insecticideFactor="0.55" insecticideScalingFactor="0.1" interactionFactor="0"/>
+          </anophelesParams>
+        </ITN>
+      </component>
+      <component id="IRS" name="Monitoring IRS">
+        <IRS>
+          <initialInsecticide mean="118"/>
+          <insecticideDecay L="0.15" function="exponential"/>
+          <anophelesParams mosquito="gambiae_ss">
+            <deterrency insecticideFactor="0.12" insecticideScalingFactor="0.05"/>
+            <preprandialKillingEffect baseFactor="0.01" insecticideFactor="0.25" insecticideScalingFactor="0.008"/>
+            <postprandialKillingEffect baseFactor="0.01" insecticideFactor="0.5" insecticideScalingFactor="0.006"/>
+          </anophelesParams>
+          <anophelesParams mosquito="funestus">
+            <deterrency insecticideFactor="0.12" insecticideScalingFactor="0.05"/>
+            <preprandialKillingEffect baseFactor="0.01" insecticideFactor="0.25" insecticideScalingFactor="0.008"/>
+            <postprandialKillingEffect baseFactor="0.01" insecticideFactor="0.5" insecticideScalingFactor="0.006"/>
+          </anophelesParams>
+          <anophelesParams mosquito="arabiensis">
+            <deterrency insecticideFactor="0.12" insecticideScalingFactor="0.05"/>
+            <preprandialKillingEffect baseFactor="0.01" insecticideFactor="0.25" insecticideScalingFactor="0.008"/>
+            <postprandialKillingEffect baseFactor="0.01" insecticideFactor="0.5" insecticideScalingFactor="0.006"/>
+          </anophelesParams>
+        </IRS>
+        <subPopRemoval afterYears="0.5"/>
+      </component>
+      <component id="GVI" name="Monitoring GVI">
+        <GVI>
+          <decay L="0.5" function="exponential"/>
+          <anophelesParams mosquito="gambiae_ss">
+            <deterrency value="0.56"/>
+            <preprandialKillingEffect value="0"/>
+            <postprandialKillingEffect value="0.24"/>
+            <fecundityReduction value="0.4"/>
+          </anophelesParams>
+          <anophelesParams mosquito="funestus">
+            <deterrency value="0.56"/>
+            <preprandialKillingEffect value="0"/>
+            <postprandialKillingEffect value="0.24"/>
+            <fecundityReduction value="0.4"/>
+          </anophelesParams>
+          <anophelesParams mosquito="arabiensis">
+            <deterrency value="0.56"/>
+            <preprandialKillingEffect value="0"/>
+            <postprandialKillingEffect value="0.24"/>
+            <fecundityReduction value="0.4"/>
+          </anophelesParams>
+        </GVI>
+        <subPopRemoval afterYears="0.5"/>
+      </component>
+      <component id="monitoringCohort">
+        <recruitmentOnly/>
+      </component>
+      <component id="firstEventPop">
+        <recruitmentOnly/>
+        <subPopRemoval onFirstBout="true" onFirstTreatment="true" onFirstInfection="true"/>
+      </component>
+      <component id="TBV">
+        <TBV>
+          <decay L="0.5" function="exponential"/>
+          <efficacyB value="10"/>
+          <initialEfficacy value="0.4"/>
+          <initialEfficacy value="0.46"/>
+          <initialEfficacy value="0.52"/>
+        </TBV>
+      </component>
+      <component id="BSV">
+        <BSV>
+          <decay L="0.5" function="exponential"/>
+          <efficacyB value="10"/>
+          <initialEfficacy value="0.4"/>
+          <initialEfficacy value="0.46"/>
+          <initialEfficacy value="0.52"/>
+        </BSV>
+      </component>
+      <component id="PEV">
+        <PEV>
+          <decay L="0.5" function="exponential"/>
+          <efficacyB value="10"/>
+          <initialEfficacy value="0.4"/>
+          <initialEfficacy value="0.46"/>
+          <initialEfficacy value="0.52"/>
+        </PEV>
+      </component>
       <deployment>
         <component id="MDA"/>
+        <continuous>
+          <deploy coverage="0.3" targetAgeYrs="1.5"/>
+        </continuous>
         <timed>
-          <deploy coverage="0.85" time="2004-03-01"/>
-          <deploy coverage="0.85" time="2004-06-01"/>
+          <deploy coverage="0.85" time="730t"/>
+          <deploy coverage="0.85" time="1460t"/>
+        </timed>
+      </deployment>
+      <deployment name="Extended ITNs">
+        <component id="ITN"/>
+        <continuous>
+          <deploy coverage="0.35" targetAgeYrs="0.0833"/>
+        </continuous>
+        <timed>
+          <deploy coverage="0.20" time="146t" repeatStep="292t" repeatEnd="731t"/>
+          <deploy coverage="0.20" time="1168t"/>
+        </timed>
+      </deployment>
+      <deployment name="Monitoring IRS">
+        <component id="IRS"/>
+        <continuous>
+          <deploy coverage="0.15" targetAgeYrs="0.5"/>
+        </continuous>
+        <timed>
+          <deploy coverage="0.5" time="365t"/>
+          <deploy coverage="0.5" time="1460t"/>
+        </timed>
+      </deployment>
+      <deployment name="Monitoring GVI">
+        <component id="GVI"/>
+        <continuous>
+          <deploy coverage="0.15" targetAgeYrs="0.5"/>
+        </continuous>
+        <timed>
+          <deploy coverage="0.4" time="730t"/>
+          <deploy coverage="0.4" time="1824t"/>
+        </timed>
+      </deployment>
+      <deployment>
+        <component id="monitoringCohort"/>
+        <continuous>
+          <deploy coverage="0.2" targetAgeYrs="1.0"/>
+        </continuous>
+        <timed>
+          <deploy coverage="0.3" minAge="0" maxAge="10" time="0t"/>
+        </timed>
+      </deployment>
+      <deployment>
+        <component id="firstEventPop"/>
+        <continuous>
+          <deploy coverage="1.0" targetAgeYrs="0.01"/>
+        </continuous>
+        <timed>
+          <deploy coverage="0.3" minAge="0" maxAge="10" time="0t"/>
+        </timed>
+      </deployment>
+      <deployment>
+        <component id="TBV"/>
+        <component id="BSV"/>
+        <component id="PEV"/>
+        <continuous>
+          <deploy coverage="0.4" targetAgeYrs="0.0833" vaccMaxCumDoses="1" vaccMinPrevDoses="0"/>
+          <deploy coverage="0.4" targetAgeYrs="0.17" vaccMaxCumDoses="2" vaccMinPrevDoses="1"/>
+          <deploy coverage="0.4" targetAgeYrs="0.25" vaccMaxCumDoses="3" vaccMinPrevDoses="2"/>
+        </continuous>
+        <timed>
+          <deploy coverage="0.5" time="366t" vaccMaxCumDoses="3"/>
+          <deploy coverage="0.5" time="731t" vaccMaxCumDoses="3"/>
+          <deploy coverage="0.5" time="1096t" vaccMaxCumDoses="3"/>
         </timed>
       </deployment>
     </human>
@@ -258,7 +522,7 @@
           <mosqLaidEggsSameDayProportion value="0.313"/>
           <mosqSeekingDuration value="0.33"/>
           <mosqSurvivalFeedingCycleProbability value="0.623"/>
-          <availability distr="const"/>
+          <availability/>
           <mosqProbBiting mean="0.95" variance="0"/>
           <mosqProbFindRestSite mean="0.95" variance="0"/>
           <mosqProbResting mean="0.99" variance="0"/>
@@ -285,7 +549,7 @@
           <mosqLaidEggsSameDayProportion value="0.616"/>
           <mosqSeekingDuration value="0.33"/>
           <mosqSurvivalFeedingCycleProbability value="0.611"/>
-          <availability distr="const"/>
+          <availability/>
           <mosqProbBiting mean="0.95" variance="0"/>
           <mosqProbFindRestSite mean="0.95" variance="0"/>
           <mosqProbResting mean="0.99" variance="0"/>
@@ -312,7 +576,7 @@
           <mosqLaidEggsSameDayProportion value="0.313"/>
           <mosqSeekingDuration value="0.33"/>
           <mosqSurvivalFeedingCycleProbability value="0.623"/>
-          <availability distr="const"/>
+          <availability/>
           <mosqProbBiting mean="0.95" variance="0"/>
           <mosqProbFindRestSite mean="0.95" variance="0"/>
           <mosqProbResting mean="0.99" variance="0"/>
@@ -329,6 +593,12 @@
       <nonHumanHosts name="unprotectedAnimals" number="1.0"/>
     </vector>
   </entomology>
+  <parasiteGenetics samplingMode="tracking">
+    <locus name="mdr">
+      <allele name="sensitive" initialFrequency="0.5" fitness="1"/>
+      <allele name="resistant" initialFrequency="0.5" fitness="1"/>
+    </locus>
+  </parasiteGenetics>
   <pharmacology>
     <treatments>
       <schedule name="AL_treat">
@@ -480,28 +750,22 @@
       </drug>
     </drugs>
   </pharmacology>
-  <parasiteGenetics samplingMode="tracking">
-    <locus name="hrp2">
-      <allele name="wildtype" initialFrequency="0.5" fitness="1"/>
-      <allele name="hrp2_deficient" initialFrequency="0.5" fitness="1" hrp2_deletion="true"/>
-    </locus>
-  </parasiteGenetics>
   <diagnostics>
     <diagnostic name="standard">
       <deterministic minDensity="40"/>
     </diagnostic>
-    <diagnostic name="RDT" mechanism="HRP2">
+    <diagnostic name="RDT">
       <stochastic dens_50="50" specificity=".942"/>
     </diagnostic>
   </diagnostics>
   <model>
     <ModelOptions>
-      <option name="USE_LEGACY_NV0_SOLVER" value="true"/>
       <option name="MOLINEAUX_WITHIN_HOST_MODEL" value="true"/>
+      <option name="INCLUDES_PK_PD" value="true"/>
       <option name="CLINICAL_EVENT_SCHEDULER" value="true"/>
       <option name="INDIRECT_MORTALITY_FIX" value="true"/>
     </ModelOptions>
-    <clinical healthSystemMemory="14d">
+    <clinical healthSystemMemory="14">
       <NeonatalMortality diagnostic="standard"/>
     </clinical>
     <!-- run id=740 parameterization id=243641 sampling date=2010-08-21 11:14:03 lossfunction=82.879291 -->
@@ -548,7 +812,7 @@
       </weight>
     </human>
     <computationParameters iseed="1"/>
-    <parameters interval="1" latentp="15d">
+    <parameters interval="1" latentp="15t">
       <parameter name="'-ln(1-Sinf)'" number="1" value="0.050736"/>
       <parameter name="Estar" number="2" value="0.03247"/>
       <parameter name="Simm" number="3" value="0.267285"/>

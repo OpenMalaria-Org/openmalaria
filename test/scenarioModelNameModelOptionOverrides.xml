@@ -272,7 +272,7 @@
     <model>
         <ModelName name="base"/>
         <ModelOptions>
-          <option name="USE_EXACT_NV0_SOLVER" value="false"/>
+          <option name="USE_LEGACY_NV0_SOLVER" value="true"/>
             <option name="COMORB_HET" value="true"/>
         </ModelOptions>
 
