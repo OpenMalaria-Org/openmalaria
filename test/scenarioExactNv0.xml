@@ -1,12 +1,32 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<om:scenario xmlns:om="http://openmalaria.org/schema/scenario_48" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="example" schemaVersion="48" xsi:schemaLocation="http://openmalaria.org/schema/scenario_48 scenario_current.xsd">
+<!-- This file is part of OpenMalaria.
+Copyright © 2005-2025 Swiss Tropical and Public Health Institute
+Copyright © 2005-2015 Liverpool School Of Tropical Medicine
+Copyright © 2020-2025 University of Basel
+Copyright © 2025 The Kids Research Institute Australia
+
+OpenMalaria is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public Licence as published by
+the Free Software Foundation; either version 2 of the Licence, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public Licence for more details.
+
+You should have received a copy of the GNU General Public Licence
+along with this program; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor,
+Boston, MA 02110-1301, USA. -->
+<om:scenario xmlns:om="http://openmalaria.org/schema/scenario_48" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="Full set of interventions" schemaVersion="48" xsi:schemaLocation="http://openmalaria.org/schema/scenario_48 scenario_current.xsd">
     <!-- This is an example scenario.
     More information is available in the official documentation: https://swisstph.github.io/openmalaria/schema-latest.html
     And in the wiki: https://github.com/SwissTPH/openmalaria/wiki 
     For on overview of xml parameters, see: https://github.com/SwissTPH/openmalaria/wiki/ScenarioDesign -->
     
     <!-- The following block describes the demography of the population -->
-    <demography maximumAgeYrs="90" name="Ifakara" popSize="300">
+    <demography maximumAgeYrs="90" name="Ifakara" popSize="150">
         <ageGroup lowerbound="0">
             <group poppercent="3.474714994" upperbound="1"/>
             <group poppercent="12.76004028" upperbound="5"/>
@@ -33,7 +53,7 @@
     <!-- The monitoring block is where you define the output of the simulation.
     The startDate will be the beginning of the monitoring period.
     Interventions can only be deployed AFTER the startDate/ -->
-    <monitoring name="monthly surveys" startDate="1970-01-01">
+    <monitoring name="monthly surveys" startDate="2000-01-01">
         <!-- Specify the desired outputs here, the full list is available at:
         https://github.com/SwissTPH/openmalaria/wiki/MonitoringOptions#survey-measures -->
         <SurveyOptions>
@@ -64,7 +84,7 @@
         in the <diagnostic></diagnostic> bloc at the of this file.
         More information on the wiki: https://github.com/SwissTPH/openmalaria/wiki/Monitoring -->
         <surveys diagnostic="deterministic">
-            <surveyTime repeatStep="5d" repeatEnd="2008-01-01">2003-01-01</surveyTime> 
+            <surveyTime repeatStep="5d" repeatEnd="2001-01-01">2000-01-01</surveyTime> 
         </surveys>
         <!-- The following age groups will be used in the output. By default, all the 
         specified SurveyOptions specified above that support age groups will use them.
@@ -83,45 +103,7 @@
     </monitoring>
 
     <!-- Deploy interventions here, see: https://github.com/SwissTPH/openmalaria/wiki/ModelInterventions -->
-    <interventions name="GVI example">
-        <human>
-            <component id="GVI_example">
-                <GVI>
-                    <decay function="exponential" L="3y"/>
-                    <anophelesParams mosquito="gambiae_ss">
-                        <deterrency value="0.7696"/>
-                        <postprandialKillingEffect value="0.0544"/>
-                    </anophelesParams>
-                    <anophelesParams mosquito="funestus">
-                        <deterrency value="0.7696"/>
-                        <postprandialKillingEffect value="0.0544"/>
-                    </anophelesParams>
-                    <anophelesParams mosquito="arabiensis">
-                        <deterrency value="0.7696"/>
-                        <postprandialKillingEffect value="0.0544"/>
-                    </anophelesParams>
-                </GVI>
-            </component>
-            <deployment name="GVI_example">
-                <component id="GVI_example"/>
-                <timed>
-                    <deploy coverage="0.8" maxAge="95" minAge="0" minAvailability="50" maxAvailability="100" time="2005-01-01"/> 
-                </timed>
-            </deployment>
-            <deployment name="GVI_example">
-                <component id="GVI_example"/>
-                <timed>
-                    <cumulativeCoverage component="GVI_example"/>
-                    <deploy coverage="0.8" repeatStep="1y" minAvailability="50" maxAvailability="100" repeatEnd="2008-01-01" time="2005-01-01"/>
-                </timed>
-            </deployment>
-            <deployment name="GVI_example">
-                <component id="GVI_example"/>
-                <continuous>
-                  <deploy coverage="0.8" targetAgeYrs="3.0" minAvailability="50" maxAvailability="100" begin="2005-01-01" end="2008-01-01"/>
-                </continuous>
-            </deployment>
-        </human>
+    <interventions name="No Intervs">
     </interventions>
 
     <!-- Specify health system parameters here, see: https://github.com/SwissTPH/openmalaria/wiki/ScenarioHealthSystem -->
@@ -134,7 +116,14 @@
             <pSeekOfficialCareUncomplicated2 value="0.04"/><!-- 5-day probability that a patient with recurrence seeks official care -->
             <pSeekOfficialCareSevere value="0.48"/><!-- 5-day probability that a patient with severe case seeks official care -->
             <treeUCOfficial>
-                <treatSimple durationLiver="0" durationBlood="1t"/>
+                <caseType>
+                    <firstLine>
+                        <treatSimple durationLiver="0" durationBlood="1t"/>
+                    </firstLine>
+                    <secondLine>
+                        <treatSimple durationLiver="0" durationBlood="1t"/>
+                    </secondLine>
+                </caseType>
             </treeUCOfficial>
             <treeUCSelfTreat>
                 <noTreatment/>
@@ -170,25 +159,45 @@
         dynamic: the EIR will be simulated and it will be affected by interventions, changes in immunity,
             infectivity of hosts and mosquitoes, and other parameters. 
         forced: the EIR will always be equal to the scaledAnnualEIR. -->
-    <entomology mode="dynamic" name="Namawala" scaledAnnualEIR="20">
+    <entomology mode="dynamic" name="Namawala" scaledAnnualEIR="1">
         <vector>
             <anopheles mosquito="gambiae_ss">
                 <!-- Seasonality can be passed as fourier coefficients or monthly values.
                 Note that if monthly values are used, OpenMalaria will anyway smooth the values
                 using fourier coefficients. -->
                 <seasonality annualEIR="24.826144381650714" input="EIR">
+                    <!-- 2015 P.f. passively detected cases in Bataraza, Brooke's Point and Rizal -->
+                    <!-- https://swisstph.github.io/openmalaria/fourier -->
+                    <!-- EIRRotateAngle can be used to shift the seasonality. It is specified as an angle 
+                    in radian, e.g. use 0.26 to shift the seasonality by 1 month. 
+                    This can be useful if, for example, you are using rain data at month end. -->
                     <fourierSeries EIRRotateAngle="0">
-                        <coeffic a="-0.2072" b="0.8461"/>
-                        <coeffic a="0.0906" b="-0.0425"/>
+                        <coeffic a="-1.0313715140024822" b="0.5474993785222372"/>
+                        <coeffic a="-0.005155722300211589" b="-0.19769509633382162"/>
                     </fourierSeries>
+                    <!-- Or, equivalent specification via monthly values -->
+                    <!-- <monthlyValues smoothing="fourier" EIRRotateAngle="0">
+                        <value>98</value>
+                        <value>132</value>
+                        <value>223</value>
+                        <value>403</value>
+                        <value>1156</value>
+                        <value>953</value>
+                        <value>755</value>
+                        <value>403</value>
+                        <value>293</value>
+                        <value>149</value>
+                        <value>116</value>
+                        <value>107</value>
+                    </monthlyValues> -->
                 </seasonality>
-                <mosq minInfectedThreshold="0.001">
+                <mosq>
                     <mosqRestDuration value="3"/>
                     <extrinsicIncubationPeriod value="11"/>
                     <mosqLaidEggsSameDayProportion value="0.313"/>
                     <mosqSeekingDuration value="0.33"/>
                     <mosqSurvivalFeedingCycleProbability value="0.623"/>
-                    <availability distr="lognormal" CV="2"/>
+                    <availability/>
                     <mosqProbBiting mean="0.95" variance="0"/>
                     <mosqProbFindRestSite mean="0.95" variance="0"/>
                     <mosqProbResting mean="0.99" variance="0"/>
@@ -210,13 +219,13 @@
                         <coeffic a="-0.2386" b="-0.2851"/>
                     </fourierSeries>
                 </seasonality>
-                <mosq minInfectedThreshold="0.001">
+                <mosq>
                     <mosqRestDuration value="3"/>
                     <extrinsicIncubationPeriod value="11"/>
                     <mosqLaidEggsSameDayProportion value="0.616"/>
                     <mosqSeekingDuration value="0.33"/>
                     <mosqSurvivalFeedingCycleProbability value="0.611"/>
-                    <availability distr="gamma" CV="2"/>
+                    <availability/>
                     <mosqProbBiting mean="0.95" variance="0"/>
                     <mosqProbFindRestSite mean="0.95" variance="0"/>
                     <mosqProbResting mean="0.99" variance="0"/>
@@ -238,13 +247,13 @@
                         <coeffic a="0.0906" b="-0.0425"/>
                     </fourierSeries>
                 </seasonality>
-                <mosq minInfectedThreshold="0.001">
+                <mosq>
                     <mosqRestDuration value="3"/>
                     <extrinsicIncubationPeriod value="11"/>
                     <mosqLaidEggsSameDayProportion value="0.313"/>
                     <mosqSeekingDuration value="0.33"/>
                     <mosqSurvivalFeedingCycleProbability value="0.623"/>
-                    <availability distr="gamma" CV="3"/>
+                    <availability/>
                     <mosqProbBiting mean="0.95" variance="0"/>
                     <mosqProbFindRestSite mean="0.95" variance="0"/>
                     <mosqProbResting mean="0.99" variance="0"/>
@@ -272,12 +281,9 @@
 
     <!-- Here you can specify additional model parameters, or model variants. -->
     <model>
+        <ModelName name="base"></ModelName>
         <ModelOptions>
-          <option name="USE_LEGACY_NV0_SOLVER" value="true"/>
-            <option name="INNATE_MAX_DENS" value="false"/> <!-- MANDATORY WITH THE BASE MODEL DO NOT REMOVE -->
-            <option name="INDIRECT_MORTALITY_FIX" value="false"/> <!-- MANDATORY WITH THE BASE MODEL DO NOT REMOVE -->
-            <option name="MAX_DENS_CORRECTION" value="false"/> <!-- MANDATORY WITH THE BASE MODEL DO NOT REMOVE -->
-            <option name="HEALTH_SYSTEM_MEMORY_FIX" value="false"/> <!-- MANDATORY WITH THE BASE MODEL DO NOT REMOVE -->
+            <option name="USE_LEGACY_NV0_SOLVER" value="false"/>
         </ModelOptions>
 
         <!-- Clinical model parameters.
@@ -311,39 +317,6 @@
             </availabilityToMosquitoes>
         </human>
 
-        <!-- DO NOT CHANGE THE MODEL PARAMETERS BELOW -->
         <computationParameters iseed="1"/>
-        <parameters interval="5" latentp="3d">
-           <parameter name="'-ln(1-Sinf)'" number="1" value="0.050736"/>
-           <parameter name="Estar" number="2" value="0.03247"/>
-           <parameter name="Simm" number="3" value="0.138161050830301"/>
-           <parameter name="Xstar_p" number="4" value="1514.385853233699891"/>
-           <parameter name="gamma_p" number="5" value="2.03692533424484"/>
-           <parameter name="sigma2i" number="6" value="10.173598698525799"/>
-           <parameter name="CumulativeYstar" number="7" value="35158523.31132510304451"/>
-           <parameter name="CumulativeHstar" number="8" value="97.334652723897705"/>
-           <parameter name="'-ln(1-alpha_m)'" number="9" value="2.33031045876193"/>
-           <parameter name="decay_m" number="10" value="2.53106547375805"/>
-           <parameter name="sigma2_0" number="11" value="0.655747311168152"/>
-           <parameter name="Xstar_v" number="12" value="0.916181104713054"/>
-           <parameter name="Ystar2" number="13" value="6502.26335600001039"/>
-           <parameter name="alpha" number="14" value="142601.912520000012591"/>
-           <parameter name="Density bias (non Garki)" number="15" value="0.177378570987455"/>
-           <parameter name=" sigma2 " number="16" value="1.0"/>
-           <parameter name="log oddsr CF community" number="17" value="0.736202"/>
-           <parameter name="Indirect risk cofactor" number="18" value="0.018777338"/>
-           <parameter name="Non-malaria infant mortality" number="19" value="49.539046599999999"/>
-           <parameter name="Density bias (Garki)" number="20" value="4.79610772546704"/>
-           <parameter name="Severe Malaria Threshhold" number="21" value="784455.599999999976717"/>
-           <parameter name="Immunity Penalty" number="22" value="1"/>
-           <parameter name="Immune effector decay" number="23" value="0"/>
-           <parameter name="comorbidity intercept" number="24" value="0.0968"/>
-           <parameter name="Ystar half life" number="25" value="0.275437402"/>
-           <parameter name="Ystar1" number="26" value="0.596539864"/>
-           <parameter name="Asexual immunity decay" number="27" value="0"/>
-           <parameter name="Ystar0" number="28" value="296.302437899999973"/>
-           <parameter name="Idete multiplier" number="29" value="2.797523626"/>
-           <parameter name="critical age for comorbidity" number="30" value="0.117383"/>
-       </parameters>
    </model>
 </om:scenario>

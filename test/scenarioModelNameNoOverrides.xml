@@ -271,7 +271,6 @@
     <!-- Here you can specify additional model parameters, or model variants. -->
     <model>
         <ModelName name="base"/>
-
         <!-- Clinical model parameters.
         The healthSystemMemory is often overlooked. It corresponds to the follow-up period during which a recurrence is considered to be a treatment failure and is not counted as new clinical case. A recurrence after this period will be counted as new clinical case. --> 
         <clinical healthSystemMemory="30d">

@@ -20,8 +20,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  */
 
-#ifndef Hmod_AnophelesModelFitter
-#define Hmod_AnophelesModelFitter
+#ifndef Hmod_EmergenceRateEstimator
+#define Hmod_EmergenceRateEstimator
 
 #include "Global.h"
 #include "Transmission/PerHost.h"
@@ -29,6 +29,8 @@
 #include "util/vectors.h"
 #include "util/CommandLine.h"
 #include "util/errors.h"
+
+#include "CalcNvO.h"
 
 #include <vector>
 #include <limits>
@@ -98,16 +100,26 @@ inline double findAngle(const double EIRRotageAngle, const vector<double> & FSCo
     return minAngle;
 }
 
-class AnophelesModelFitter
+class EmergenceRateEstimator
 {
 public:
-    AnophelesModelFitter(AnophelesModel &m) : scaleFactor(1.0), rotated(false), scaled(false)
+    virtual ~EmergenceRateEstimator() = default;
+
+    // Interface: returns true if further fitting iterations are needed.
+    // EmergenceRateSolver returns false because it computes the exact solution in one step.
+    virtual bool estimate(AnophelesModel& m, const std::vector<double> &laggedKappa, double meanAvail) = 0;
+};
+
+class EmergenceRateAdaptiveFitter final : public EmergenceRateEstimator
+{
+public:
+    EmergenceRateAdaptiveFitter(AnophelesModel &m) : scaleFactor(1.0), rotated(false), scaled(false)
     {
         // usually around 20 days; no real analysis for effect of changing EIPDuration or mosqRestDuration
         shiftAngle = m.EIRRotateAngle - (m.mosq.EIPDuration + 10) / 365. * 2. *M_PI; 
     }
 
-    bool fit(AnophelesModel &m)
+    bool estimate(AnophelesModel &m, const vector<double> &laggedKappa, double meanAvail) override
     {
         std::vector<double> avgAnnualS_v(sim::oneYear(), 0.0);
         for (SimTime i = sim::fromYearsI(4); i < sim::fromYearsI(5); i = i + sim::oneDay())
@@ -171,6 +183,94 @@ public:
 private:
     double scaleFactor, shiftAngle;
     bool rotated, scaled;
+};
+
+class EmergenceRateSolver final : public EmergenceRateEstimator
+{
+public:
+    EmergenceRateSolver(AnophelesModel &m, int populationSize) : populationSize(populationSize) {}
+
+    bool estimate(AnophelesModel &m, const vector<double> &laggedKappa, double meanAvail) override
+    {
+        std::vector<double> &mosqEmergeRateVector = m.mosqEmergeRate;
+        int thetap = sim::DAYS_IN_YEAR;
+        int tau = m.mosq.restDuration;
+        int thetas = m.mosq.EIPDuration;
+        std::vector<double> Ni{static_cast<double>(populationSize)};
+        std::vector<double> alphai{m.initAvail * meanAvail};
+        double muvA = m.mosq.seekingDeathRate;
+        double thetad = m.mosq.seekingDuration;
+        std::vector<double> PBi{m.mosq.probBiting};
+        std::vector<double> PCi{m.mosq.probFindRestSite};
+        std::vector<double> PDi{m.mosq.probResting};
+        std::vector<double> PEi{m.mosq.probOvipositing};
+        std::vector<double> &svInit = m.forcedS_v;
+        std::vector<double> NvOguess(m.mosqEmergeRate.begin(), m.mosqEmergeRate.end());
+
+        // Append active NHH host types (malaria-non-susceptible)
+        for (const auto &[name, nhh] : m.nhhInstances) {
+            // Interpret nhh.avail_i as total availability α_i * N_i
+            Ni.push_back(1.0);
+            alphai.push_back(nhh.avail_i);
+
+            PBi.push_back(nhh.P_B_I);
+            PCi.push_back(nhh.P_C_I);
+            PDi.push_back(nhh.P_D_I);
+            PEi.push_back(m.mosq.probOvipositing); // Using the same probability for nhh
+        }
+
+        int nHost = static_cast<int>(Ni.size());
+        int nMalHost = 1; // only humans are malaria-susceptible here
+
+        std::vector<double> humanKappa(thetap, 0.0);
+
+        // Linear interpolation 73 -> daily (5-day blocks)
+        for (size_t i = 0; i < laggedKappa.size(); ++i) {
+            const size_t start = i * 5;
+            const size_t end   = std::min(start + 5, static_cast<size_t>(thetap));
+
+            const double v0 = laggedKappa[i];
+            const double v1 = laggedKappa[(i + 1) % laggedKappa.size()];
+
+            for (size_t d = start; d < end; ++d) {
+                const double t = double(d - start) / 5.0;
+                humanKappa[d] = (1.0 - t) * v0 + t * v1;
+            }
+        }
+
+        std::vector<double> KviInit(static_cast<size_t>(thetap) * nHost, 0.0);
+
+        // Fill all malaria-susceptible human groups with the humanKappa series.
+        // If later each group has its own kappa, fill each column separately.
+        for (int i = 0; i < nMalHost; ++i) {
+            for (int k = 0; k < thetap; ++k) {
+                KviInit[static_cast<size_t>(k) * nHost + i] = humanKappa[k];
+            }
+        }
+
+        CalcInitMosqEmergeRate(mosqEmergeRateVector, 
+            thetap, // $\theta_p$: daysInYear
+            tau, // $\tau$: mosqRestDuration
+            thetas, // $\theta_s$: EIPDuration
+            nHost, // $n$: nHostTypes
+            nMalHost, // $m$: nMalHostTypes
+            Ni, // $N_i$: popSize (length n)
+            alphai, // $\alpha_i$: hostAvailabilityRate	(length n)
+            muvA, // $\mu_{vA}: mosqSeekingDeathRate
+            thetad, // $\theta_d$: mosqSeekingDuration
+            PBi, // $P_{B_i}$: mosqProbBiting (length n)
+            PCi, // $P_{C_i}$: mosqProbFindRestSite (length n)
+            PDi, // $P_{D_i}$: mosqProbResting (length n)
+            PEi, // $P_{E_i}$: mosqProbOvipositing
+            KviInit, // Kvi (size n * thetap)
+            svInit // Sv (length n)
+        );
+        
+        return false;
+    }
+
+private:
+    int populationSize;
 };
 
 }
