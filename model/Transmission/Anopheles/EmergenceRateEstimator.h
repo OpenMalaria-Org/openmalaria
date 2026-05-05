@@ -106,7 +106,8 @@ public:
     virtual ~EmergenceRateEstimator() = default;
 
     // Interface: returns true if further fitting iterations are needed.
-    virtual bool estimate(AnophelesModel& m, const vector<double> &laggedKappa, double meanAvail) = 0;
+    // EmergenceRateSolver returns false because it computes the exact solution in one step.
+    virtual bool estimate(AnophelesModel& m, const std::vector<double> &laggedKappa, double meanAvail) = 0;
 };
 
 class EmergenceRateAdaptiveFitter final : public EmergenceRateEstimator

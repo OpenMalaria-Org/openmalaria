@@ -269,11 +269,12 @@ namespace OM { namespace util {
          */
         HEALTH_SYSTEM_MEMORY_FIX,
 
-        /** Use the exact emergence-rate solver to initialize Nv0.
+        /** Use the legacy adaptive emergence-rate solver to initialize Nv0.
          *
-         * Disable this option to use the legacy adaptive fitting method.
+         * Enable this option to use the legacy adaptive fitting method.
+         * By default (when disabled), the exact emergence-rate solver is used.
          */
-        USE_EXACT_NV0_SOLVER,
+        USE_LEGACY_NV0_SOLVER,
 
         
 	// Used by tests; should be 1 more than largest option
@@ -324,7 +325,6 @@ namespace OM { namespace util {
             options.reset();
             options.set( MAX_DENS_CORRECTION );
             options.set( INNATE_MAX_DENS );
-            options.set( USE_EXACT_NV0_SOLVER );
         }
         static inline void set(OptionCodes code) {
             options.set( code );
