@@ -760,28 +760,28 @@ void CalcSvJacobian(gsl_matrix* J, const std::vector<gsl_matrix*> &Upsilon, gsl_
  */ 
 void CalcPSTS(double &sumkplus, double* sumklplus, int thetas,
 			  int tau, double PA, double Pdf){
-	int kplus = thetas / tau - 1; // $k_+$ in model.
+	const int kplus = thetas / tau - 1; // $k_+$ in model.
 
 	// Evaluate sumkplus
 	sumkplus = 0.;
 	for (int j=0; j <= kplus; j++){
-		double tempbin = gsl_sf_choose(thetas - (j + 1) * tau + j, j); // binomial
-		double temppap = pow(PA,thetas-(j+1)*tau);
-		double temppdfp = pow(Pdf,j);
-		double temp = tempbin*temppap*temppdfp;
+		const double tempbin = gsl_sf_choose(thetas - (j + 1) * tau + j, j); // binomial
+		const double temppap = pow(PA,thetas-(j+1)*tau);
+		const double temppdfp = pow(Pdf,j);
+		const double temp = tempbin*temppap*temppdfp;
 		sumkplus=sumkplus+temp;
 	}
 
 	// Evaluate sumklplus
 	for (int l=1; l <= tau-1; l++){
-		int klplus = (thetas+l) / tau - 2; // $k_{l+}$ in model.
+		const int klplus = (thetas+l) / tau - 2; // $k_{l+}$ in model.
 		sumklplus[l-1] = 0;
 
 		for(int j=0; j<=klplus; j++){
-			double tempbin = gsl_sf_choose(thetas + l - (j + 2) * tau + j, j); // binomial
-			double temppap = pow(PA,thetas+l-(j+2)*tau);
-			double temppdfp = pow(Pdf,j+1);
-			double temp = tempbin*temppap*temppdfp;
+			const double tempbin = gsl_sf_choose(thetas + l - (j + 2) * tau + j, j); // binomial
+			const double temppap = pow(PA,thetas+l-(j+2)*tau);
+			const double temppdfp = pow(Pdf,j+1);
+			const double temp = tempbin*temppap*temppdfp;
 			sumklplus[l-1] = sumklplus[l-1]+temp;
 		}
 	}

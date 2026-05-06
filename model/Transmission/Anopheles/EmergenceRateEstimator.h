@@ -57,7 +57,7 @@ inline int argmax(const std::vector<double> &vec)
     return imax;
 }
 
-inline double findAngle(const double EIRRotageAngle, const vector<double> & FSCoeffic, const std::vector<double> &sim)
+inline double findAngle(const double EIRRotageAngle, const std::vector<double> & FSCoeffic, const std::vector<double> &sim)
 {
     std::vector<double> temp(sim.size(), 0.0);
 
@@ -119,7 +119,7 @@ public:
         shiftAngle = m.EIRRotateAngle - (m.mosq.EIPDuration + 10) / 365. * 2. *M_PI; 
     }
 
-    bool estimate(AnophelesModel &m, const vector<double> &laggedKappa, double meanAvail) override
+    bool estimate(AnophelesModel &m, const std::vector<double> &laggedKappa, double meanAvail) override
     {
         std::vector<double> avgAnnualS_v(sim::oneYear(), 0.0);
         for (SimTime i = sim::fromYearsI(4); i < sim::fromYearsI(5); i = i + sim::oneDay())
@@ -190,7 +190,7 @@ class EmergenceRateSolver final : public EmergenceRateEstimator
 public:
     EmergenceRateSolver(AnophelesModel &m, int populationSize) : populationSize(populationSize) {}
 
-    bool estimate(AnophelesModel &m, const vector<double> &laggedKappa, double meanAvail) override
+    bool estimate(AnophelesModel &m, const std::vector<double> &laggedKappa, double meanAvail) override
     {
         std::vector<double> &mosqEmergeRateVector = m.mosqEmergeRate;
         int thetap = sim::DAYS_IN_YEAR;
