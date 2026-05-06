@@ -38,7 +38,7 @@
 #include <algorithm>
 #include <cmath>
 
-static inline int modp(int i, const int n) {
+constexpr int modp(int i, int n) noexcept {
     int r = i % n;
     return (r < 0) ? r + n : r;
 }
