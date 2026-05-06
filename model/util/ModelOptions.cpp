@@ -119,7 +119,7 @@ namespace OM { namespace util {
 
     std::bitset<NUM_OPTIONS> ModelOptions::getBaseModelOptions()
     {
-        // The "base" model is very simple, but still uses current defaults.
+        // The "base" model is very simple
         bitset<NUM_OPTIONS> allOptionsOff;
 
         return allOptionsOff;
