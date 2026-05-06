@@ -97,7 +97,7 @@ static void CalcXP_optimized(gsl_vector** xp, const std::vector<gsl_matrix*> &Up
 	gsl_matrix* mmul = gsl_matrix_calloc(eta, eta);
 	gsl_vector* x0p = gsl_vector_calloc(eta);
 
-	// Performance patch from 7b6a2b91 (from original mcdnsa codebase): compute x0p with a backward tail-product
+	// Performance patch compute x0p with a backward tail-product
 	// pass instead of calling FuncX() repeatedly inside the forcing sum.
 	gsl_matrix_set_identity(tail);
 	gsl_vector_set_zero(vtemp);
