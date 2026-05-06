@@ -339,9 +339,6 @@ double CalcInitMosqEmergeRate(
 	 * physically which we use in intermediate equations. We try to give names that
 	 * we use in the papers referenced above. 
 	 *
-	 *  - Any complaints about this notation (or anything else in general) can be directed 
-	 * to itsupport-sti@stimail.ch
-	 *
 	 * We may append a 'CV' or 'CM' to gsl_vectors and gsl_matrices to distinguish them
 	 * if we feel it is necessary.
 	 *
