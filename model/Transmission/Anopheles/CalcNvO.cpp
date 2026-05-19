@@ -481,7 +481,7 @@ double CalcInitMosqEmergeRate(
 			"falls faster than the infectious mosquito population can decline biologically; "
 			"matching it exactly would require negative emergence. "
 			"Recommended action: smooth the EIR seasonality. "
-			"Alternatively, set <option name=\"USE_LEGACY_NV0_SOLVER\" value=\"true\"/> "
+			"Alternatively, remove <option name=\"USE_EXACT_NV0_SOLVER\" value=\"true\"/> "
 			"to use the legacy adaptive fitter. This may allow the simulation to run, "
 			"but be aware that the simulated EIR may deviate more from the input EIR.",
 			::OM::util::Error::VectorFitting);

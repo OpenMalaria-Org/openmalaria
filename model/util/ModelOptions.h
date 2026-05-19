@@ -269,12 +269,12 @@ namespace OM { namespace util {
          */
         HEALTH_SYSTEM_MEMORY_FIX,
 
-        /** Use the legacy adaptive emergence-rate solver to initialize Nv0.
+        /** Use the exact emergence-rate solver to initialize Nv0.
          *
-         * Enable this option to use the legacy adaptive fitting method.
-         * By default (when disabled), the exact emergence-rate solver is used.
+         * Enable this option to use the exact fitting method.
+         * By default, the legacy adaptive fitter is used.
          */
-        USE_LEGACY_NV0_SOLVER,
+        USE_EXACT_NV0_SOLVER,
 
         
 	// Used by tests; should be 1 more than largest option
