@@ -90,9 +90,8 @@ struct SurveyStore {
     void init(const std::vector<OutMeasure>& enabledMeasures, size_t nSpecies, size_t nDrugs);
     void ensureConditionState(const OutMeasure& om);
     void record(double val, Measure measure, size_t survey, size_t ageIndex, uint32_t cohortSet,
-                size_t species, size_t genotype, size_t drug, int outId = 0);
-    void recordDeploy(int val, Measure measure, size_t survey, size_t ageIndex,
-                      uint32_t cohortSet, Deploy::Method method);
+                size_t species, size_t genotype, size_t drug, int outId = 0,
+                Deploy::Method method = Deploy::NA);
     double sum(Measure measure, uint8_t method, size_t survey) const;
     void write(std::ostream& stream, size_t survey, const OutMeasure& om) const;
     bool uses(Measure measure) const;
@@ -153,12 +152,10 @@ extern template void checkpoint<std::istream>(std::istream& stream);
 
 // ----- direct recording API -----
 
-void record(Measure measure, size_t survey, size_t age, uint32_t cohort, size_t species, size_t genotype, size_t drug, int val, int outId = 0);
-void record(Measure measure, size_t survey, size_t age, uint32_t cohort, size_t species, size_t genotype, size_t drug, double val);
-void recordStat(Measure measure, const Host::Human& human, int val, size_t species = 0, size_t genotype = 0, size_t drug = 0, int outId = 0);
-void recordStat(Measure measure, const Host::Human& human, double val, size_t species = 0, size_t genotype = 0, size_t drug = 0);
-void recordEvent(Measure measure, const Host::Human& human, int val);
-void recordDeploy(Measure measure, const Host::Human& human, Deploy::Method method, int val = 1);
+void record(Measure measure, size_t survey, size_t age, uint32_t cohort, size_t species, size_t genotype, size_t drug, double val, int outId = 0);
+void recordStat(Measure measure, const Host::Human& human, double val, size_t species = 0, size_t genotype = 0, size_t drug = 0, int outId = 0);
+void recordEvent(Measure measure, const Host::Human& human, double val);
+void recordDeploy(Measure measure, const Host::Human& human, Deploy::Method method, double val = 1.0);
 inline bool isUsed(Measure measure)
 {
     return internal::runtime.surveyStore.uses(measure);

@@ -193,33 +193,18 @@ void SurveyStore::ensureConditionState(const OutMeasure& om)
 }
 
 void SurveyStore::record(double val, Measure measure, size_t survey, size_t ageIndex, uint32_t cohortSet,
-                         size_t species, size_t genotype, size_t drug, int outId)
+                         size_t species, size_t genotype, size_t drug, int outId,
+                         Deploy::Method method)
 {
     if (survey == NOT_USED) return;
     assert(measure < measureToStates.size());
     for (size_t idx : measureToStates[measure]) {
         MeasureStore& store = stores[idx];
-        if (store.layout.deployMask != Deploy::NA) continue;
         if (outId != 0 && store.layout.outMeasure != outId) continue;
+        if (method == Deploy::NA && store.layout.deployMask != Deploy::NA) continue;
+        if (method != Deploy::NA && (store.layout.deployMask & method) == Deploy::NA) continue;
         const size_t offset = survey * store.layout.size();
         const size_t index = offset + store.layout.index(ageIndex, cohortSet, species, genotype, drug);
-        assert(index < store.reports.size());
-        store.reports[index] += val;
-    }
-}
-
-void SurveyStore::recordDeploy(int val, Measure measure, size_t survey, size_t ageIndex,
-                               uint32_t cohortSet, Deploy::Method method)
-{
-    if (survey == NOT_USED) return;
-    assert(method == Deploy::TIMED || method == Deploy::CTS || method == Deploy::TREAT);
-    assert(measure < measureToStates.size());
-    for (size_t idx : measureToStates[measure]) {
-        MeasureStore& store = stores[idx];
-        if ((store.layout.deployMask & method) == Deploy::NA) continue;
-        assert(store.layout.nSpecies == 1 && store.layout.nGenotypes == 1);
-        const size_t offset = survey * store.layout.size();
-        const size_t index = offset + store.layout.index(ageIndex, cohortSet, 0, 0, 0);
         assert(index < store.reports.size());
         store.reports[index] += val;
     }
@@ -352,38 +337,31 @@ bool checkCondition(size_t conditionKey)
 }
 
 void record(Measure measure, size_t survey, size_t age, uint32_t cohort,
-            size_t species, size_t genotype, size_t drug, int val, int outId)
+            size_t species, size_t genotype, size_t drug, double val, int outId)
 {
     runtime.surveyStore.record(val, measure, survey, age, cohort, species, genotype, drug, outId);
 }
 
-void record(Measure measure, size_t survey, size_t age, uint32_t cohort,
-            size_t species, size_t genotype, size_t drug, double val)
-{
-    runtime.surveyStore.record(val, measure, survey, age, cohort, species, genotype, drug);
-}
-
-void recordStat(Measure measure, const Host::Human& human, int val, size_t species, size_t genotype, size_t drug, int outId)
+void recordStat(Measure measure, const Host::Human& human, double val, size_t species, size_t genotype, size_t drug, int outId)
 {
     record(measure, statSurveyNumber(), human.monitoringAgeGroup, human.getCohortSet(), species, genotype, drug, val, outId);
 }
 
-void recordStat(Measure measure, const Host::Human& human, double val, size_t species, size_t genotype, size_t drug)
-{
-    record(measure, statSurveyNumber(), human.monitoringAgeGroup, human.getCohortSet(), species, genotype, drug, val);
-}
-
-void recordEvent(Measure measure, const Host::Human& human, int val)
+void recordEvent(Measure measure, const Host::Human& human, double val)
 {
     record(measure, eventSurveyNumber(), human.monitoringAgeGroup, human.getCohortSet(), 0, 0, 0, val);
 }
 
-void recordDeploy(Measure measure, const Host::Human& human, Deploy::Method method, int val)
+void recordDeploy(Measure measure, const Host::Human& human, Deploy::Method method, double val)
 {
-    runtime.surveyStore.recordDeploy(val, measure, eventSurveyNumber(), human.monitoringAgeGroup, human.getCohortSet(), method);
+    runtime.surveyStore.record(
+        val, measure, eventSurveyNumber(), human.monitoringAgeGroup, human.getCohortSet(),
+        0, 0, 0, 0, method);
     const Measure treatDeployments = ::OM::mon::measure("nTreatDeployments");
     if (measure != treatDeployments) {
-        runtime.surveyStore.recordDeploy(val, treatDeployments, eventSurveyNumber(), human.monitoringAgeGroup, human.getCohortSet(), method);
+        runtime.surveyStore.record(
+            val, treatDeployments, eventSurveyNumber(), human.monitoringAgeGroup, human.getCohortSet(),
+            0, 0, 0, 0, method);
     }
 }
 
