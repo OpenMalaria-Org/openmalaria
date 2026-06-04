@@ -337,9 +337,9 @@ bool checkCondition(size_t conditionKey)
 }
 
 void record(Measure measure, size_t survey, size_t age, uint32_t cohort,
-            size_t species, size_t genotype, size_t drug, double val, int outId)
+            size_t species, size_t genotype, size_t drug, double val, int outId, Deploy::Method method)
 {
-    runtime.surveyStore.record(val, measure, survey, age, cohort, species, genotype, drug, outId);
+    runtime.surveyStore.record(val, measure, survey, age, cohort, species, genotype, drug, outId, method);
 }
 
 void recordStat(Measure measure, const Host::Human& human, double val, size_t species, size_t genotype, size_t drug, int outId)
@@ -354,15 +354,10 @@ void recordEvent(Measure measure, const Host::Human& human, double val)
 
 void recordDeploy(Measure measure, const Host::Human& human, Deploy::Method method, double val)
 {
-    runtime.surveyStore.record(
-        val, measure, eventSurveyNumber(), human.monitoringAgeGroup, human.getCohortSet(),
-        0, 0, 0, 0, method);
+    record(measure, eventSurveyNumber(), human.monitoringAgeGroup, human.getCohortSet(), 0, 0, 0, val, 0, method);
     const Measure treatDeployments = ::OM::mon::measure("nTreatDeployments");
-    if (measure != treatDeployments) {
-        runtime.surveyStore.record(
-            val, treatDeployments, eventSurveyNumber(), human.monitoringAgeGroup, human.getCohortSet(),
-            0, 0, 0, 0, method);
-    }
+    if (measure != treatDeployments)
+        record(treatDeployments, eventSurveyNumber(), human.monitoringAgeGroup, human.getCohortSet(), 0, 0, 0, val, 0, method);
 }
 
 template <typename Stream>

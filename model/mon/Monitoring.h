@@ -152,7 +152,8 @@ extern template void checkpoint<std::istream>(std::istream& stream);
 
 // ----- direct recording API -----
 
-void record(Measure measure, size_t survey, size_t age, uint32_t cohort, size_t species, size_t genotype, size_t drug, double val, int outId = 0);
+void record(Measure measure, size_t survey, size_t age, uint32_t cohort, size_t species, size_t genotype, size_t drug, double val,
+            int outId = 0, Deploy::Method method = Deploy::NA);
 void recordStat(Measure measure, const Host::Human& human, double val, size_t species = 0, size_t genotype = 0, size_t drug = 0, int outId = 0);
 void recordEvent(Measure measure, const Host::Human& human, double val);
 void recordDeploy(Measure measure, const Host::Human& human, Deploy::Method method, double val = 1.0);
