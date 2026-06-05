@@ -34,13 +34,13 @@ jobs:
     - name: Build ARM64 image
       run: |
         docker build \
-          -t swisstph/openmalaria:${{ github.event.inputs.tag }}-arm64 \
+          -t bscodeom/openmalaria:${{ github.event.inputs.tag }}-arm64 \
           -f docker/Dockerfile \
           docker/
 
     - name: Push ARM64
       if: ${{ github.event.inputs.push_to_dockerhub == 'true' }}
-      run: docker push swisstph/openmalaria:${{ github.event.inputs.tag }}-arm64
+      run: docker push bscodeom/openmalaria:${{ github.event.inputs.tag }}-arm64
 
 
   # ============
@@ -61,13 +61,13 @@ jobs:
     - name: Build AMD64 image
       run: |
         docker build \
-          -t swisstph/openmalaria:${{ github.event.inputs.tag }}-amd64 \
+          -t bscodeom/openmalaria:${{ github.event.inputs.tag }}-amd64 \
           -f docker/Dockerfile \
           docker/
 
     - name: Push AMD64
       if: ${{ github.event.inputs.push_to_dockerhub == 'true' }}
-      run: docker push swisstph/openmalaria:${{ github.event.inputs.tag }}-amd64
+      run: docker push bscodeom/openmalaria:${{ github.event.inputs.tag }}-amd64
 
 
   # ===========================
@@ -87,8 +87,8 @@ jobs:
 
     - name: Create and push multi-arch manifest
       run: |
-        docker manifest create swisstph/openmalaria:${{ github.event.inputs.tag }} \
-          --amend swisstph/openmalaria:${{ github.event.inputs.tag }}-amd64 \
-          --amend swisstph/openmalaria:${{ github.event.inputs.tag }}-arm64
+        docker manifest create bscodeom/openmalaria:${{ github.event.inputs.tag }} \
+          --amend bscodeom/openmalaria:${{ github.event.inputs.tag }}-amd64 \
+          --amend bscodeom/openmalaria:${{ github.event.inputs.tag }}-arm64
 
-        docker manifest push swisstph/openmalaria:${{ github.event.inputs.tag }}
+        docker manifest push bscodeom/openmalaria:${{ github.event.inputs.tag }}
