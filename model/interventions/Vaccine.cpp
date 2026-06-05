@@ -54,15 +54,6 @@ VaccineComponent::VaccineComponent( ComponentId component, const scnXml::Vaccine
 
     opt_vax_efficacy_vs_cumulative_infs =
         util::ModelOptions::option (util::VAX_EFFICACY_VS_CUMULATIVE_INFS);
-    if( opt_vax_efficacy_vs_cumulative_infs ){
-        if( !vd.getCumulativeInfsCoeff().present() ){
-            throw util::xml_scenario_error(
-                "Vaccine: cumulativeInfsCoeff attribute is required on each "
-                "vaccine description when the VAX_EFFICACY_VS_CUMULATIVE_INFS "
-                "model option is enabled" );
-        }
-        cumulativeInfsCoeff = vd.getCumulativeInfsCoeff().get();
-    }
 
     if( reportComponent == ComponentId::wholePop() /* the initial value */ ){
         // set to the first type described
