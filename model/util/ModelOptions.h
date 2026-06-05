@@ -269,14 +269,9 @@ namespace OM { namespace util {
          */
         HEALTH_SYSTEM_MEMORY_FIX,
 
-        /** When this option is enabled, the initial efficacy sampled at each
-         * vaccine dose is scaled by exp(-coeff * m_cumulative_h), where
-         * m_cumulative_h is the cumulative number of infections the host has
-         * received since birth and coeff is the value of the optional
-         * cumulativeInfsCoeff XML attribute on the vaccine description.
-         *
-         * If this option is enabled but cumulativeInfsCoeff is not specified
-         * on a vaccine description, an xml_scenario_error is thrown.
+        /** When this option is enabled, the initial vaccine efficacy sampled at
+		 * each vaccine dose is scaled down. The strength of this effect is
+		 * determined by the value of the cumulativeInfsCoeff attribute.
          */
         VAX_EFFICACY_VS_CUMULATIVE_INFS,
 

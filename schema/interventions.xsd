@@ -1269,8 +1269,9 @@ Licence: GNU General Public Licence version 2 or later (see COPYING) -->
             birth (m_cumulative_h). When the VAX_EFFICACY_VS_CUMULATIVE_INFS
             model option is enabled, the sampled initial efficacy is
             multiplied by exp(-cumulativeInfsCoeff * m_cumulative_h) on
-            each dose. Larger values produce a stronger reduction with
-            prior exposure; zero recovers the standard behaviour.
+            each dose. This function is hardcoded. Larger values produce a
+            stronger reduction with prior exposure; zero recovers the
+            behaviour obtained when the model option is disabled.
 
             Required if VAX_EFFICACY_VS_CUMULATIVE_INFS is enabled, ignored
             otherwise.

@@ -80,6 +80,9 @@ namespace OM
             * If the VAX_EFFICACY_VS_CUMULATIVE_INFS model option is enabled in the XML,
             * then every vaccine description (PEV / BSV / TBV) must specify the optional
             * cumulativeInfsCoeff attribute. Throw otherwise.
+            * 
+            * A user wanting to use the feature only for one vaccine component can simply
+            * set the coefficient to zero for all other vaccine components.
             */
             void CheckVaxEfficacyVsCumulativeInfs(const scnXml::Scenario& scenario)
             {
