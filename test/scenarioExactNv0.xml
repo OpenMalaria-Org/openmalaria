@@ -1,13 +1,32 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- This file is part of OpenMalaria.
+Copyright © 2005-2025 Swiss Tropical and Public Health Institute
+Copyright © 2005-2015 Liverpool School Of Tropical Medicine
+Copyright © 2020-2026 University of Basel
+Copyright © 2025-2026 The Kids Research Institute Australia
 
-<om:scenario xmlns:om="http://openmalaria.org/schema/scenario_48" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="example" schemaVersion="48" xsi:schemaLocation="http://openmalaria.org/schema/scenario_48 scenario_current.xsd">
+OpenMalaria is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public Licence as published by
+the Free Software Foundation; either version 2 of the Licence, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public Licence for more details.
+
+You should have received a copy of the GNU General Public Licence
+along with this program; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor,
+Boston, MA 02110-1301, USA. -->
+<om:scenario xmlns:om="http://openmalaria.org/schema/scenario_48" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="Full set of interventions" schemaVersion="48" xsi:schemaLocation="http://openmalaria.org/schema/scenario_48 scenario_current.xsd">
     <!-- This is an example scenario.
     More information is available in the official documentation: https://swisstph.github.io/openmalaria/schema-latest.html
     And in the wiki: https://github.com/SwissTPH/openmalaria/wiki 
     For on overview of xml parameters, see: https://github.com/SwissTPH/openmalaria/wiki/ScenarioDesign -->
     
     <!-- The following block describes the demography of the population -->
-    <demography maximumAgeYrs="90" name="Ifakara" popSize="10">
+    <demography maximumAgeYrs="90" name="Ifakara" popSize="150">
         <ageGroup lowerbound="0">
             <group poppercent="3.474714994" upperbound="1"/>
             <group poppercent="12.76004028" upperbound="5"/>
@@ -34,7 +53,7 @@
     <!-- The monitoring block is where you define the output of the simulation.
     The startDate will be the beginning of the monitoring period.
     Interventions can only be deployed AFTER the startDate/ -->
-    <monitoring name="monthly surveys" startDate="1970-01-01">
+    <monitoring name="monthly surveys" startDate="2000-01-01">
         <!-- Specify the desired outputs here, the full list is available at:
         https://github.com/SwissTPH/openmalaria/wiki/MonitoringOptions#survey-measures -->
         <SurveyOptions>
@@ -65,7 +84,7 @@
         in the <diagnostic></diagnostic> bloc at the of this file.
         More information on the wiki: https://github.com/SwissTPH/openmalaria/wiki/Monitoring -->
         <surveys diagnostic="deterministic">
-            <surveyTime repeatStep="5d" repeatEnd="2020-01-01">2000-01-01</surveyTime> 
+            <surveyTime repeatStep="5d" repeatEnd="2001-01-01">2000-01-01</surveyTime> 
         </surveys>
         <!-- The following age groups will be used in the output. By default, all the 
         specified SurveyOptions specified above that support age groups will use them.
@@ -84,35 +103,7 @@
     </monitoring>
 
     <!-- Deploy interventions here, see: https://github.com/SwissTPH/openmalaria/wiki/ModelInterventions -->
-    <interventions name="GVI example">
-        <human>
-            <!-- Example deployment of a GVI intervention that models a deterrency postprandialKilling effects (to model 
-            a insecticide treated net for example). -->
-            <component id="GVI_example">
-                <GVI>
-                    <!-- Exponential decay with a half-life of 3 years, see: https://github.com/SwissTPH/openmalaria/wiki/ModelDecayFunctions -->
-                    <decay function="exponential" L="3y"/>
-                    <anophelesParams mosquito="gambiae_ss">
-                        <deterrency value="0.7696"/>
-                        <postprandialKillingEffect value="0.0544"/>
-                    </anophelesParams>
-                    <anophelesParams mosquito="funestus">
-                        <deterrency value="0.7696"/>
-                        <postprandialKillingEffect value="0.0544"/>
-                    </anophelesParams>
-                    <anophelesParams mosquito="arabiensis">
-                        <deterrency value="0.7696"/>
-                        <postprandialKillingEffect value="0.0544"/>
-                    </anophelesParams>
-                </GVI>
-            </component>
-            <deployment name="GVI_example">
-                <component id="GVI_example"/>
-                <timed>
-                    <deploy coverage="0.7" maxAge="95" minAge="0" time="2005-01-01"/> 
-                </timed>
-            </deployment>
-        </human>
+    <interventions name="No Intervs">
     </interventions>
 
     <!-- Specify health system parameters here, see: https://github.com/SwissTPH/openmalaria/wiki/ScenarioHealthSystem -->
@@ -168,19 +159,39 @@
         dynamic: the EIR will be simulated and it will be affected by interventions, changes in immunity,
             infectivity of hosts and mosquitoes, and other parameters. 
         forced: the EIR will always be equal to the scaledAnnualEIR. -->
-    <entomology mode="dynamic" name="Namawala" scaledAnnualEIR="20">
+    <entomology mode="dynamic" name="Namawala" scaledAnnualEIR="1">
         <vector>
             <anopheles mosquito="gambiae_ss">
                 <!-- Seasonality can be passed as fourier coefficients or monthly values.
                 Note that if monthly values are used, OpenMalaria will anyway smooth the values
                 using fourier coefficients. -->
                 <seasonality annualEIR="24.826144381650714" input="EIR">
+                    <!-- 2015 P.f. passively detected cases in Bataraza, Brooke's Point and Rizal -->
+                    <!-- https://swisstph.github.io/openmalaria/fourier -->
+                    <!-- EIRRotateAngle can be used to shift the seasonality. It is specified as an angle 
+                    in radian, e.g. use 0.26 to shift the seasonality by 1 month. 
+                    This can be useful if, for example, you are using rain data at month end. -->
                     <fourierSeries EIRRotateAngle="0">
-                        <coeffic a="-0.2072" b="0.8461"/>
-                        <coeffic a="0.0906" b="-0.0425"/>
+                        <coeffic a="-1.0313715140024822" b="0.5474993785222372"/>
+                        <coeffic a="-0.005155722300211589" b="-0.19769509633382162"/>
                     </fourierSeries>
+                    <!-- Or, equivalent specification via monthly values -->
+                    <!-- <monthlyValues smoothing="fourier" EIRRotateAngle="0">
+                        <value>98</value>
+                        <value>132</value>
+                        <value>223</value>
+                        <value>403</value>
+                        <value>1156</value>
+                        <value>953</value>
+                        <value>755</value>
+                        <value>403</value>
+                        <value>293</value>
+                        <value>149</value>
+                        <value>116</value>
+                        <value>107</value>
+                    </monthlyValues> -->
                 </seasonality>
-                <mosq minInfectedThreshold="0.001">
+                <mosq>
                     <mosqRestDuration value="3"/>
                     <extrinsicIncubationPeriod value="11"/>
                     <mosqLaidEggsSameDayProportion value="0.313"/>
@@ -208,7 +219,7 @@
                         <coeffic a="-0.2386" b="-0.2851"/>
                     </fourierSeries>
                 </seasonality>
-                <mosq minInfectedThreshold="0.001">
+                <mosq>
                     <mosqRestDuration value="3"/>
                     <extrinsicIncubationPeriod value="11"/>
                     <mosqLaidEggsSameDayProportion value="0.616"/>
@@ -236,7 +247,7 @@
                         <coeffic a="0.0906" b="-0.0425"/>
                     </fourierSeries>
                 </seasonality>
-                <mosq minInfectedThreshold="0.001">
+                <mosq>
                     <mosqRestDuration value="3"/>
                     <extrinsicIncubationPeriod value="11"/>
                     <mosqLaidEggsSameDayProportion value="0.313"/>
@@ -270,7 +281,11 @@
 
     <!-- Here you can specify additional model parameters, or model variants. -->
     <model>
-        <ModelName name="base"/>
+        <ModelName name="base"></ModelName>
+        <ModelOptions>
+            <option name="USE_EXACT_NV0_SOLVER" value="true"/>
+        </ModelOptions>
+
         <!-- Clinical model parameters.
         The healthSystemMemory is often overlooked. It corresponds to the follow-up period during which a recurrence is considered to be a treatment failure and is not counted as new clinical case. A recurrence after this period will be counted as new clinical case. --> 
         <clinical healthSystemMemory="30d">

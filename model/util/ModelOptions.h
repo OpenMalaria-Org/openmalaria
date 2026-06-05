@@ -269,6 +269,13 @@ namespace OM { namespace util {
          */
         HEALTH_SYSTEM_MEMORY_FIX,
 
+        /** Use the exact emergence-rate solver to initialize Nv0.
+         *
+         * Enable this option to use the exact fitting method.
+         * By default, the legacy adaptive fitter is used.
+         */
+        USE_EXACT_NV0_SOLVER,
+
         /** When this option is enabled, the initial vaccine efficacy sampled at
 		 * each vaccine dose is scaled down. The strength of this effect is
 		 * determined by the value of the cumulativeInfsCoeff attribute.
@@ -303,8 +310,8 @@ namespace OM { namespace util {
 
     private:
     /*
-    * Returns a bitset representing a collection of model options that correspond
-    * exactly to the "base" model.
+    * Returns a bitset representing the model options used by the named "base"
+    * model.
     *
     * Note: at present the base model sets values that are not considered "default".
     * This is because there are default model options which are often not desired,
@@ -314,8 +321,8 @@ namespace OM { namespace util {
     static std::bitset<NUM_OPTIONS> getBaseModelOptions();
 
     /*
-    * Returns a bitset representing all and only model options which are required
-    * to be turned on by default for backwards compatibility.
+    * Returns a bitset representing the default model options used when no named
+    * model is selected.
     */
     static std::bitset<NUM_OPTIONS> getLegacyDefaultModelOptions();
 

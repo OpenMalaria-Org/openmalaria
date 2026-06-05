@@ -80,6 +80,7 @@ namespace OM { namespace util {
         codeMap["VACCINE_GENOTYPE"] = VACCINE_GENOTYPE;
         codeMap["CFR_PF_USE_HOSPITAL"] = CFR_PF_USE_HOSPITAL;
         codeMap["HEALTH_SYSTEM_MEMORY_FIX"] = HEALTH_SYSTEM_MEMORY_FIX;
+        codeMap["USE_EXACT_NV0_SOLVER"] = USE_EXACT_NV0_SOLVER;
         codeMap["VAX_EFFICACY_VS_CUMULATIVE_INFS"] = VAX_EFFICACY_VS_CUMULATIVE_INFS;
 	}
 	
@@ -119,7 +120,7 @@ namespace OM { namespace util {
 
     std::bitset<NUM_OPTIONS> ModelOptions::getBaseModelOptions()
     {
-        // The "base" model is very simple: *no* model options are turned on.
+        // The "base" model is very simple
         bitset<NUM_OPTIONS> allOptionsOff;
 
         return allOptionsOff;

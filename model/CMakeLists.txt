@@ -62,6 +62,7 @@ set (Model_CPP
   Transmission/VectorModel.cpp
   Transmission/PerHost.cpp
   Transmission/Anopheles/AnophelesModel.cpp
+  Transmission/Anopheles/CalcNvO.cpp
   
   Host/WithinHost/WHInterface.cpp
   Host/WithinHost/WHFalciparum.cpp
