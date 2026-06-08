@@ -19,7 +19,7 @@ You should have received a copy of the GNU General Public Licence
 along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor,
 Boston, MA 02110-1301, USA. -->
-<om:scenario xmlns:om="http://openmalaria.org/schema/scenario_48" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="example" schemaVersion="48" xsi:schemaLocation="http://openmalaria.org/schema/scenario_48 scenario_48.xsd">
+<om:scenario xmlns:om="http://openmalaria.org/schema/scenario_49" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="example" schemaVersion="49" xsi:schemaLocation="http://openmalaria.org/schema/scenario_49 scenario_49.xsd">
     <!-- This is an example scenario.
     More information is available in the official documentation: https://swisstph.github.io/openmalaria/schema-latest.html
     And in the wiki: https://github.com/SwissTPH/openmalaria/wiki 
