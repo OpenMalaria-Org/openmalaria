@@ -311,6 +311,13 @@ Boston, MA 02110-1301, USA. -->
     <model>
         <ModelName name="base"></ModelName>
 
+        <!-- Use the new, more accurate emergence rate calculation 
+        Read: https://github.com/OpenMalaria-Org/openmalaria/wiki/ScenarioTransmission#exact-emergence-rate-calculation-from-version-49-onwards 
+        Simply remove this option to fallback to the old method. -->
+        <ModelOptions>
+            <option name="USE_EXACT_NV0_SOLVER" value="true"/>
+        </ModelOptions>
+
         <!-- Clinical model parameters.
         The healthSystemMemory is often overlooked. It corresponds to the follow-up period during which a recurrence is considered to be a treatment failure and is not counted as new clinical case. A recurrence after this period will be counted as new clinical case. --> 
         <clinical healthSystemMemory="30d">
