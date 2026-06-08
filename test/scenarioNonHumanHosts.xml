@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<om:scenario xmlns:om="http://openmalaria.org/schema/scenario_48" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-             name="Vector traps test" schemaVersion="48"
-             xsi:schemaLocation="http://openmalaria.org/schema/scenario_48 scenario_current.xsd">
+<om:scenario xmlns:om="http://openmalaria.org/schema/scenario_49" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             name="Vector traps test" schemaVersion="49"
+             xsi:schemaLocation="http://openmalaria.org/schema/scenario_49 scenario_current.xsd">
     <demography maximumAgeYrs="90" name="Rachuonyo" popSize="800">
         <ageGroup lowerbound="0">
             <group poppercent="2.6" upperbound="1"/>

@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<om:scenario xmlns:om="http://openmalaria.org/schema/scenario_48" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" analysisNo="233" name="simple test of EIR input as monthly values" schemaVersion="48" wuID="0" xsi:schemaLocation="http://openmalaria.org/schema/scenario_48 scenario_current.xsd">
+<om:scenario xmlns:om="http://openmalaria.org/schema/scenario_49" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" analysisNo="233" name="simple test of EIR input as monthly values" schemaVersion="49" wuID="0" xsi:schemaLocation="http://openmalaria.org/schema/scenario_49 scenario_current.xsd">
   <demography maximumAgeYrs="90" name="test" popSize="100">
     <ageGroup lowerbound="0">
       <group poppercent="3.474714994" upperbound="1"/>

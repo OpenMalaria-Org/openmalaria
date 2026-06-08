@@ -5,8 +5,8 @@ Copyright © 2005-2015 Liverpool School Of Tropical Medicine
 Copyright © 2020-2025 University of Basel
 Copyright © 2025 The Kids Research Institute Australia
 Licence: GNU General Public Licence version 2 or later (see COPYING) -->
-<xs:schema targetNamespace="http://openmalaria.org/schema/scenario_48"
-           xmlns:om="http://openmalaria.org/schema/scenario_48"
+<xs:schema targetNamespace="http://openmalaria.org/schema/scenario_49"
+           xmlns:om="http://openmalaria.org/schema/scenario_49"
            xmlns:xs="http://www.w3.org/2001/XMLSchema">
   <xs:include schemaLocation="demography.xsd"/>
   <xs:include schemaLocation="monitoring.xsd"/>
