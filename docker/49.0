@@ -1,7 +1,7 @@
 FROM ubuntu:jammy AS builder
 WORKDIR /
 
-ARG OM_BRANCH=schema-49
+ARG OM_BRANCH=main
 ARG OM_VERSION=49
 
 # schema-48.0 release does not have changes required to build OM on linux/arm64.
