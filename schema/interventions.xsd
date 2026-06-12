@@ -1248,11 +1248,11 @@ Licence: GNU General Public Licence version 2 or later (see COPYING) -->
     <xs:annotation>
      <xs:documentation>
                   Pharmaco-Dynamic parameters for some resistance phenotype.
-                  
+
                   To model resistance to this drug, describe multiple infection
                   phenotypes (with respect to these PD parameters) and list one
                   or more &quot;restrict&quot; elements for each phenotype.
-                  
+
                   Loci are specified elsewhere. Multiple loci may influence the
                   action of a single drug and each locus may influence multiple
                   drugs.
@@ -1261,6 +1261,24 @@ Licence: GNU General Public Licence version 2 or later (see COPYING) -->
     </xs:annotation>
    </xs:element>
   </xs:sequence>
+  <xs:attribute name="cumulativeInfsCoeff" type="xs:double" use="optional">
+   <xs:annotation>
+    <xs:documentation>
+            Coefficient controlling how strongly initial vaccine efficacy
+            depends on the host's cumulative number of infections since
+            birth (m_cumulative_h). When the VAX_EFFICACY_VS_CUMULATIVE_INFS
+            model option is enabled, the sampled initial efficacy is
+            multiplied by exp(-cumulativeInfsCoeff * m_cumulative_h) on
+            each dose. This function is hardcoded. Larger values produce a
+            stronger reduction with prior exposure; zero recovers the
+            behaviour obtained when the model option is disabled.
+
+            Required if VAX_EFFICACY_VS_CUMULATIVE_INFS is enabled, ignored
+            otherwise.
+          </xs:documentation>
+    <xs:appinfo>units:dimensionless;min:0;name:Coefficient on cumulative infections for vaccine efficacy;</xs:appinfo>
+   </xs:annotation>
+  </xs:attribute>
  </xs:complexType>
  <xs:complexType name="ITNDescription">
   <xs:annotation>

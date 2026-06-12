@@ -261,10 +261,10 @@ namespace OM { namespace util {
         VACCINE_GENOTYPE,
 
         /** This makes the health system memory behaves as expected. With this
-         * option, specifying a health system memory of 30 days means that a 
-         * new clinical case will be reported as early as 30 days after the 
-         * initial case (6 time-steps), rather than 35d (7 time-steps) 
-         * currently. Setting the health system memory to 5 days allows the 
+         * option, specifying a health system memory of 30 days means that a
+         * new clinical case will be reported as early as 30 days after the
+         * initial case (6 time-steps), rather than 35d (7 time-steps)
+         * currently. Setting the health system memory to 5 days allows the
          * model to report a new clinical case every time step.
          */
         HEALTH_SYSTEM_MEMORY_FIX,
@@ -276,7 +276,13 @@ namespace OM { namespace util {
          */
         USE_EXACT_NV0_SOLVER,
 
-        
+        /** When this option is enabled, the initial vaccine efficacy sampled at
+		 * each vaccine dose is scaled down. The strength of this effect is
+		 * determined by the value of the cumulativeInfsCoeff attribute.
+         */
+        VAX_EFFICACY_VS_CUMULATIVE_INFS,
+
+
 	// Used by tests; should be 1 more than largest option
 	NUM_OPTIONS,
         

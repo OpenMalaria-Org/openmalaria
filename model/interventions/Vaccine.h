@@ -54,8 +54,12 @@ public:
 private:
     /** Get the initial efficacy of the vaccine.
      *
-     * @param numPrevDoses The number of prior vaccinations of the individual. */
-    double getInitialEfficacy (LocalRng& rng, size_t numPrevDoses, uint32_t genotype ) const;
+     * @param numPrevDoses The number of prior vaccinations of the individual.
+     * @param cumulativeH The host's cumulative number of infections since
+     *                    birth. Only used when the
+     *                    VAX_EFFICACY_VS_CUMULATIVE_INFS model option is
+     *                    enabled; ignored otherwise. */
+    double getInitialEfficacy (LocalRng& rng, size_t numPrevDoses, uint32_t genotype, double cumulativeH ) const;
 
     inline static const VaccineComponent& getParams( ComponentId component ){
         assert( component.id < params.size() && params[component.id] != 0 );
@@ -77,6 +81,13 @@ private:
 
     // VACCINE_GENOTYPE option
     bool opt_vaccine_genotype = false;
+
+    // VAX_EFFICACY_VS_CUMULATIVE_INFS option, and the coefficient governing
+    // the strength of the dependence. When the option is enabled, the
+    // sampled initial efficacy is multiplied by
+    // exp(-cumulativeInfsCoeff * m_cumulative_h).
+    bool opt_vax_efficacy_vs_cumulative_infs = false;
+    double cumulativeInfsCoeff = 0.0;
     
     /** @brief Vaccine static parameters
      * 

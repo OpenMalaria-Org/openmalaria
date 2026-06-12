@@ -81,6 +81,7 @@ namespace OM { namespace util {
         codeMap["CFR_PF_USE_HOSPITAL"] = CFR_PF_USE_HOSPITAL;
         codeMap["HEALTH_SYSTEM_MEMORY_FIX"] = HEALTH_SYSTEM_MEMORY_FIX;
         codeMap["USE_EXACT_NV0_SOLVER"] = USE_EXACT_NV0_SOLVER;
+        codeMap["VAX_EFFICACY_VS_CUMULATIVE_INFS"] = VAX_EFFICACY_VS_CUMULATIVE_INFS;
 	}
 	
 	OptionCodes operator[] (const string s) {

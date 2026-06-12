@@ -29,6 +29,7 @@
 #include "schema/interventions.h"
 #include "util/StreamValidator.h"
 #include "Host/WithinHost/Genotypes.h"
+#include "Host/WithinHost/WHInterface.h"
 
 #include <limits>
 #include <cmath>
@@ -48,8 +49,20 @@ VaccineComponent::VaccineComponent( ComponentId component, const scnXml::Vaccine
 {
     if( type == Vaccine::BSV && ModelOptions::option( util::VIVAX_SIMPLE_MODEL ) )
         throw util::unimplemented_exception( "blood stage vaccines (BSV) cannot be used with vivax model" );
-    
+
     opt_vaccine_genotype = util::ModelOptions::option (util::VACCINE_GENOTYPE);
+
+    opt_vax_efficacy_vs_cumulative_infs =
+        util::ModelOptions::option (util::VAX_EFFICACY_VS_CUMULATIVE_INFS);
+    if( opt_vax_efficacy_vs_cumulative_infs ){
+        if( !vd.getCumulativeInfsCoeff().present() ){
+            throw util::xml_scenario_error(
+                "Vaccine: cumulativeInfsCoeff attribute is required on each "
+                "vaccine description when the VAX_EFFICACY_VS_CUMULATIVE_INFS "
+                "model option is enabled" );
+        }
+        cumulativeInfsCoeff = vd.getCumulativeInfsCoeff().get();
+    }
 
     if( reportComponent == ComponentId::wholePop() /* the initial value */ ){
         // set to the first type described
@@ -160,7 +173,7 @@ void VaccineComponent::print_details(ostream& out) const
         out << id().id << "\t" << (type == Vaccine::PEV ? "PEV" : (type == Vaccine::BSV ? "BSV" : "TBV"));
 }
 
-double VaccineComponent::getInitialEfficacy (LocalRng& rng, size_t numPrevDoses, uint32_t genotype) const
+double VaccineComponent::getInitialEfficacy (LocalRng& rng, size_t numPrevDoses, uint32_t genotype, double cumulativeH) const
 {
     /* If initialMeanEfficacy.size or more doses have already been given, use
      * the last efficacy. */
@@ -170,20 +183,27 @@ double VaccineComponent::getInitialEfficacy (LocalRng& rng, size_t numPrevDoses,
     //NOTE(validation): With extra valiadation in random, the first difference is noticed here:
     util::streamValidate(ime);
     util::streamValidate(efficacyB);
+    double sampled;
     if (ime == 0.0){
-        return 0.0;
+        sampled = 0.0;
     } else if (ime < 1.0) {
-        double result = rng.betaWithMean (ime, efficacyB);
+        sampled = rng.betaWithMean (ime, efficacyB);
         //NOTE(validation):: Without extra validation in random, the first difference is noticed here:
-        util::streamValidate(result);
+        util::streamValidate(sampled);
         //TODO(validation):: Why the difference? Bug in/limitation of StreamValidatior?
         // Extra memory allocation due to the extra logging causes some bad
         // memory usage to manifest differently? Am I forgetting to initialise
         // some variable?
-        return result;
     } else {
-        return 1.0;
+        sampled = 1.0;
     }
+
+    // When the VAX_EFFICACY_VS_CUMULATIVE_INFS option is enabled, scale the
+    // sampled initial efficacy by exp(-cumulativeInfsCoeff * m_cumulative_h).
+    if( opt_vax_efficacy_vs_cumulative_infs && sampled > 0.0 ){
+        sampled *= std::exp( -cumulativeInfsCoeff * cumulativeH );
+    }
+    return sampled;
 }
 
 #if 0
@@ -247,8 +267,9 @@ bool PerHumanVaccine::possiblyVaccinate( Host::Human& human,
     
     effect->perGenotypeInitialEfficacy.resize(WithinHost::Genotypes::N());
 
+    const double cumulativeH = human.withinHostModel->getCumulative_h();
     for(size_t g=0; g<params.perGenotypeInitialMeanEfficacy.size(); g++)
-        effect->perGenotypeInitialEfficacy[g] = params.getInitialEfficacy(human.rng, numDosesAdministered, g);
+        effect->perGenotypeInitialEfficacy[g] = params.getInitialEfficacy(human.rng, numDosesAdministered, g, cumulativeH);
 
     util::streamValidate(effect->perGenotypeInitialEfficacy);
     

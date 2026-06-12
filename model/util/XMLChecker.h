@@ -55,6 +55,7 @@ namespace OM
             void PerformPostValidationChecks(const scnXml::Scenario& scenario)
             {
                 CheckModelOptionsAndParams(scenario);
+                CheckVaxEfficacyVsCumulativeInfs(scenario);
             }
         private:
 
@@ -72,6 +73,68 @@ namespace OM
                 {
                     throw util::xml_scenario_error(
                         "If a model name is not specified then both <ModelOptions> and <parameters> must be specified");
+                }
+            }
+
+            /*
+            * If the VAX_EFFICACY_VS_CUMULATIVE_INFS model option is enabled in the XML,
+            * then every vaccine description (PEV / BSV / TBV) must specify the optional
+            * cumulativeInfsCoeff attribute. Throw otherwise.
+            * 
+            * A user wanting to use the feature only for one vaccine component can simply
+            * set the coefficient to zero for all other vaccine components.
+            */
+            void CheckVaxEfficacyVsCumulativeInfs(const scnXml::Scenario& scenario)
+            {
+                if (!IsModelOptionEnabled(scenario, "VAX_EFFICACY_VS_CUMULATIVE_INFS"))
+                    return;
+
+                if (!scenario.getInterventions().getHuman().present())
+                    return;
+
+                const scnXml::HumanInterventions& human = scenario.getInterventions().getHuman().get();
+                for (auto it = human.getComponent().begin(), end = human.getComponent().end(); it != end; ++it)
+                {
+                    const scnXml::HumanInterventionComponent& component = *it;
+                    if (component.getPEV().present())
+                        RequireCumulativeInfsCoeff(component.getPEV().get(), "PEV", component.getId());
+                    if (component.getBSV().present())
+                        RequireCumulativeInfsCoeff(component.getBSV().get(), "BSV", component.getId());
+                    if (component.getTBV().present())
+                        RequireCumulativeInfsCoeff(component.getTBV().get(), "TBV", component.getId());
+                }
+            }
+
+            /*
+            * Returns true if the named option appears in the scenario's <ModelOptions>
+            * with an explicit or defaulted value of true. Returns false if the option
+            * is absent or explicitly disabled.
+            */
+            bool IsModelOptionEnabled(const scnXml::Scenario& scenario, const std::string& optionName)
+            {
+                if (!scenario.getModel().getModelOptions().present())
+                    return false;
+
+                const scnXml::OptionSet::OptionSequence& optSeq =
+                    scenario.getModel().getModelOptions().get().getOption();
+                for (auto it = optSeq.begin(); it != optSeq.end(); ++it)
+                {
+                    if (it->getName() == optionName)
+                        return it->getValue();
+                }
+                return false;
+            }
+
+            void RequireCumulativeInfsCoeff(const scnXml::VaccineDescription& vd,
+                                            const std::string& vaccineType,
+                                            const std::string& componentId)
+            {
+                if (!vd.getCumulativeInfsCoeff().present())
+                {
+                    throw util::xml_scenario_error(
+                        "Vaccine component \"" + componentId + "\" (" + vaccineType +
+                        "): cumulativeInfsCoeff attribute is required when the "
+                        "VAX_EFFICACY_VS_CUMULATIVE_INFS model option is enabled");
                 }
             }
         };
