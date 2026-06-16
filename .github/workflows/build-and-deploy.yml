@@ -28,10 +28,13 @@ jobs:
           tag_name: ${{ github.ref }}
           release_name: Release ${{ github.ref }}
           body: |
-            Release of OpenMalaria.
+              Release of OpenMalaria.
 
-            Updates: https://github.com/SwissTPH/openmalaria/wiki/SchemaUpdateGuide
-            Changelog: https://github.com/SwissTPH/openmalaria/wiki/Changelog
+              Docker images: https://hub.docker.com/r/swisstph/openmalaria/tags
+              How to update XML files: https://github.com/SwissTPH/openmalaria/wiki/SchemaUpdateGuide
+              Changelog: https://github.com/SwissTPH/openmalaria/wiki/Changelog
+              Example scenario: https://github.com/SwissTPH/openmalaria/blob/${{ github.ref_name }}/util/example/example_scenario.xml
+              XSD documentation: https://swisstph.github.io/openmalaria/${{ github.ref_name }}.html
           draft: false
           prerelease: false
 
