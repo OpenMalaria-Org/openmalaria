@@ -8,7 +8,7 @@ ARG OM_VERSION=49
 RUN apt-get update && apt-get install -y --no-install-recommends \
   build-essential ca-certificates git libz-dev python3 cmake libgsl-dev libxerces-c-dev xsdcxx libboost-dev \
   && rm -rf /var/lib/apt/lists/* \
-  && git clone --depth 1 --branch ${OM_BRANCH} https://github.com/SwissTPH/openmalaria.git \
+  && git clone --depth 1 --branch ${OM_BRANCH} https://github.com/OpenMalaria-Org/openmalaria.git \
   && cd openmalaria \
   && mkdir build \
   && cd build \

@@ -8,7 +8,7 @@ malaria.
 ------
 
 For further documentation, take a look at our
-[wiki](https://github.com/SwissTPH/openmalaria/wiki).
+[wiki](https://github.com/OpenMalaria-Org/openmalaria/wiki).
 
 Also find our code on zenodo, with DOI-references:
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.10534022.svg)](https://doi.org/10.5281/zenodo.10534022)
@@ -20,7 +20,7 @@ Schema documentation for the XML input files can be found
 or in the `schema` folder (both past releases and development version).
 
 You can download the latest build here:
-[releases](https://github.com/SwissTPH/openmalaria/releases)
+[releases](https://github.com/OpenMalaria-Org/openmalaria/releases)
 
 Version
 ======
@@ -42,7 +42,7 @@ however currently we keep both synchronised (in some ways this is simpler).
 
 Installation instructions:
 ==================
-See [INSTALLATION](https://github.com/SwissTPH/openmalaria/wiki/UserGuide).
+See [INSTALLATION](https://github.com/OpenMalaria-Org/openmalaria/wiki/UserGuide).
 
 Build instructions:
 ===================

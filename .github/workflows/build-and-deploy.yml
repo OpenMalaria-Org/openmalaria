@@ -30,8 +30,8 @@ jobs:
           body: |
             Release of OpenMalaria.
 
-            Updates: https://github.com/SwissTPH/openmalaria/wiki/SchemaUpdateGuide
-            Changelog: https://github.com/SwissTPH/openmalaria/wiki/Changelog
+            Updates: https://github.com/OpenMalaria-Org/openmalaria/wiki/SchemaUpdateGuide
+            Changelog: https://github.com/OpenMalaria-Org/openmalaria/wiki/Changelog
           draft: false
           prerelease: false
 

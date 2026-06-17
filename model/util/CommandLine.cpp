@@ -214,7 +214,7 @@ namespace OM { namespace util {
 	
 	if (cloVersion || cloHelp){
 		cerr<<"OpenMalaria simulator of malaria epidemiology and control."<<endl<< endl
-		<<"For more information, see https://github.com/SwissTPH/openmalaria/wiki"<<endl<<endl
+		<<"For more information, see https://github.com/OpenMalaria-Org/openmalaria/wiki"<<endl<<endl
 		<<"\tschema version: \t"   <<SCHEMA_VERSION<<endl
 		<<"\tprogram version:\t" << util::semantic_version <<endl<<endl
 		<<"\tCopyright © 2005-2026 Swiss Tropical and Public Health Institute"<<endl
