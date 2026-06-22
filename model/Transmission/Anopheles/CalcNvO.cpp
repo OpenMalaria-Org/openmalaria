@@ -180,7 +180,7 @@ static int CalcSvDiff_rf(const gsl_vector* x, void* p, gsl_vector* f) {
 	const double EpsAbsRF = 1e-7;
 	const size_t maxiterRF = 1000;
 
-	printf("Solving with GSL multiroot (Sv(Nv0) - SvfromEIR)... ");
+	// printf("Solving with GSL multiroot (Sv(Nv0) - SvfromEIR)... ");
 
 	struct SvDiffParams pararootfind = {
 		SvfromEIR,
@@ -198,7 +198,7 @@ static int CalcSvDiff_rf(const gsl_vector* x, void* p, gsl_vector* f) {
 
 	gsl_vector* SvDiff = gsl_vector_calloc(thetap);
 	CalcSvDiff(SvDiff, SvfromEIR, Upsilon, Nv0, inv1Xtp, eta, mt, thetap);
-	printf("The $l^1$ norm of SvDiff is %.17e \n", gsl_blas_dasum(SvDiff));
+	// printf("The $l^1$ norm of SvDiff is %.17e \n", gsl_blas_dasum(SvDiff));
 	gsl_vector_free(SvDiff);
 
 	gsl_vector* xrootfind = gsl_vector_alloc(thetap);
@@ -207,19 +207,19 @@ static int CalcSvDiff_rf(const gsl_vector* x, void* p, gsl_vector* f) {
 	const gsl_multiroot_fsolver_type* Trootfind = gsl_multiroot_fsolver_hybrids;
 	gsl_multiroot_fsolver* srootfind = gsl_multiroot_fsolver_alloc(Trootfind, thetap);
 
-	printf("Starting root-finding \n");
-	printf("About to set root-finding solver \n");
+	// printf("Starting root-finding \n");
+	// printf("About to set root-finding solver \n");
 	int status = gsl_multiroot_fsolver_set(srootfind, &frootfind, xrootfind);
-	printf("Set root-finding \n");
+	// printf("Set root-finding \n");
 	size_t iter = 0;
-	printf("iter = %5lu Nv0(1) = % .3f ||f||_1 = % .3f \n",
-		iter, gsl_vector_get(srootfind->x, 0), gsl_blas_dasum(srootfind->f));
+	// printf("iter = %5lu Nv0(1) = % .3f ||f||_1 = % .3f \n",
+		// iter, gsl_vector_get(srootfind->x, 0), gsl_blas_dasum(srootfind->f));
 	if (status == GSL_SUCCESS) {
 		do {
 			++iter;
 			status = gsl_multiroot_fsolver_iterate(srootfind);
-			printf("iter = %5lu Nv0(1) = % .3f ||f||_1 = % .3f \n",
-				iter, gsl_vector_get(srootfind->x, 0), gsl_blas_dasum(srootfind->f));
+			// printf("iter = %5lu Nv0(1) = % .3f ||f||_1 = % .3f \n",
+				// iter, gsl_vector_get(srootfind->x, 0), gsl_blas_dasum(srootfind->f));
 			if (status != GSL_SUCCESS) {
 				break;
 			}
@@ -234,8 +234,6 @@ static int CalcSvDiff_rf(const gsl_vector* x, void* p, gsl_vector* f) {
 	}
 	if (status != GSL_SUCCESS) {
 		printf("root finding failed: %s\n", gsl_strerror(status));
-	} else {
-		printf("Done\n");
 	}
 
 	gsl_multiroot_fsolver_free(srootfind);
@@ -246,7 +244,7 @@ static int CalcSvDiff_rf(const gsl_vector* x, void* p, gsl_vector* f) {
 [[maybe_unused]] static int solve_Nv0_linear(gsl_vector* Nv0, const gsl_vector* SvfromEIR,
 		const std::vector<gsl_matrix*> &Upsilon, gsl_matrix* inv1Xtp,
 		int eta, int mt, int thetap) {
-	printf("Solving linear system with analytic Jacobian (Nv0 -> Sv)... ");
+	// printf("Solving linear system with analytic Jacobian (Nv0 -> Sv)... ");
 
 	gsl_matrix* J = gsl_matrix_calloc(thetap, thetap);
 	CalcSvJacobian(J, Upsilon, inv1Xtp, eta, mt, thetap);
@@ -261,9 +259,7 @@ static int CalcSvDiff_rf(const gsl_vector* x, void* p, gsl_vector* f) {
 		status = gsl_linalg_LU_solve(JLU, perm, SvfromEIR, Nv0);
 	}
 	if (status) {
-		printf("Linear LU Nv0 solve failed: %s\n", gsl_strerror(status));
-	} else {
-		printf("Done\n");
+		// printf("Linear LU Nv0 solve failed: %s\n", gsl_strerror(status));
 	}
 
 	gsl_permutation_free(perm);

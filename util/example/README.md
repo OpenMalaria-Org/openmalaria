@@ -2,7 +2,7 @@ Open Malaria
 ============
 
 This is a pre-built version of OpenMalaria. For documentation, see:
-https://github.com/SwissTPH/openmalaria/wiki
+https://github.com/OpenMalaria-Org/openmalaria/wiki
 
 ### What's included ###
 

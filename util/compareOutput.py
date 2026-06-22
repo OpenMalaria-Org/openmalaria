@@ -155,7 +155,7 @@ def evalOptions (args):
     parser = OptionParser(usage="Usage: %prog [options] logfile1 logfile2 [max different lines to print]",
             # damn reformatting into a single paragraph: this doesn't get printed very nicely when --help is invoked
             description="""Compare logfile1 and logfile2 for differences, returning a measure of difference.
-See https://github.com/SwissTPH/openmalaria/wiki/UtilsRunScripts#compareoutputpy for details on output.""")
+See https://github.com/OpenMalaria-Org/openmalaria/wiki/UtilsRunScripts#compareoutputpy for details on output.""")
     
     parser.add_option("-R","--rel-precision",
             action="store", dest="rel_precision", type="float",

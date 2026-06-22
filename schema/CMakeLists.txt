@@ -46,7 +46,7 @@ foreach (XSD_NAME ${SCHEMA_NAMES})
     COMMAND ${XSD_EXECUTABLE} cxx-tree
         --std c++11
         --type-naming ucc --function-naming java
-        --namespace-map http://openmalaria.org/schema/scenario_48=scnXml
+        --namespace-map http://openmalaria.org/schema/scenario_49=scnXml
 #         --generate-serialization
         --generate-doxygen
         --generate-intellisense

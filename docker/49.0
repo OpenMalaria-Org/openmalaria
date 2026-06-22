@@ -1,11 +1,15 @@
-FROM ubuntu:kinetic as builder
+FROM ubuntu:jammy AS builder
 WORKDIR /
+
+ARG OM_BRANCH=main
+ARG OM_VERSION=49
+
+# schema-48.0 release does not have changes required to build OM on linux/arm64.
 RUN apt-get update && apt-get install -y --no-install-recommends \
   build-essential ca-certificates git libz-dev python3 cmake libgsl-dev libxerces-c-dev xsdcxx libboost-dev \
   && rm -rf /var/lib/apt/lists/* \
-  && git clone --depth 1 --branch schema-45.0 https://github.com/OpenMalaria-Org/openmalaria.git \
+  && git clone --depth 1 --branch ${OM_BRANCH} https://github.com/OpenMalaria-Org/openmalaria.git \
   && cd openmalaria \
-  # && echo "schema-30.3" > version.txt \
   && mkdir build \
   && cd build \
   && cmake -DCMAKE_BUILD_TYPE=Release .. \
@@ -13,17 +17,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   && cd .. \
   && mkdir openmalariaRelease \
   && cp build/openMalaria openmalariaRelease/ \
-  && cp build/schema/scenario_current.xsd openmalariaRelease/scenario_45.xsd \
+  && cp build/schema/scenario_current.xsd openmalariaRelease/scenario_${OM_VERSION}.xsd \
   && cp build/schema/scenario_current.xsd openmalariaRelease/ \
   && cp test/*.csv openmalariaRelease/
 
-FROM ubuntu:kinetic as openmalaria
+FROM ubuntu:jammy AS openmalaria
 WORKDIR /om/
 RUN apt-get update && apt-get install -y --no-install-recommends \
-  libgsl27 libxerces-c3.2 \
+  build-essential libgsl27 libxerces-c3.2 \
   && rm -rf /var/lib/apt/lists/*
 COPY --from=builder /openmalaria/openmalariaRelease/* ./
-ENTRYPOINT ["/om/openMalaria"]  
-
-# docker build -t openmalaria .
-# docker run -it --rm -v /home/acavelan/git/openmalaria/nhh:/root/nhh openmalaria -p nhh -s scenarioNonHumanHosts.xml
+ENTRYPOINT ["/om/openMalaria"]

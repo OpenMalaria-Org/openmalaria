@@ -108,7 +108,7 @@ clone () {
     else
         # Clone git repo
         if [ ! -d "$OMGIT" ] ; then
-            git clone --branch $BRANCH https://github.com/SwissTPH/openmalaria.git $OMGIT
+            git clone --branch $BRANCH https://github.com/OpenMalaria-Org/openmalaria.git $OMGIT
         else
             echo "Folder $OMGIT already exist, not cloning."
         fi

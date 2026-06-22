@@ -1,13 +1,14 @@
 FROM ubuntu:jammy AS builder
 WORKDIR /
 
-ARG OM_BRANCH=main
+ARG OM_BRANCH=schema-49
+ARG OM_VERSION=49
 
 # schema-48.0 release does not have changes required to build OM on linux/arm64.
 RUN apt-get update && apt-get install -y --no-install-recommends \
   build-essential ca-certificates git libz-dev python3 cmake libgsl-dev libxerces-c-dev xsdcxx libboost-dev \
   && rm -rf /var/lib/apt/lists/* \
-  && git clone --depth 1 --branch ${OM_BRANCH} https://github.com/SwissTPH/openmalaria.git \
+  && git clone --depth 1 --branch ${OM_BRANCH} https://github.com/OpenMalaria-Org/openmalaria.git \
   && cd openmalaria \
   && mkdir build \
   && cd build \
@@ -16,7 +17,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   && cd .. \
   && mkdir openmalariaRelease \
   && cp build/openMalaria openmalariaRelease/ \
-  && cp build/schema/scenario_current.xsd openmalariaRelease/scenario_48.xsd \
+  && cp build/schema/scenario_current.xsd openmalariaRelease/scenario_${OM_VERSION}.xsd \
   && cp build/schema/scenario_current.xsd openmalariaRelease/ \
   && cp test/*.csv openmalariaRelease/
 

@@ -3,7 +3,7 @@ WORKDIR /
 RUN apt-get update && apt-get install -y --no-install-recommends \
   build-essential ca-certificates git zlib1g-dev cmake libgsl-dev libxerces-c-dev xsdcxx libboost-dev python \
   && rm -rf /var/lib/apt/lists/* \
-  && git clone --depth 1 --branch schema-36.0 https://github.com/SwissTPH/openmalaria.git \
+  && git clone --depth 1 --branch schema-36.0 https://github.com/OpenMalaria-Org/openmalaria.git \
   && cd openmalaria \
   # && echo "schema-30.3" > version.txt \
   && mkdir build \

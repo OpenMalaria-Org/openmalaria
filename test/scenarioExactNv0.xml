@@ -19,11 +19,11 @@ You should have received a copy of the GNU General Public Licence
 along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor,
 Boston, MA 02110-1301, USA. -->
-<om:scenario xmlns:om="http://openmalaria.org/schema/scenario_48" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="Full set of interventions" schemaVersion="48" xsi:schemaLocation="http://openmalaria.org/schema/scenario_48 scenario_current.xsd">
+<om:scenario xmlns:om="http://openmalaria.org/schema/scenario_49" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="Full set of interventions" schemaVersion="49" xsi:schemaLocation="http://openmalaria.org/schema/scenario_49 scenario_current.xsd">
     <!-- This is an example scenario.
     More information is available in the official documentation: https://swisstph.github.io/openmalaria/schema-latest.html
-    And in the wiki: https://github.com/SwissTPH/openmalaria/wiki 
-    For on overview of xml parameters, see: https://github.com/SwissTPH/openmalaria/wiki/ScenarioDesign -->
+    And in the wiki: https://github.com/OpenMalaria-Org/openmalaria/wiki 
+    For on overview of xml parameters, see: https://github.com/OpenMalaria-Org/openmalaria/wiki/ScenarioDesign -->
     
     <!-- The following block describes the demography of the population -->
     <demography maximumAgeYrs="90" name="Ifakara" popSize="150">
@@ -55,7 +55,7 @@ Boston, MA 02110-1301, USA. -->
     Interventions can only be deployed AFTER the startDate/ -->
     <monitoring name="monthly surveys" startDate="2000-01-01">
         <!-- Specify the desired outputs here, the full list is available at:
-        https://github.com/SwissTPH/openmalaria/wiki/MonitoringOptions#survey-measures -->
+        https://github.com/OpenMalaria-Org/openmalaria/wiki/MonitoringOptions#survey-measures -->
         <SurveyOptions>
             <option name="nHost"/>          <!-- id 0 -->
             <option name="nInfect"/>        <!-- id 1 -->
@@ -82,14 +82,14 @@ Boston, MA 02110-1301, USA. -->
         and additionally you can repeat it every repeatStep for some repeatEnd period. 
         The diagnostic option is used for the 'nPatent' output and the diagnostic is specified
         in the <diagnostic></diagnostic> bloc at the of this file.
-        More information on the wiki: https://github.com/SwissTPH/openmalaria/wiki/Monitoring -->
+        More information on the wiki: https://github.com/OpenMalaria-Org/openmalaria/wiki/Monitoring -->
         <surveys diagnostic="deterministic">
             <surveyTime repeatStep="5d" repeatEnd="2001-01-01">2000-01-01</surveyTime> 
         </surveys>
         <!-- The following age groups will be used in the output. By default, all the 
         specified SurveyOptions specified above that support age groups will use them.
         OpenMalaria will output one more line per age group.
-        To interpret the txt output, see: https://github.com/SwissTPH/openmalaria/wiki/MonitoringOutput -->
+        To interpret the txt output, see: https://github.com/OpenMalaria-Org/openmalaria/wiki/MonitoringOutput -->
         <ageGroup lowerbound="0">
             <group upperbound="0.5"/>
             <group upperbound="1"/>
@@ -102,11 +102,11 @@ Boston, MA 02110-1301, USA. -->
         </ageGroup>
     </monitoring>
 
-    <!-- Deploy interventions here, see: https://github.com/SwissTPH/openmalaria/wiki/ModelInterventions -->
+    <!-- Deploy interventions here, see: https://github.com/OpenMalaria-Org/openmalaria/wiki/ModelInterventions -->
     <interventions name="No Intervs">
     </interventions>
 
-    <!-- Specify health system parameters here, see: https://github.com/SwissTPH/openmalaria/wiki/ScenarioHealthSystem -->
+    <!-- Specify health system parameters here, see: https://github.com/OpenMalaria-Org/openmalaria/wiki/ScenarioHealthSystem -->
     <healthSystem>
         <!-- The more flexible DecisionTree5Day replaces the older ImmediateOutcomes. 
         The probabilities below are greatly affected by the presence (or the absence) of a clinic or hospital on site -->
@@ -272,7 +272,7 @@ Boston, MA 02110-1301, USA. -->
     </entomology>
 
     <!-- This diagnostic object can be used in several places, including in the monitoring section and in the NeoNatalMortality model.
-    It is also possible to specify stochastic diagnostics, see: https://github.com/SwissTPH/openmalaria/wiki/Diagnostics -->
+    It is also possible to specify stochastic diagnostics, see: https://github.com/OpenMalaria-Org/openmalaria/wiki/Diagnostics -->
     <diagnostics>
         <diagnostic name="deterministic">
             <deterministic minDensity="40"/>

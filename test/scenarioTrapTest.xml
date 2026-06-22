@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<om:scenario xmlns:om="http://openmalaria.org/schema/scenario_48" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="Vector traps test" schemaVersion="48" xsi:schemaLocation="http://openmalaria.org/schema/scenario_48 scenario_current.xsd">
+<om:scenario xmlns:om="http://openmalaria.org/schema/scenario_49" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="Vector traps test" schemaVersion="49" xsi:schemaLocation="http://openmalaria.org/schema/scenario_49 scenario_current.xsd">
   <!--
 I would suggest that there are two steps here- getting something running in v35 for testing, and then adjusting it for simulating Rusinga.
 We need to include the full-life cycle model since there is clearly an effect on emergence rates at least for funestus, and this might be a good test of this as well as of the new v35 functionality.
