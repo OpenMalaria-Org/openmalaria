@@ -70,6 +70,11 @@ namespace OM { namespace util {
 			NUM_OPTIONS
 		};
 
+		enum class OutputFormat {
+			TXT,
+			BIN
+		};
+
 	/** Return true if given option (from CommandLine::Options) is active. */
 		static inline bool option(size_t code) {
 			return options.test(code);
@@ -81,6 +86,10 @@ namespace OM { namespace util {
         /** Get the name of the output file. */
 		static inline string getOutputName (){
 			return outputName;
+		}
+
+		static inline OutputFormat getOutputFormat (){
+			return outputFormat;
 		}
 
     /** Get the name of the ctsout file. */
@@ -117,6 +126,7 @@ private:
 	
 	//Output filename (for main output file "output.txt")
 	static string outputName;
+	static OutputFormat outputFormat;
 	static string ctsoutName;
 	static string checkpointFileName;
 };

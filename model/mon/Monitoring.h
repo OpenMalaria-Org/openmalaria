@@ -34,11 +34,6 @@
 #include <string>
 #include <vector>
 
-namespace scnXml {
-class Scenario;
-class Monitoring;
-}
-
 namespace OM {
 namespace Host {
 class Human;
@@ -74,8 +69,6 @@ struct MeasureLayout {
 
     size_t size() const;
     size_t index(size_t a, size_t c, size_t sp, size_t g, size_t d) const;
-    void write(std::ostream& stream, int surveyNum, const OutMeasure& om,
-               const std::vector<double>& results, size_t surveyStart) const;
 };
 
 struct MeasureStore {
@@ -93,7 +86,6 @@ struct SurveyStore {
                 size_t species, size_t genotype, size_t drug, int outId = 0,
                 Deploy::Method method = Deploy::NA);
     double sum(Measure measure, uint8_t method, size_t survey) const;
-    void write(std::ostream& stream, size_t survey, const OutMeasure& om) const;
     bool uses(Measure measure) const;
     void checkpoint(std::ostream& stream);
     void checkpoint(std::istream& stream);
@@ -139,7 +131,6 @@ uint32_t updateCohortSet(uint32_t old, interventions::ComponentId subPop, bool i
 
 // ----- management API -----
 
-void initAgeGroups(const scnXml::Monitoring& monitoring);
 void updateAgeGroup(size_t& index, SimTime age);
 void initMainSim();
 void concludeSurvey();

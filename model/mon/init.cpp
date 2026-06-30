@@ -49,7 +49,21 @@ bool notPowerOfTwo(uint32_t num)
     return num == 0 || num > (static_cast<uint32_t>(1) << 21) || (num & (num - 1)) != 0;
 }
 
+void initAgeGroups(const scnXml::Monitoring& monitoring)
+{
+    const scnXml::MonAgeGroup::GroupSequence& groups = monitoring.getAgeGroup().getGroup();
+    if (!(monitoring.getAgeGroup().getLowerbound() <= 0.0)) {
+        throw util::xml_scenario_error("Expected survey age-group lowerbound of 0");
+    }
+
+    runtime.ageGroupUpperBound.resize(groups.size() + 1);
+    for (size_t i = 0; i < groups.size(); ++i) {
+        runtime.ageGroupUpperBound[i] = sim::fromYearsD(groups[i].getUpperbound());
+    }
+    runtime.ageGroupUpperBound[groups.size()] = sim::future();
 }
+
+} // namespace
 
 void initReporting(const scnXml::Scenario& scenario)
 {
@@ -233,20 +247,6 @@ void initCohorts(const scnXml::Monitoring& monitoring)
         runtime.cohortSubPopNumbers.push_back(it->getNumber());
         nextId += 1;
     }
-}
-
-void initAgeGroups(const scnXml::Monitoring& monitoring)
-{
-    const scnXml::MonAgeGroup::GroupSequence& groups = monitoring.getAgeGroup().getGroup();
-    if (!(monitoring.getAgeGroup().getLowerbound() <= 0.0)) {
-        throw util::xml_scenario_error("Expected survey age-group lowerbound of 0");
-    }
-
-    runtime.ageGroupUpperBound.resize(groups.size() + 1);
-    for (size_t i = 0; i < groups.size(); ++i) {
-        runtime.ageGroupUpperBound[i] = sim::fromYearsD(groups[i].getUpperbound());
-    }
-    runtime.ageGroupUpperBound[groups.size()] = sim::future();
 }
 
 } // namespace mon
