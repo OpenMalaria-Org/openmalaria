@@ -36,7 +36,6 @@ namespace mon {
 
 using Measure = uint16_t;
 inline constexpr Measure invalidMeasure = std::numeric_limits<Measure>::max() - 2;
-inline constexpr Measure obsoleteMeasure = std::numeric_limits<Measure>::max() - 1;
 inline constexpr Measure allCauseIMR = std::numeric_limits<Measure>::max();
 
 namespace Deploy {
@@ -68,7 +67,6 @@ struct OutMeasure {
     Dim dims = Dim::None;
     uint8_t method = Deploy::NA;
     const char* internalName = nullptr; // defs[] only
-    bool obsolete = false;       // defs[] only
     Measure m = 0;               // resolved at init-time
 };
 
@@ -119,7 +117,7 @@ inline constexpr OutMeasure defs[] = {
         {"totalPatentInf_Introduced", 2008, false, Dim::Age | Dim::Cohort | Dim::Genotype},
         {"totalPatentInf_Indigenous", 3008, false, Dim::Age | Dim::Cohort | Dim::Genotype},
         /// Contribuion to immunity functions (removed)
-        {"contrib", 9, false, Dim::None, Deploy::NA, nullptr, true},
+        // {"contrib", 9, false, Dim::None},
         /// Sum of the pyrogenic threshold
         {"sumPyrogenThresh", 10, true, Dim::Age | Dim::Cohort},
         /// number of blood-stage treatments (1st line)
@@ -166,7 +164,7 @@ inline constexpr OutMeasure defs[] = {
         /// sequelae in hospital
         {"nHospitalSeqs", 24, false, Dim::Age | Dim::Cohort},
         /// Number of IPT Doses (removed together with IPT model)
-        {"nIPTDoses", 25, false, Dim::None, Deploy::NA, nullptr, true},
+        // {"nIPTDoses", 25, false, Dim::None},
         /** Annual Average Kappa
         *
         * Calculated once a year as sum of human infectiousness divided by initial
@@ -176,10 +174,10 @@ inline constexpr OutMeasure defs[] = {
         {"nNMFever", 27, false, Dim::Age | Dim::Cohort},
         /// Inoculations per human (all ages) per day of year, over the last year.
         /// (Reporting removed.)
-        {"innoculationsPerDayOfYear", 28, false, Dim::None, Deploy::NA, nullptr, true},
+        // {"innoculationsPerDayOfYear", 28, false, Dim::None},
         /// Kappa (human infectiousness) weighted by availability per day-of-year for the last year.
         /// (Reporting removed.)
-        {"kappaPerDayOfYear", 29, false, Dim::None, Deploy::NA, nullptr, true},
+        // {"kappaPerDayOfYear", 29, false, Dim::None},
         /** The total number of inoculations, by age group, cohort and parasite
         * genotype, summed over the reporting period. */
         {"innoculationsPerAgeGroup", 30, true, Dim::Age | Dim::Cohort | Dim::Genotype},
@@ -203,7 +201,7 @@ inline constexpr OutMeasure defs[] = {
         {"simulatedEIR_Introduced", 2036, true, Dim::None},
         {"simulatedEIR_Indigenous", 3036, true, Dim::None},
         /// Number of Rapid Diagnostic Tests used
-        {"Clinical_RDTs", 39, false, Dim::None, Deploy::NA, nullptr, true},
+        // {"Clinical_RDTs", 39, false, Dim::None},
         /* Effective total quanty of each drug used orally, in mg.
         * (Per active ingredient abbreviation.)
         *
@@ -211,7 +209,7 @@ inline constexpr OutMeasure defs[] = {
         * schedule definition).
         *
         * Reporting removed. */
-        {"Clinical_DrugUsage", 40, false, Dim::None, Deploy::NA, nullptr, true},
+        // {"Clinical_DrugUsage", 40, false, Dim::None},
         /// Direct death on first day of CM (before treatment takes effect)
         {"Clinical_FirstDayDeaths", 41, false, Dim::Age | Dim::Cohort},
         /// Direct death on first day of CM (before treatment takes effect); hospital only
@@ -236,15 +234,15 @@ inline constexpr OutMeasure defs[] = {
         {"nMassIRS", 46, false, Dim::Age | Dim::Cohort, Deploy::TIMED, "irs"},
         /** Defunct; was used by "vector availability" intervention (which is now a
         * sub-set of GVI). */
-        {"nMassVA", 47, false, Dim::None, Deploy::NA, nullptr, true},
+        // {"nMassVA", 47, false, Dim::None},
         /// Number of malarial tests via microscopy used
-        {"Clinical_Microscopy", 48, false, Dim::None, Deploy::NA, nullptr, true},
+        // {"Clinical_Microscopy", 48, false, Dim::None},
         /* As Clinical_DrugUsage, but for quatities of drug delivered via IV. */
-        {"Clinical_DrugUsageIV", 49, false, Dim::None, Deploy::NA, nullptr, true},
+        // {"Clinical_DrugUsageIV", 49, false, Dim::None},
         /// Number of cohort recruitments removed)
-        {"nAddedToCohort", 50, false, Dim::None, Deploy::NA, nullptr, true},
+        // {"nAddedToCohort", 50, false, Dim::None},
         /// Number of individuals removed from cohort (removed)
-        {"nRemovedFromCohort", 51, false, Dim::None, Deploy::NA, nullptr, true},
+        // {"nRemovedFromCohort", 51, false, Dim::None},
         /** Number of people (per age group) treated by mass drug administration
         * campaign. (Note that in one day time-step model MDA can be configured
         * as screen-and-treat. This option reports treatments administered not
@@ -253,7 +251,7 @@ inline constexpr OutMeasure defs[] = {
         /// Number of deaths caused by non-malaria fevers
         {"nNmfDeaths", 53, false, Dim::Age | Dim::Cohort},
         /// Number of antibiotic treatments given (disabled — not used)
-        {"nAntibioticTreatments", 54, false, Dim::None, Deploy::NA, nullptr, true},
+        // {"nAntibioticTreatments", 54, false, Dim::None},
         /** Report the number of screenings used in a mass screen-and-treat
         * operation. */
         {"nMassScreenings", 55, false, Dim::Age | Dim::Cohort, Deploy::TIMED, "screen"},
@@ -401,13 +399,21 @@ constexpr std::string_view measureKey(const OutMeasure& d)
     return d.internalName != nullptr ? std::string_view(d.internalName) : std::string_view(d.userName);
 }
 
+inline bool isObsoleteMeasure(std::string_view name)
+{
+    return name == "contrib" || name == "nIPTDoses" || name == "innoculationsPerDayOfYear" ||
+        name == "kappaPerDayOfYear" || name == "Clinical_RDTs" || name == "Clinical_DrugUsage" ||
+        name == "nMassVA" || name == "Clinical_Microscopy" || name == "Clinical_DrugUsageIV" ||
+        name == "nAddedToCohort" || name == "nRemovedFromCohort" || name == "nAntibioticTreatments";
+}
+
 constexpr bool isFirstBuiltinMeasure(size_t i)
 {
-    if (defs[i].obsolete || isAllCauseDef(defs[i])) return false;
+    if (isAllCauseDef(defs[i])) return false;
     const std::string_view current = measureKey(defs[i]);
     if (current.empty()) return false;
     for (size_t j = 0; j < i; ++j) {
-        if (defs[j].obsolete || isAllCauseDef(defs[j])) continue;
+        if (isAllCauseDef(defs[j])) continue;
         if (measureKey(defs[j]) == current) return false;
     }
     return true;
@@ -451,9 +457,7 @@ inline void defineOutMeasures(NamedMeasureMapT& namedOutMeasures, std::set<Measu
     std::set<int> seenIDs;
     for (const OutMeasure& d : defs) {
         OutMeasure om = d;
-        if (d.obsolete) {
-            om.m = obsoleteMeasure;
-        } else if (isAllCauseDef(d)) {
+        if (isAllCauseDef(d)) {
             om.m = allCauseIMR;
         } else {
             const std::string_view key = measureKey(d);

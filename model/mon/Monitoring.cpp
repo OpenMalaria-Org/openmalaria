@@ -256,45 +256,28 @@ void writeMeasure(ostream& stream, bool binary, size_t survey, const OutMeasure&
     const vector<double>& results = store.reports;
     const size_t surveyStart = survey * layout.size();
     assert(results.size() >= surveyStart + layout.size());
+    const bool bySpecies = hasDim(om.dims, Dim::Species);
+    const bool byDrug = hasDim(om.dims, Dim::Drug);
     const int ageGroupAdd = hasDim(om.dims, Dim::Age) ? 1 : 0;
     const size_t nAgeCats = layout.nAges == 1 ? 1 : layout.nAges - 1;
 
-    auto writeCell = [&](size_t ageGroup, size_t cohortSet, size_t species, size_t genotype, size_t drug, int col2) {
-        const double value = results[surveyStart + layout.index(ageGroup, cohortSet, species, genotype, drug)];
-        writeRow(stream, binary, surveyNum, col2, om.outId, value, om.isDouble);
-    };
-
-    if (hasDim(om.dims, Dim::Species)) {
+    if (bySpecies) {
         assert(layout.nAges == 1 && layout.nCohorts == 1 && layout.nDrugs == 1);
-        for (size_t species = 0; species < layout.nSpecies; ++species) {
-        for (size_t genotype = 0; genotype < layout.nGenotypes; ++genotype) {
-            writeCell(0, 0, species, genotype, 0, species + 1 + 1000000 * genotype);
-        } }
-        return;
     }
-
-    if (hasDim(om.dims, Dim::Drug)) {
+    if (byDrug) {
         assert(layout.nSpecies == 1 && layout.nGenotypes == 1);
-        for (size_t cohortSet = 0; cohortSet < layout.nCohorts; ++cohortSet) {
-        for (size_t ageGroup = 0; ageGroup < nAgeCats; ++ageGroup) {
-        for (size_t drug = 0; drug < layout.nDrugs; ++drug) {
-            const int col2 = ageGroup + ageGroupAdd +
-                1000 * cohortSetOutputId(cohortSet) +
-                1000000 * (drug + 1);
-            writeCell(ageGroup, cohortSet, 0, 0, drug, col2);
-        } } }
-        return;
     }
-
-    assert(layout.nSpecies == 1 && layout.nDrugs == 1);
     for (size_t cohortSet = 0; cohortSet < layout.nCohorts; ++cohortSet) {
     for (size_t ageGroup = 0; ageGroup < nAgeCats; ++ageGroup) {
+    for (size_t species = 0; species < layout.nSpecies; ++species) {
     for (size_t genotype = 0; genotype < layout.nGenotypes; ++genotype) {
-        const int col2 = ageGroup + ageGroupAdd +
-            1000 * cohortSetOutputId(cohortSet) +
-            1000000 * genotype;
-        writeCell(ageGroup, cohortSet, 0, genotype, 0, col2);
-    } } }
+    for (size_t drug = 0; drug < layout.nDrugs; ++drug) {
+        const int col2 = bySpecies
+            ? species + 1 + 1000000 * genotype
+            : ageGroup + ageGroupAdd + 1000 * cohortSetOutputId(cohortSet) + 1000000 * (byDrug ? drug + 1 : genotype);
+        const double value = results[surveyStart + layout.index(ageGroup, cohortSet, species, genotype, drug)];
+        writeRow(stream, binary, surveyNum, col2, om.outId, value, om.isDouble);
+    } } } } }
 }
 
 void write(ostream& stream, bool binary)

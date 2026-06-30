@@ -90,13 +90,13 @@ void initReporting(const scnXml::Scenario& scenario)
 
         auto it = runtime.namedOutMeasures.find(optElt.getName());
         if (it == runtime.namedOutMeasures.end()) {
+            if (isObsoleteMeasure(optElt.getName())) {
+                throw util::xml_scenario_error("obsolete survey option: " + std::string(optElt.getName()));
+            }
             throw util::xml_scenario_error("unrecognised survey option: " + std::string(optElt.getName()));
         }
         OutMeasure om = it->second;
         if (om.m >= MeasureCount) {
-            if (om.m == obsoleteMeasure) {
-                throw util::xml_scenario_error("obsolete survey option: " + std::string(optElt.getName()));
-            }
             assert(om.m == allCauseIMR);
             const bool byAge = optElt.getByAge().present() && optElt.getByAge().get();
             const bool byCohort = optElt.getByCohort().present() && optElt.getByCohort().get();
