@@ -22,7 +22,7 @@
 
 #include "Host/WithinHost/Pathogenesis/Submodels.h"
 #include "Host/Human.h"
-#include "mon/reporting.h"
+#include "mon/Monitoring.h"
 #include "util/random.h"
 #include "util/ModelOptions.h"
 #include "util/errors.h"
@@ -117,8 +117,8 @@ Pathogenesis::StatePair PathogenesisModel::determineState(Host::Human& human,
         
         // Expectation of a severe bout:
         const double exSevere = prSevereEpisode + (1.0 - prSevereEpisode) * pCoinfection;
-        mon::reportStatMHF( mon::MHF_EXPECTED_SEVERE, human, exSevere );
-        mon::reportStatMHF( mon::MHF_EXPECTED_SEVERE_WITHOUT_COMORBIDITIES, human, prSevereEpisode );
+        mon::recordStat(mon::measure("expectedSevere"), human, exSevere);
+        mon::recordStat(mon::measure("expectedSevereWithoutComorbidities"), human, prSevereEpisode);
         
         if( human.rng.bernoulli( prSevereEpisode ) )
             result.state = STATE_SEVERE;
@@ -134,7 +134,7 @@ Pathogenesis::StatePair PathogenesisModel::determineState(Host::Human& human,
         // of malaria conditional on not having an acute attack of malaria
         double indirectRisk = pg_indirRiskCoFactor * comorb_factor;
         if( !isDoomed ){
-            mon::reportStatMHF( mon::MHF_EXPECTED_INDIRECT_DEATHS, human, indirectRisk );
+            mon::recordStat(mon::measure("expectedIndirectDeaths"), human, indirectRisk);
         }
         //NOTE: we could only evaluate indirectMortality if not already doomed,
         // except that (a) it affects random numbers, and (b) it affects

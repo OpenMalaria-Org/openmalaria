@@ -22,7 +22,7 @@
 
 #include "Host/WithinHost/Pathogenesis/Submodels.h"
 #include "Parameters.h"
-#include "mon/reporting.h"
+#include "mon/Monitoring.h"
 
 #include <cmath>
 using namespace std;
@@ -93,8 +93,8 @@ double PyrogenPathogenesis::getPEpisode(double timeStepMaxDensity, double totalD
 }
 
 void PyrogenPathogenesis::summarize (const Host::Human& human) {
-    mon::reportStatMHF( mon::MHF_PYROGENIC_THRESHOLD, human, _pyrogenThres );
-    mon::reportStatMHF( mon::MHF_LOG_PYROGENIC_THRESHOLD, human, log(_pyrogenThres+1.0) );
+    mon::recordStat(mon::measure("sumPyrogenThresh"), human, _pyrogenThres);
+    mon::recordStat(mon::measure("sumLogPyrogenThres"), human, log(_pyrogenThres+1.0) );
 }
 
 void PyrogenPathogenesis::updatePyrogenThres(double totalDensity){

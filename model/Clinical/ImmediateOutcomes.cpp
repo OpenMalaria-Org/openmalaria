@@ -190,14 +190,14 @@ void ImmediateOutcomes::uncomplicatedEvent (
         // UC2: official care only
         
         if( useDiagnosticUC ){
-            mon::reportEventMHI( mon::MHT_TREAT_DIAGNOSTICS, human, 1 );
+            mon::recordEvent(mon::measure("nTreatDiagnostics"), human, 1);
             auto diag = WithinHost::diagnostics::monitoringDiagnostic();
             if( !human.withinHostModel->diagnosticResult(human.rng, diag) )
                 return; // negative outcome: no treatment
         }
         
         m_tLastTreatment = sim::ts0();
-        mon::reportEventMHI( measures[regimen], human, 1 );
+        mon::recordEvent(measures[regimen], human, 1);
         
         double p = ( x < accessUCSelfTreat[regimen] * m_treatmentSeekingFactor ) ?
             cureRateUCSelfTreat[regimen] : cureRateUCOfficial[regimen];

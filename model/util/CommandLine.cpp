@@ -36,6 +36,7 @@ namespace OM { namespace util {
 	bitset<CommandLine::NUM_OPTIONS> CommandLine::options;
 	string CommandLine::resourcePath;
 	string CommandLine::outputName;
+	CommandLine::OutputFormat CommandLine::outputFormat = CommandLine::OutputFormat::TXT;
 	string CommandLine::ctsoutName;
 	string CommandLine::checkpointFileName;
 
@@ -64,6 +65,7 @@ namespace OM { namespace util {
 		bool cloHelp = false, cloVersion = false, cloError = false;
 		string scenarioFile = "";
 		outputName = "";
+		outputFormat = OutputFormat::TXT;
 		ctsoutName = "";
 #	ifdef OM_STREAM_VALIDATOR
 		string sVFile;
@@ -98,6 +100,15 @@ namespace OM { namespace util {
 						throw cmd_exception ("--output argument may only be given once");
 					}
 					outputName = parseNextArg (argc, argv, i);
+				} else if (clo == "output-format") {
+					string format = parseNextArg (argc, argv, i);
+					if (format == "txt") {
+						outputFormat = OutputFormat::TXT;
+					} else if (format == "bin") {
+						outputFormat = OutputFormat::BIN;
+					} else {
+						throw cmd_exception ("--output-format must be txt or bin");
+					}
 				} else if (clo == "compress-output") {
 					options.set (COMPRESS_OUTPUT);
 				} else if (clo == "ctsout") {
@@ -235,7 +246,9 @@ namespace OM { namespace util {
 		<< "			working directory). Not used for output files."<<endl
 		<< " -s --scenario file.xml	Uses file.xml as the scenario. If not given, scenario.xml is used." << endl
 		<< "			If path is relative (doesn't start '/'), --resource-path is used."<<endl
-		<< " -o --output file.txt	Uses file.txt as output file name. If not given, output.txt is used." << endl
+		<< " -o --output file	Uses file as output file name. If not given, output.txt or output.bin is used." << endl
+		<< "    --output-format txt|bin" << endl
+		<< "			Select main survey output format." << endl
 		<< "    --ctsout file.txt	Uses file.txt as ctsout file name. If not given, ctsout.txt is used." << endl
 		<< " -n --name NAME		Equivalent to --scenario scenarioNAME.xml --output outputNAME.txt \\"<<endl
 		<< "			--ctsout ctsoutNAME.txt" <<endl
@@ -289,8 +302,13 @@ namespace OM { namespace util {
 	if (scenarioFile == ""){
 		scenarioFile = "scenario.xml";
 	}
+	if (outputFormat == OutputFormat::BIN) {
+		if (options.test(COMPRESS_OUTPUT)) {
+			throw cmd_exception("--compress-output cannot be used with --output-format bin");
+		}
+	}
 	if (outputName == ""){
-		outputName = "output.txt";
+		outputName = outputFormat == OutputFormat::BIN ? "output.bin" : "output.txt";
 	}
 	if (ctsoutName == ""){
 		ctsoutName = "ctsout.txt";

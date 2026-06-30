@@ -404,7 +404,7 @@ protected:
     
     virtual CMDTOut exec( CMHostData hostData ) const{
         for( const size_t outId : outIds ){
-            mon::reportEventMHI_CMDT( mon::MCD_CMDT_REPORT, hostData.human, 1, outId);
+            mon::recordStat(mon::measure("nCMDTReport"), hostData.human, 1, 0, 0, 0, outId);
         }
         return CMDTOut(false);
     }

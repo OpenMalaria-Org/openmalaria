@@ -23,7 +23,7 @@
 #include "Clinical/EventScheduler.h"
 #include "util/random.h"
 #include "Host/WithinHost/WHInterface.h"
-#include "mon/reporting.h"
+#include "mon/Monitoring.h"
 #include "util/ModelOptions.h"
 #include "util/errors.h"
 #include "util/StreamValidator.h"
@@ -174,7 +174,7 @@ void ClinicalEventScheduler::doClinicalUpdate (Human& human, double ageYears, Wi
         } else {
 	    if ( pgState & Episode::COMPLICATED ) {
                 const double pSequelae = pSequelaeInpatient.eval( ageYears );
-                mon::reportStatMHF( mon::MHF_EXPECTED_SEQUELAE, human, pSequelae );
+                mon::recordStat(mon::measure("expectedSequelae"), human, pSequelae);
 		if( human.rng.uniform_01() < pSequelae ){
 		    pgState = Episode::State (pgState | Episode::SEQUELAE);
                 }else{
@@ -253,17 +253,17 @@ void ClinicalEventScheduler::doClinicalUpdate (Human& human, double ageYears, Wi
         if( auxOut.treated ){	// I.E. some treatment was given
             timeLastTreatment = sim::ts0();
             if( pgState & Episode::COMPLICATED ){
-                mon::reportEventMHI( mon::MHT_TREATMENTS_3, human, 1 );
+                mon::recordEvent(mon::measure("nTreatments3"), human, 1);
             }else{
                 if( pgState & Episode::SECOND_CASE ){
-                    mon::reportEventMHI( mon::MHT_TREATMENTS_2, human, 1 );
+                    mon::recordEvent(mon::measure("nTreatments2"), human, 1);
                 }else{
-                    mon::reportEventMHI( mon::MHT_TREATMENTS_1, human, 1 );
+                    mon::recordEvent(mon::measure("nTreatments1"), human, 1);
                 }
             }
         }
         if( auxOut.screened ){
-            mon::reportEventMHI( mon::MHT_TREAT_DIAGNOSTICS, human, 1 );
+            mon::recordEvent(mon::measure("nTreatDiagnostics"), human, 1);
         }
 	
 	if ( true /*FIXME auxOut.hospitalisation != CMAuxOutput::NONE*/ ) {	// in hospital
@@ -283,9 +283,9 @@ void ClinicalEventScheduler::doClinicalUpdate (Human& human, double ageYears, Wi
 	    // community fatality rate when not in hospital or delayed hospital entry
             if( !inHospital )
                 pDeath = getCommunityCFR( pDeath );
-            mon::reportStatMHF( mon::MHF_EXPECTED_DIRECT_DEATHS, human, pDeath );
+            mon::recordStat(mon::measure("expectedDirectDeaths"), human, pDeath);
             if( inHospital )
-                mon::reportStatMHF( mon::MHF_EXPECTED_HOSPITAL_DEATHS, human, pDeath );
+                mon::recordStat(mon::measure("expectedHospitalDeaths"), human, pDeath);
 	    if (human.rng.uniform_01() < pDeath) {
 		pgState = Episode::State (pgState | Episode::DIRECT_DEATH | Episode::EVENT_FIRST_DAY);
 		// Human is killed at end of time at risk
@@ -370,9 +370,9 @@ void ClinicalEventScheduler::doClinicalUpdate (Human& human, double ageYears, Wi
 		// community fatality rate when not in hospital
 		if( !(pgState & Episode::EVENT_IN_HOSPITAL) )
 		    pDeath = getCommunityCFR( pDeath );
-                mon::reportStatMHF( mon::MHF_EXPECTED_DIRECT_DEATHS, human, pDeath );
+                mon::recordStat(mon::measure("expectedDirectDeaths"), human, pDeath);
                 if( pgState & Episode::EVENT_IN_HOSPITAL )
-                    mon::reportStatMHF( mon::MHF_EXPECTED_HOSPITAL_DEATHS, human, pDeath );
+                    mon::recordStat(mon::measure("expectedHospitalDeaths"), human, pDeath);
 		if (human.rng.uniform_01() < pDeath) {
 		    pgState = Episode::State (pgState | Episode::DIRECT_DEATH);
 		    // Human is killed at end of time at risk

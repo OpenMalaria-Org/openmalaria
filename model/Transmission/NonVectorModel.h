@@ -26,7 +26,7 @@
 #include "TransmissionModel.h"
 #include "util/vectors.h"
 #include "Host/Human.h"
-#include "mon/info.h"
+#include "mon/Monitoring.h"
 
 namespace scnXml
 {
@@ -209,9 +209,9 @@ public:
 #endif
         EIR_l[0] *= human.perHostTransmission.relativeAvailabilityHetAge(ageYears);
 
-        auto ag = human.monitoringAgeGroup.i();
+        auto ag = human.monitoringAgeGroup;
         auto cs = human.getCohortSet();
-        mon::reportStatMACGF(mon::MVF_INOCS, ag, cs, 0, EIR_l[0]);
+        mon::record(mon::measure("innoculationsPerAgeGroup"), mon::statSurveyNumber(), ag, cs, 0, 0, 0, EIR_l[0]);
     }
 
 private:

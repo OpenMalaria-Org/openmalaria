@@ -31,7 +31,7 @@
 #include "util/StreamValidator.h"
 #include "Population.h"
 #include "interventions/InterventionManager.h"
-#include "mon/reporting.h"
+#include "mon/Monitoring.h"
 #include "schema/scenario.h"
 
 namespace OM { namespace Host {
@@ -147,7 +147,7 @@ void Human::removeFirstEvent(interventions::SubPopRemove::RemoveAtCode code )
                 clinicalModel->flushReports();     // reset HS memory
                 
                 // report removal due to first infection/bout/treatment
-                mon::reportEventMHI( mon::MHR_SUB_POP_REM_FIRST_EVENT, *this, 1 );
+                mon::recordEvent(mon::measure("nSubPopRemovalFirstEvent"), *this, 1);
             }
             cohortSet = mon::updateCohortSet( cohortSet, expIt->first, false );
             // remove (affects reporting, restrictToSubPop and cumulative deployment):
@@ -163,7 +163,7 @@ void Human::updateCohortSet()
         if( !(expIt->second >= sim::ts0()) ){       // membership expired
             // don't flush reports
             // report removal due to expiry
-            mon::reportEventMHI( mon::MHR_SUB_POP_REM_TOO_OLD, *this, 1 );
+            mon::recordEvent(mon::measure("nSubPopRemovalTooOld"), *this, 1);
             cohortSet = mon::updateCohortSet( cohortSet, expIt->first, false );
             // erase element, but continue iteration
             expIt = subPopExp.erase( expIt );
@@ -211,8 +211,8 @@ void summarize(Human &human, bool surveyOnlyNewEp) {
         return;
     }
     
-    mon::reportStatMHI( mon::MHR_HOSTS, human, 1 );
-    mon::reportStatMHF( mon::MHF_AGE, human, sim::inYears(human.age(sim::now())) );
+    mon::recordStat(mon::measure("nHost"), human, 1);
+    mon::recordStat(mon::measure("sumAge"), human, sim::inYears(human.age(sim::now())) );
     bool patent = human.withinHostModel->summarize (human);
     human.infIncidence->summarize (human);
     
@@ -234,7 +234,7 @@ void update(Human &human, Transmission::TransmissionModel& transmission)
     util::streamValidate( age0 );
 
     // monitoringAgeGroup is the group for the start of the time step.
-    human.monitoringAgeGroup.update( age0 );
+    mon::updateAgeGroup(human.monitoringAgeGroup, age0);
     
     human.updateCohortSet();
 
