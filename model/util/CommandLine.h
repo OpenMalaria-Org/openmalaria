@@ -44,7 +44,7 @@ namespace OM { namespace util {
 			PROGRESS,
 	    /// Forces checkpointing just before starting the main phase.
 			CHECKPOINT,
-	    /// Checkpoint one year into the main phase, then exit
+	    /// Exit after writing checkpoint
 			CHECKPOINT_STOP,
 	    /** Do initialisation and error checks, but don't run simulation. */
 			SKIP_SIMULATION,

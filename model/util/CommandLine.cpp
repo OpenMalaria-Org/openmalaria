@@ -261,7 +261,7 @@ namespace OM { namespace util {
 		<< "			This may be used to skip redundant computation when multiple"<<endl
 		<< "			simulations differ only during the intervention phase."<<endl
 		<< "    --checkpoint-file file	Checkpoint as above. Uses file as checkpoint file name. If not given, checkpoint is used." << endl
-		<< "    --checkpoint-stop	Checkpoint one year into the intervention period, then stop. Can be used with --checkpoint-file."<<endl
+		<< "    --checkpoint-stop	Checkpoint as above, then stop immediately afterwards. Can be used with --checkpoint-file."<<endl
 		<< "    --debug-vector-fitting"<<endl
 		<< "			Show details of vector-parameter fitting. The fitting methods used" <<endl
 		<< "			aren't guaranteed to work. If they don't, this output should help"<<endl
