@@ -42,8 +42,7 @@ inline double readLToDays( const scnXml::DecayFunction& elt ){
 class ConstantDecayFunction : public DecayFunction {
 public:
     ConstantDecayFunction( const scnXml::DecayFunction& elt ) :
-        DecayFunction(elt.getIncreasing(), elt.getInitialEfficacy(), elt.getCV()),
-        hetFactor(0.0)
+        DecayFunction(elt.getIncreasing(), elt.getInitialEfficacy(), elt.getCV())
     {}
     
     double compute(double effectiveAge) const {
@@ -57,22 +56,17 @@ public:
         return sim::future();        // decay occurs "in the future" (don't use sim::never() because that is interpreted as being in the past)
     }
 
-    unique_ptr<DecayFunction> hetSample(double hetFactor) const {
+    unique_ptr<DecayFunction> makeHetSample(double) const {
         unique_ptr<ConstantDecayFunction> copy = std::make_unique<ConstantDecayFunction>(*this);
-        copy->hetFactor = hetFactor;
         return std::move(copy);
     }
-
-private:
-    double hetFactor;
 };
 
 class StepDecayFunction : public DecayFunction {
 public:
     StepDecayFunction( const scnXml::DecayFunction& elt ) :
         DecayFunction(elt.getIncreasing(), elt.getInitialEfficacy(), elt.getCV()),
-        invL( 1.0 / readLToDays(elt) ),
-        hetFactor(0.0)
+        invL( 1.0 / readLToDays(elt) )
     {}
     
     double compute(double effectiveAge) const{
@@ -87,22 +81,20 @@ public:
         return sim::roundToTSFromDays( 1.0 / invL );
     }
 
-    unique_ptr<DecayFunction> hetSample(double hetFactor) const {
+    unique_ptr<DecayFunction> makeHetSample(double) const {
         unique_ptr<StepDecayFunction> copy = make_unique<StepDecayFunction>(*this);
-        copy->hetFactor = hetFactor;
         return std::move(copy);
     }
     
 private:
-    double invL, hetFactor;
+    double invL;
 };
 
 class LinearDecayFunction : public DecayFunction {
 public:
     LinearDecayFunction( const scnXml::DecayFunction& elt ) :
         DecayFunction(elt.getIncreasing(), elt.getInitialEfficacy(), elt.getCV()),
-        invL( 1.0 / readLToDays(elt) ),
-        hetFactor(0.0)
+        invL( 1.0 / readLToDays(elt) )
     {}
     
     double compute(double effectiveAge) const{
@@ -117,22 +109,20 @@ public:
         return sim::roundToTSFromDays(rng.uniform_01() / invL);
     }
 
-    unique_ptr<DecayFunction> hetSample(double hetFactor) const {
+    unique_ptr<DecayFunction> makeHetSample(double) const {
         unique_ptr<LinearDecayFunction> copy = make_unique<LinearDecayFunction>(*this);
-        copy->hetFactor = hetFactor;
         return std::move(copy);
     }
     
 private:
-    double invL, hetFactor;
+    double invL;
 };
 
 class ExponentialDecayFunction : public DecayFunction {
 public:
     ExponentialDecayFunction( const scnXml::DecayFunction& elt ) :
         DecayFunction(elt.getIncreasing(), elt.getInitialEfficacy(), elt.getCV()),
-        invL( log(2.0) / readLToDays(elt) ),
-        hetFactor(0.0)
+        invL( log(2.0) / readLToDays(elt) )
     {}
     
     double compute(double effectiveAge) const{
@@ -143,14 +133,13 @@ public:
         return sim::roundToTSFromDays( -log(rng.uniform_01()) / invL );
     }
 
-    unique_ptr<DecayFunction> hetSample(double hetFactor) const {
+    unique_ptr<DecayFunction> makeHetSample(double) const {
         unique_ptr<ExponentialDecayFunction> copy = make_unique<ExponentialDecayFunction>(*this);
-        copy->hetFactor = hetFactor;
         return std::move(copy);
     }
     
 private:
-    double invL, hetFactor;
+    double invL;
 };
 
 class WeibullDecayFunction : public DecayFunction {
@@ -158,8 +147,7 @@ public:
     WeibullDecayFunction( const scnXml::DecayFunction& elt ) :
         DecayFunction(elt.getIncreasing(), elt.getInitialEfficacy(), elt.getCV()),
         constOverLambda( pow(log(2.0),1.0/elt.getK()) / readLToDays(elt) ),
-        k( elt.getK() ),
-        hetFactor(0.0)
+        k( elt.getK() )
     {}
     
     double compute(double effectiveAge) const{
@@ -174,14 +162,13 @@ public:
         return sim::roundToTSFromDays( pow( -log(rng.uniform_01()), 1.0/k ) / constOverLambda );
     }
 
-    unique_ptr<DecayFunction> hetSample(double hetFactor) const {
+    unique_ptr<DecayFunction> makeHetSample(double) const {
         unique_ptr<WeibullDecayFunction> copy = make_unique<WeibullDecayFunction>(*this);
-        copy->hetFactor = hetFactor;
         return std::move(copy);
     }
     
 private:
-    double constOverLambda, k, hetFactor;
+    double constOverLambda, k;
 };
 
 class HillDecayFunction : public DecayFunction {
@@ -189,8 +176,7 @@ public:
     HillDecayFunction( const scnXml::DecayFunction& elt ) :
         DecayFunction(elt.getIncreasing(), elt.getInitialEfficacy(), elt.getCV()),
         invL( 1.0 / readLToDays(elt) ),
-        k( elt.getK() ),
-        hetFactor(0.0)
+        k( elt.getK() )
     {}
     
     double compute(double effectiveAge) const{
@@ -201,14 +187,13 @@ public:
         return sim::roundToTSFromDays( pow( 1.0 / rng.uniform_01() - 1.0, 1.0/k ) / invL );
     }
 
-    unique_ptr<DecayFunction> hetSample(double hetFactor) const {
+    unique_ptr<DecayFunction> makeHetSample(double) const {
         unique_ptr<HillDecayFunction> copy = make_unique<HillDecayFunction>(*this);
-        copy->hetFactor = hetFactor;
         return std::move(copy);
     }
     
 private:
-    double invL, k, hetFactor;
+    double invL, k;
 };
 
 class SmoothCompactDecayFunction : public DecayFunction {
@@ -216,8 +201,7 @@ public:
     SmoothCompactDecayFunction( const scnXml::DecayFunction& elt ) :
         DecayFunction(elt.getIncreasing(), elt.getInitialEfficacy(), elt.getCV()),
         invL( 1.0 / readLToDays(elt) ),
-        k( elt.getK() ),
-        hetFactor(0.0)
+        k( elt.getK() )
     {}
 
     double compute(double effectiveAge) const{
@@ -231,14 +215,13 @@ public:
         return sim::roundToTSFromDays( sqrt( 1.0 - k / (k - log( rng.uniform_01() )) ) / invL );
     }
 
-    unique_ptr<DecayFunction> hetSample(double hetFactor) const {
+    unique_ptr<DecayFunction> makeHetSample(double) const {
         unique_ptr<SmoothCompactDecayFunction> copy = make_unique<SmoothCompactDecayFunction>(*this);
-        copy->hetFactor = hetFactor;
         return std::move(copy);
     }
     
 private:
-    double invL, k, hetFactor;
+    double invL, k;
 };
 
 template<class T>
@@ -266,7 +249,7 @@ public:
         return sim::roundToTSFromDays( max(f1->sampleAgeOfDecay(rng), f2->sampleAgeOfDecay(rng)) );
     }
 
-    unique_ptr<DecayFunction> hetSample(double hetFactor) const {
+    unique_ptr<DecayFunction> makeHetSample(double hetFactor) const {
         unique_ptr<DecayFunction> f1hetSample = f1->hetSample(hetFactor);
         unique_ptr<DecayFunction> f2hetSample = f2->hetSample(hetFactor);
         unique_ptr<OperatorDecayFunction> copy = make_unique<OperatorDecayFunction>(*this, std::move(f1hetSample), std::move(f2hetSample));
@@ -345,7 +328,7 @@ public:
         return sim::roundToTSFromDays( f->sampleAgeOfDecay(rng) );
     }
 
-    std::unique_ptr<DecayFunction> hetSample(double hetFactor) const {
+    std::unique_ptr<DecayFunction> makeHetSample(double hetFactor) const {
         std::unique_ptr<DecayFunction> fhetSample = f->hetSample(hetFactor);
         std::unique_ptr<EmaxFunction> copy =
             std::make_unique<EmaxFunction>(*this, std::move(fhetSample));
@@ -358,6 +341,28 @@ private:
 };
 
 // -----  interface / static functions  -----
+void DecayFunction::checkpointSample(
+        const unique_ptr<DecayFunction>& sample, ostream& stream
+) const {
+    bool present = bool(sample);
+    present & stream;
+    if (present) sample->hetFactor & stream;
+}
+
+void DecayFunction::checkpointSample(
+        unique_ptr<DecayFunction>& sample, istream& stream
+) const {
+    bool present;
+    present & stream;
+    if (present) {
+        double factor;
+        factor & stream;
+        sample = hetSample(factor);
+    } else {
+        sample.reset();
+    }
+}
+
 unique_ptr<DecayFunction> DecayFunction::makeObject(
     const scnXml::DecayFunction& elt, const char* eltName
 ){

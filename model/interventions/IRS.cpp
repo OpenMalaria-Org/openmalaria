@@ -284,13 +284,13 @@ double HumanIRS::relFecundity(size_t speciesIndex) const{
 void HumanIRS::checkpoint( ostream& stream ){
     deployTime & stream;
     initialInsecticide & stream;
-    insecticideDecayHet & stream;
+    IRSComponent::componentsByIndex[m_id.id]->insecticideDecay->checkpointSample(insecticideDecayHet, stream);
 }
 HumanIRS::HumanIRS( istream& stream, ComponentId id ) : PerHostInterventionData( id )
 {
     deployTime & stream;
     initialInsecticide & stream;
-    insecticideDecayHet & stream;
+    IRSComponent::componentsByIndex[m_id.id]->insecticideDecay->checkpointSample(insecticideDecayHet, stream);
 }
 
 } }

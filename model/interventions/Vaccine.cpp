@@ -209,6 +209,14 @@ PerEffectPerHumanVaccine::PerEffectPerHumanVaccine( LocalRng& rng, ComponentId i
     hetSample = params.decayFunc->hetSample(rng);
 }
 
+void PerEffectPerHumanVaccine::checkpointHet(ostream& stream) {
+    VaccineComponent::getParams(component).decayFunc->checkpointSample(hetSample, stream);
+}
+
+void PerEffectPerHumanVaccine::checkpointHet(istream& stream) {
+    VaccineComponent::getParams(component).decayFunc->checkpointSample(hetSample, stream);
+}
+
 double PerHumanVaccine::getFactor( Vaccine::Types type, uint32_t genotype) const {
     double factor = 1.0;
     for( EffectList::const_iterator effect = effects.begin(); effect != effects.end(); ++effect ){

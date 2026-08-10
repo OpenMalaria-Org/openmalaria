@@ -81,7 +81,7 @@ public:
         numDosesAdministered & stream;
         timeLastDeployment & stream;
         perGenotypeInitialEfficacy & stream;
-        hetSample & stream;
+        checkpointHet(stream);
     }
     
 private:
@@ -100,6 +100,9 @@ private:
     /// Efficacy at last deployment (undecayed)
     vector<double> perGenotypeInitialEfficacy;
     unique_ptr<util::DecayFunction> hetSample;
+
+    void checkpointHet(ostream& stream);
+    void checkpointHet(istream& stream);
     
     friend class PerHumanVaccine;
 };

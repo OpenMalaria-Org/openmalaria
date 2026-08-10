@@ -386,9 +386,9 @@ protected:
         _sumAnnualKappa &stream;
         tsAdultEIR &stream;
         surveyInputEIR &stream;
+        surveySimulatedEIR &stream;
         surveySimulatedEIR_i &stream;
         surveySimulatedEIR_l &stream;
-        surveySimulatedEIR &stream;
         lastSurveyTime &stream;
         adultAge &stream;
         numTransmittingHumans &stream;

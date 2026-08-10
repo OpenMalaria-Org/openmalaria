@@ -278,12 +278,19 @@ int main(int argc, char* argv[])
             transmission->summarize(); // Only to reset TransmissionModel::inoculationsPerAgeGroup
             mon::initMainSim();
 
-            if(util::CommandLine::option (util::CommandLine::CHECKPOINT))
+            if(util::CommandLine::option(util::CommandLine::CHECKPOINT) &&
+                    !util::CommandLine::option(util::CommandLine::CHECKPOINT_STOP))
             {
                 writeCheckpoint(startedFromCheckpoint, checkpointFileName, endTime, estEndTime, *population, *transmission);
-                if( util::CommandLine::option (util::CommandLine::CHECKPOINT_STOP) )
-                    throw util::cmd_exception ("Checkpoint test: checkpoint written", util::Error::None);
             }
+        }
+
+        if (!startedFromCheckpoint && util::CommandLine::option(util::CommandLine::CHECKPOINT_STOP))
+        {
+            SimTime checkpointTime = min(endTime, sim::now() + sim::fromYearsI(1));
+            run(*population, *transmission, humanWarmupLength, checkpointTime, estEndTime, surveyOnlyNewEp, "Intervention period");
+            writeCheckpoint(false, checkpointFileName, endTime, estEndTime, *population, *transmission);
+            throw util::cmd_exception("Checkpoint test: checkpoint written", util::Error::None);
         }
 
         // Main phase loop

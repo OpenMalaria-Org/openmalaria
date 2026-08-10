@@ -724,7 +724,7 @@ void HumanITN::checkpoint( ostream& stream ){
     initialInsecticide & stream;
     holeRate & stream;
     ripRate & stream;
-    insecticideDecayHet & stream;
+    ITNComponent::componentsByIndex[m_id.id]->insecticideDecay->checkpointSample(insecticideDecayHet, stream);
 }
 HumanITN::HumanITN( istream& stream, ComponentId id ) : PerHostInterventionData( id )
 {
@@ -735,7 +735,7 @@ HumanITN::HumanITN( istream& stream, ComponentId id ) : PerHostInterventionData(
     initialInsecticide & stream;
     holeRate & stream;
     ripRate & stream;
-    insecticideDecayHet & stream;
+    ITNComponent::componentsByIndex[m_id.id]->insecticideDecay->checkpointSample(insecticideDecayHet, stream);
 }
 
 } }
