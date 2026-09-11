@@ -70,6 +70,12 @@ void sim::initInterval(const scnXml::Scenario& scenario, util::ModelNameProvider
             // for the base model.
             SimData::interval = 5;
         }
+        else if (namedModelToUse == util::ModelNames::molineaux_original)
+        {
+            // This is where we define the length of the default time step, in days,
+            // for the molineaux_original model.
+            SimData::interval = 5;
+        }
         else
         {
             throw util::xml_scenario_error(
