@@ -153,6 +153,10 @@ Licence: GNU General Public Licence version 2 or later (see COPYING) -->
           emax: Emax * C(t)^slope / (C(t)^slope + IC50^slope),
           where C(t) = initialConcentration * f(t), and f(t) is the
           single nested decay function
+          
+          values: the value from the values attribute for the current time
+          step since deployment (one value per time step, starting with the
+          step of deployment), 0 once the list is exhausted
         </xs:documentation>
     <xs:appinfo>units:None;min:0;max:1;name:function;</xs:appinfo>
    </xs:annotation>
@@ -170,6 +174,7 @@ Licence: GNU General Public Licence version 2 or later (see COPYING) -->
      <xs:enumeration value="divides"/>
      <xs:enumeration value="multiplies"/>
      <xs:enumeration value="emax"/>
+     <xs:enumeration value="values"/>
     </xs:restriction>
    </xs:simpleType>
   </xs:attribute>
@@ -261,6 +266,31 @@ Licence: GNU General Public Licence version 2 or later (see COPYING) -->
           Units must match initialConcentration.
         </xs:documentation>
    </xs:annotation>
+  </xs:attribute>
+  <xs:attribute name="values" use="optional">
+   <xs:annotation>
+    <xs:documentation>
+          values: one value per time step, whitespace separated. The first
+          value applies to the time step of deployment, the second to the next
+          time step, and so on. Once all values have been used the decay
+          function returns 0, so the length of the list sets how long the
+          effect lasts.
+          
+          The values are multiplied by initialEfficacy, which is the way to
+          scale the whole series up or down. Values may be negative, which is
+          useful where the result is subtracted from 1: emergenceReduction
+          multiplies emergence by 1 - value, so a value of -1 doubles it.
+          Values beyond 1 make such expressions negative and are accepted only
+          as stress tests.
+          
+          Heterogeneity (CV) and increasing are not supported with this
+          function, and L is not used.
+        </xs:documentation>
+    <xs:appinfo>units:dimensionless;min:-inf;max:inf;name:Values per time step;</xs:appinfo>
+   </xs:annotation>
+   <xs:simpleType>
+    <xs:list itemType="xs:double"/>
+   </xs:simpleType>
   </xs:attribute>
  </xs:complexType>
  <xs:complexType name="SampledValueN">
