@@ -234,10 +234,14 @@ private:
  * deployment; the whole time step uses the same value. Once the list is
  * exhausted the function returns 0.
  *
- * Values are not range-checked: where the result is subtracted from 1, as
- * emergenceReduction does (emergence is multiplied by 1 - value), a negative
- * value increases what it describes, so -1 doubles it, while values greater
- * than 1 drive the survival negative and are a stress test only.
+ * Values are not range-checked beyond finiteness: this function is generic
+ * and any intervention can use it, so what range makes sense depends on the
+ * consumer. A consumer using the result directly as a proportion expects
+ * [0, 1]; a consumer subtracting it from 1 (such as emergenceReduction, which
+ * multiplies emergence by 1 - value) needs negative values to express
+ * enhancement, and above 1 its result turns negative. Invalid values are
+ * caught where they are interpreted: the stream validator reports them in
+ * debug builds, or the model's own guards throw at run time.
  *
  * The list can't be inverted into an age of decay, so this function is only
  * meaningful for effects applied to a whole population (through
@@ -262,12 +266,9 @@ public:
         if( !elt.getValues().present() )
             throw xml_scenario_error( "values decay function: values attribute is required" );
 
-        // initialEfficacy is applied by eval(). Values are deliberately not
-        // range-checked beyond finiteness: what range makes sense depends on
-        // where the result is used (emergenceReduction multiplies by
-        // 1 - value, so it needs value <= 1 for a non-negative survival;
-        // running that with value > 1 is an explicit stress test, caught at
-        // run time by the stream validator or the emergence-rate fit).
+        // initialEfficacy is applied by eval(), initial by the consumer.
+        // Values are deliberately not range-checked beyond finiteness: the
+        // valid range depends on the consumer, see the class comment.
         const scnXml::Values& list = elt.getValues().get();
         if( list.empty() )
             throw xml_scenario_error( "values decay function: values attribute is empty" );

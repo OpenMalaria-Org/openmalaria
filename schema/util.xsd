@@ -274,17 +274,26 @@ Licence: GNU General Public Licence version 2 or later (see COPYING) -->
           value applies to the time step of deployment, the second to the next
           time step, and so on. Once all values have been used the decay
           function returns 0, so the length of the list sets how long the
-          effect lasts.
+          effect lasts. As with the other decay functions the value used is
+          scaled by initial and initialEfficacy.
           
-          The values are multiplied by initialEfficacy, which is the way to
-          scale the whole series up or down. Values may be negative, which is
-          useful where the result is subtracted from 1: emergenceReduction
-          multiplies emergence by 1 - value, so a value of -1 doubles it.
-          Values beyond 1 make such expressions negative and are accepted only
-          as stress tests.
+          Any finite value is allowed. This function is generic, and what
+          range of values makes sense depends on the intervention that uses
+          it: an intervention that uses the value directly as a proportion
+          (survival, coverage) expects values between 0 and 1, while one that
+          subtracts it from 1 (such as emergenceReduction, which multiplies
+          emergence by 1 - value) uses negative values to express enhancement.
+          A value outside the range its consumer expects produces invalid
+          quantities (for example negative survival); that is checked at run
+          time, by the stream validator in debug builds or by the model's own
+          guards, not at load time.
           
-          Heterogeneity (CV) and increasing are not supported with this
-          function, and L is not used.
+          increasing, CV (heterogeneity) and nested decay elements are not
+          supported with this function, and L is not used: the sign of each
+          value expresses direction, and the values are indexed by time step
+          rather than by an age of decay, which this function does not have.
+          For the same reason it cannot describe the loss of individual items
+          (such as net attrition), only effects applied to a whole population.
         </xs:documentation>
     <xs:appinfo>units:dimensionless;min:-inf;max:inf;name:Values per time step;</xs:appinfo>
    </xs:annotation>
