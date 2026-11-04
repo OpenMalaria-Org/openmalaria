@@ -427,15 +427,22 @@ class Attribute(Node):
     def read_child(self, child):
         if child.tag == xsdpre + 'simpleType':
             for child2 in child:
-                assert child2.tag == xsdpre + 'restriction'
-                # ignore 'base' attr (don't need)
-                assert self.mode is None
-                self.mode = 'enum'
-                self.vals = []
-                for child3 in child2:
-                    assert child3.tag == xsdpre + 'enumeration'
-                    assert len(child3) == 0
-                    self.vals.append(child3.get('value'))
+                if child2.tag == xsdpre + 'list':
+                    # a whitespace separated list of values (e.g. a time
+                    # series); document the item type only
+                    assert self.mode is None
+                    self.mode = 'list'
+                    self.item_type = child2.get('itemType').split(':')[-1]
+                elif child2.tag != xsdpre + 'annotation':
+                    assert child2.tag == xsdpre + 'restriction'
+                    # ignore 'base' attr (don't need)
+                    assert self.mode is None
+                    self.mode = 'enum'
+                    self.vals = []
+                    for child3 in child2:
+                        assert child3.tag == xsdpre + 'enumeration'
+                        assert len(child3) == 0
+                        self.vals.append(child3.get('value'))
         else:
             Node.read_child(self, child)
     
@@ -456,6 +463,8 @@ class Attribute(Node):
                 rst += sep + '"' + val + '"'
                 sep = ' or '
             rst += ')'
+        elif self.mode == 'list':
+            rst += '(whitespace separated list of ' + self.item_type + ')'
         else:
             rst += self.t.type_spec()
         return rst
