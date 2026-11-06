@@ -23,6 +23,7 @@
 #include <algorithm>
 #include <limits>
 #include <memory>
+#include <vector>
 
 #include "Global.h"
 #include "util/sampler.h"
@@ -224,6 +225,90 @@ private:
     double invL, k;
 };
 
+/** A decay function described by a list of values: one value per time step
+ * since deployment. This is for interventions whose effect is measured rather
+ * than modelled, so that the shape over time is input directly instead of
+ * being approximated by one of the analytic functions.
+ *
+ * The value at index i applies to the time step starting i time steps after
+ * deployment; the whole time step uses the same value. Once the list is
+ * exhausted the function returns 0.
+ *
+ * Values are not range-checked beyond finiteness: this function is generic
+ * and any intervention can use it, so what range makes sense depends on the
+ * consumer. A consumer using the result directly as a proportion expects
+ * [0, 1]; a consumer subtracting it from 1 (such as emergenceReduction, which
+ * multiplies emergence by 1 - value) needs negative values to express
+ * enhancement, and above 1 its result turns negative. Invalid values are
+ * caught where they are interpreted: the stream validator reports them in
+ * debug builds, or the model's own guards throw at run time.
+ *
+ * The list can't be inverted into an age of decay, so this function is only
+ * meaningful for effects applied to a whole population (through
+ * SimpleDecayingValue), not for the loss of individual items (net attrition). */
+class ValuesDecayFunction : public DecayFunction {
+public:
+    ValuesDecayFunction( const scnXml::DecayFunction& elt ) :
+        DecayFunction(elt.getIncreasing(), elt.getInitialEfficacy(), elt.getCV())
+    {
+        if( elt.getIncreasing() )
+            throw xml_scenario_error(
+                "values decay function: increasing is not supported: values are "
+                "signed, so use negative values to increase rather than decrease" );
+        if( elt.getCV() != 0.0 )
+            throw xml_scenario_error(
+                "values decay function: CV is not supported: heterogeneity scales "
+                "the age of decay, but values are indexed by time step" );
+        if( elt.getDecay().size() != 0 )
+            throw xml_scenario_error(
+                "values decay function: nested decay functions are not used: the "
+                "values are given by the values attribute" );
+        if( !elt.getValues().present() )
+            throw xml_scenario_error( "values decay function: values attribute is required" );
+
+        // initialEfficacy is applied by eval(), initial by the consumer.
+        // Values are deliberately not range-checked beyond finiteness: the
+        // valid range depends on the consumer, see the class comment.
+        const scnXml::Values& list = elt.getValues().get();
+        if( list.empty() )
+            throw xml_scenario_error( "values decay function: values attribute is empty" );
+
+        values.reserve(list.size());
+        for( size_t i = 0; i < list.size(); ++i ) {
+            const double value = static_cast<double>(list[i]);
+            if( !std::isfinite( value ) )
+                throw xml_scenario_error(
+                    "values decay function: value at index " + to_string(i) +
+                    " is not a finite number" );
+            values.push_back( value );
+        }
+    }
+    
+    double compute(double effectiveAge) const {
+        // effectiveAge is in days, but one value applies per time step.
+        // hetFactor is deliberately not used: CV is not supported, so it is 1.
+        if( effectiveAge == numeric_limits<double>::infinity() ) {
+            return 0.0;    // an infinite age means nothing is left (see ConstantDecayFunction)
+        }
+        int i = floorToInt( effectiveAge / sim::oneTS() );
+        if( i < 0 ) i = 0;      // shouldn't happen: nothing is deployed yet
+        if( static_cast<size_t>(i) >= values.size() ) return 0.0;    // exhausted
+        return values[i];
+    }
+    
+    SimTime sampleAgeOfDecay (LocalRng& rng) const {
+        return sim::future();   // no single age of decay (see class comment)
+    }
+    
+    unique_ptr<DecayFunction> makeHetSample(double) const {
+        unique_ptr<ValuesDecayFunction> copy = make_unique<ValuesDecayFunction>(*this);
+        return std::move(copy);
+    }
+
+private:
+    std::vector<double> values;
+};
+
 template<class T>
 class OperatorDecayFunction : public DecayFunction {
 public:
@@ -382,6 +467,8 @@ unique_ptr<DecayFunction> DecayFunction::makeObject(
         return make_unique<HillDecayFunction>( elt );
     else if( func == "smooth-compact" )
         return make_unique<SmoothCompactDecayFunction>( elt );
+    else if( func == "values" )
+        return make_unique<ValuesDecayFunction>( elt );
     else if( func == "plus" )
         return make_unique<OperatorDecayFunction<std::plus<double>>>( elt );
     else if( func == "minus" )
