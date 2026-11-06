@@ -214,7 +214,7 @@ Licence: GNU General Public Licence version 2 or later (see COPYING) -->
   </xs:complexType>
   <xs:complexType name="Parameters">
     <xs:sequence>
-      <xs:element maxOccurs="unbounded" name="parameter" type="om:Parameter" />
+      <xs:element maxOccurs="unbounded" minOccurs="0" name="parameter" type="om:Parameter" />
     </xs:sequence>
     <xs:attribute name="interval" type="xs:int" use="required">
       <xs:annotation>
