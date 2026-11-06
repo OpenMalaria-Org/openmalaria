@@ -297,7 +297,7 @@ namespace OM { namespace util {
 	}
 
     /*
-    * Initialize the set of model options to use, based on input XML contents.
+    * Initialise the set of model options to use, based on input XML contents.
     */
     static void init(scnXml::Model::ModelOptionsOptional& optionsElt,
                             util::ModelNameProvider mnp);
@@ -313,6 +313,14 @@ namespace OM { namespace util {
     * be turned off for legacy (i.e. backwards compatibility) reasons.
     */
     static std::bitset<NUM_OPTIONS> getBaseModelOptions();
+
+    /*
+    * Returns a bitset representing the model options used by the named
+    * "molineaux_original" model.
+    *
+    * Turns on some but not all of the legacy default options.
+    */
+    static std::bitset<NUM_OPTIONS> getMolineauxOriginalModelOptions();
 
     /*
     * Returns a bitset representing the default model options used when no named

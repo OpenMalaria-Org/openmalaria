@@ -159,7 +159,11 @@ public:
         {
             if (namedModelToUse == util::ModelNames::base)
             {
-                initializeParamsBaseModel();
+                initialiseParamsBaseModel();
+            }
+            else if (namedModelToUse == util::ModelNames::molineaux_original)
+            {
+                initialiseParamsMolineauxOriginalModel();
             }
             else
             {
@@ -175,7 +179,7 @@ public:
         const bool useExplicitParamValues = xmlParameterValues.present();
         if (useExplicitParamValues)
         {
-            initializeParamsFromXML(xmlParameterValues.get());
+            initialiseParamsFromXML(xmlParameterValues.get());
         }
     }
 
@@ -205,12 +209,12 @@ public:
 private:
 
     /*
-    * Initializes parameters using explicit values specified in the input XML,
+    * Initialises parameters using explicit values specified in the input XML,
     * and does some validation on the specified parameters and values.
     * This method will be used if the user does not use the "base" model or any
     * other pre-set collection of parameter values.
     */
-    void initializeParamsFromXML(const scnXml::Parameters& parameters)
+    void initialiseParamsFromXML(const scnXml::Parameters& parameters)
     {
         const scnXml::Parameters::ParameterSequence& paramSeq = parameters.getParameter();
 
@@ -256,7 +260,7 @@ private:
     }
 
     /*
-    * Helper method to initialize the parameter identified by paramId with the specified value.
+    * Helper method to initialise the parameter identified by paramId with the specified value.
     * The purpose of this method are to simplify code for initializing named models and to, in
     * the event of an error, provide a more helpful error message than would otherwise be provided.
     */
@@ -275,7 +279,7 @@ private:
             catch (const exception& e)
             {
                 cerr << "Error: " << e.what() << endl;
-                throw util::traced_exception( "Base model attempted to set a value for a parameter with id: " + std::to_string(id)
+                throw util::traced_exception( "A named model attempted to set a value for a parameter with id: " + std::to_string(id)
                         + ", which is not currently supported." , __FILE__, __LINE__);
             }
         };
@@ -283,10 +287,10 @@ private:
     }
 
     /*
-    * Initializes some hardcoded values for some parameters, encapsulating the parameter values
+    * Initialises some hardcoded values for some parameters, encapsulating the parameter values
     * that make up the base model.
     */
-    void initializeParamsBaseModel()
+    void initialiseParamsBaseModel()
     {
         initParam(  1, 0.050736 ); // '-ln(1-Sinf)'
         initParam(  2, 0.03247 ); // Estar
@@ -317,6 +321,45 @@ private:
         initParam( 27, 0 ); // Asexual immunity decay
         initParam( 28, 296.302437899999973 ); // Ystar0
         initParam( 30, 0.117383 ); // critical age for comorbidity
+    }
+
+    /*
+    * Initialises some hardcoded values for some parameters, encapsulating the parameter values
+    * that make up the "molineaux_original" model.
+    *
+    * Note that, unlike the base model, this model does not set values for parameters 11
+    * (sigma2_0) and 12 (Xstar_v).  Those parameters are only required by model options which
+    * this named model does not turn on.
+    */
+    void initialiseParamsMolineauxOriginalModel()
+    {
+        initParam(  1, 0.050736 ); // '-ln(1-Sinf)'
+        initParam(  2, 0.03247 ); // Estar
+        initParam(  3, 0.153741 ); // Simm
+        initParam(  4, 1609.836243 ); // Xstar_p
+        initParam(  5, 1.650241 ); // gamma_p
+        initParam(  6, 1.082696 ); // sigma2i
+        initParam(  7, 1865464.660703 ); // CumulativeYstar
+        initParam(  8, 1765.283962 ); // CumulativeHstar
+        initParam(  9, 2.702352 ); // '-ln(1-alpha_m)'
+        initParam( 10, 1.526271 ); // decay_m
+        initParam( 13, 4259.530005 ); // Ystar2
+        initParam( 14, 553373.45094 ); // alpha
+        initParam( 15, 0.510558 ); // Density bias (non Garki)
+        initParam( 16, 0.05 ); // sigma2 (AKA "No Use 1")
+        initParam( 17, 0.548263 ); // log oddsr CF community
+        initParam( 18, 0.007721 ); // Indirect risk cofactor
+        initParam( 19, 47.967295 ); // Non-malaria infant mortality
+        initParam( 20, 2.601878 ); // Density bias (Garki)
+        initParam( 21, 3411970.636451 ); // Severe Malaria Threshhold
+        initParam( 22, 1 ); // Immunity Penalty
+        initParam( 23, 0 ); // Immune effector decay
+        initParam( 24, 0.011939 ); // comorbidity intercept
+        initParam( 25, 0.401293 ); // Ystar half life
+        initParam( 26, 0.796334 ); // Ystar1
+        initParam( 27, 0 ); // Asexual immunity decay
+        initParam( 28, 28.120561 ); // Ystar0
+        initParam( 30, 0.151984 ); // critical age for comorbidity
     }
 
     /*

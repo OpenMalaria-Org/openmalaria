@@ -36,7 +36,8 @@ namespace OM
         enum class ModelNames
         {
             none, // Represents the case where input XML contains no model name.
-            base
+            base,
+            molineaux_original
         };
 
         /*
@@ -60,6 +61,10 @@ namespace OM
                     if (nameFromXML == "base")
                     {
                         modelInUse = ModelNames::base;
+                    }
+                    else if (nameFromXML == "molineaux_original")
+                    {
+                        modelInUse = ModelNames::molineaux_original;
                     }
                     else
                     {

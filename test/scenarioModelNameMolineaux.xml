@@ -1,0 +1,339 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<om:scenario xmlns:om="http://openmalaria.org/schema/scenario_49" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="Full set of interventions" schemaVersion="49" xsi:schemaLocation="http://openmalaria.org/schema/scenario_49 scenario_current.xsd">
+    <demography maximumAgeYrs="90" name="Zambia 2010 census_Southern province " popSize="600">
+        <ageGroup lowerbound="0">
+            <group poppercent="3.6" upperbound="1"/> 
+            <group poppercent="14.1" upperbound="5"/>
+            <group poppercent="14.8" upperbound="10"/>
+            <group poppercent="13.6" upperbound="15"/>
+            <group poppercent="11.4" upperbound="20"/>
+            <group poppercent="8.9" upperbound="25"/>
+            <group poppercent="8"   upperbound="30"/>
+            <group poppercent="6.4" upperbound="35"/>
+            <group poppercent="5.2" upperbound="40"/>
+            <group poppercent="3.6" upperbound="45"/>
+            <group poppercent="2.8" upperbound="50"/>
+            <group poppercent="2.2" upperbound="55"/>
+            <group poppercent="1.5" upperbound="60"/>
+            <group poppercent="1.3" upperbound="65"/>
+            <group poppercent="0.9" upperbound="70"/>
+            <group poppercent="0.7" upperbound="75"/>
+            <group poppercent="0.5" upperbound="80"/>
+            <group poppercent="0.3" upperbound="85"/>
+            <group poppercent="0.1" upperbound="90"/>
+        </ageGroup>
+    </demography>
+    <monitoring name="Change of prevalence" startDate="2000-01-01">
+        <SurveyOptions>
+<option name="annAvgK" value="true"/>
+            <option name="nHost" value="true"/>
+            <option name="nInfect" value="true"/>
+            <option name="nExpectd" value="true"/>
+            <option name="nNewInfections" value="true"/>
+            <option name="nPatent" value="true"/>
+            <option name="nTreatments1" value="true"/>
+            <option name="simulatedEIR" value="true"/>
+            <option name="inputEIR" value="true"/>
+            <option name="nUncomp" value="true"/>
+            <option name="nMassVaccinations" value="true"/>
+            <option name="nEPIVaccinations" value="true"/>
+            <option name="nMDAs" value="true"/>
+            <option name="nTreatDiagnostics" value="true"/>
+            <option name="Vector_Nv" value="true"/>
+            <option name="nInfectByGenotype"/>
+            <option name="nPatentByGenotype"/>
+            <option name="logDensByGenotype"/>
+            <option name="nTransmit"/>
+            <option name="nHostDrugConcNonZero"/>
+            <option name="sumLogDrugConcNonZero"/>
+            <option name="innoculationsPerAgeGroup"/>
+        </SurveyOptions>
+        <surveys diagnostic="microscopy">
+            <surveyTime repeatEnd="2020-01-01" repeatStep="1y">
+                2000-01-01
+            </surveyTime>
+        </surveys>
+        <ageGroup lowerbound="0">
+            <group upperbound="0.25"/>   <!-- lower limit of Age  for  SMC --> 
+            <group upperbound="0.75"/>   <!-- 9 month Age at which received third vacine dose -->
+            <group upperbound="0.76"/>  <!-- 10 month use to montor if good number of  people recive vaccine dose -->
+            <group upperbound="2.24"/>  <!-- 27 month Age at which received fourth vacine dose -->
+            <group upperbound="2.25"/>  <!-- 28 month use to montor if good number of  people recive vaccine dose -->
+            <group upperbound="5"/>     <!-- potential higher limit of Age  for  SMC --> 
+            <group upperbound="10"/>    <!-- potential higher limit of Age  for  SMC --> 
+            <group upperbound="100"/>
+        </ageGroup>
+    </monitoring>
+    <interventions name="Vaccine deployment">
+        <human>
+            <component id="Vaccine" name="Vaccine">
+                
+                <PEV> <!--assuming csp (from RTS.S-A01), anti-circumsporozoit -->
+                    <decay L="7.32y" k="0.69" function="weibull"/>
+                    <efficacyB value="10.0"/>   <!-- efficacyB is used in beta distribution to assign efficacy of vaccine to an individual, allows heterogeneity-->
+                    <initialEfficacy value="1.0"/>
+                    <initialEfficacy value="1.0"/>
+                </PEV>
+
+            </component>
+            <deployment name="Vaccine">
+                <component id="Vaccine"/>
+                <continuous>
+                    <deploy coverage="1.0" begin="2005-01-01" targetAgeYrs="0.75" vaccMinPrevDoses="0" vaccMaxCumDoses="1"/>
+                    <deploy coverage="1.0" begin="2005-01-10" targetAgeYrs="2.25" vaccMaxCumDoses="2"  vaccMinPrevDoses="1"/>
+                </continuous>
+            </deployment>
+        </human>
+    </interventions>
+    <!--  KK - Initial health system definition -->
+    <healthSystem>
+        <DecisionTree5Day name="test system">
+            <pSeekOfficialCareUncomplicated1 value="0.4"/>
+            <pSelfTreatUncomplicated value="0.0"/>
+            <pSeekOfficialCareUncomplicated2 value="0.4"/>
+            <pSeekOfficialCareSevere value="0.48"/>
+            <treeUCOfficial>
+                <diagnostic diagnostic="microscopy">
+                    <positive>
+                        <treatPKPD dosage="ACT" schedule="ACT"/>
+                    </positive>
+                    <negative>
+                        <noTreatment/>
+                    </negative>
+                </diagnostic>
+            </treeUCOfficial>
+            <treeUCSelfTreat>
+                <noTreatment/>
+            </treeUCSelfTreat>
+            <cureRateSevere value="0.99"/>
+            <!-- assume high cure rate -->
+            <treatmentSevere>
+                <clearInfections stage="blood" timesteps="1t"/>
+            </treatmentSevere>
+        </DecisionTree5Day>
+        <CFR>
+            <group lowerbound="0.00" value="0.0918900"/>
+            <group lowerbound="0.25" value="0.0810811"/>
+            <group lowerbound="0.75" value="0.0648649"/>
+            <group lowerbound="1.50" value="0.0689189"/>
+            <group lowerbound="2.50" value="0.0675676"/>
+            <group lowerbound="3.50" value="0.0297297"/>
+            <group lowerbound="4.50" value="0.0459459"/>
+            <group lowerbound="7.50" value="0.0945946"/>
+            <group lowerbound="12.5" value="0.1243243"/>
+            <group lowerbound="15.0" value="0.1378378"/>
+        </CFR>
+        <pSequelaeInpatient interpolation="none">
+            <group lowerbound="0.0" value="0.0132"/>
+            <group lowerbound="5.0" value="0.005"/>
+        </pSequelaeInpatient>
+    </healthSystem>
+    <entomology mode="dynamic" name="Namawala" scaledAnnualEIR="5">  <!-- site specific - pre intervention EIR -->
+        <vector>
+            <anopheles mosquito="gambiae_ss_outdoor">
+                <seasonality annualEIR="1" input="EIR">     
+                    <fourierSeries EIRRotateAngle="0">
+                        <coeffic a="0" b="0"/>
+                        <coeffic a="0" b="0"/>
+                    </fourierSeries>
+                </seasonality>
+                <mosq minInfectedThreshold="0.001">
+                    <mosqRestDuration value="3"/>
+                    <extrinsicIncubationPeriod value="11"/>
+                    <mosqLaidEggsSameDayProportion value="0.313"/>
+                    <mosqSeekingDuration value="0.33"/>
+                    <mosqSurvivalFeedingCycleProbability value="0.623"/>
+                    <availability/>
+                    <mosqProbBiting mean="0.95" variance="0"/>
+                    <mosqProbFindRestSite mean="0.95" variance="0"/>
+                    <mosqProbResting mean="0.99" variance="0"/>
+                    <mosqProbOvipositing value="0.88"/>
+                    <mosqHumanBloodIndex value="0.5"/>
+                </mosq>
+                <nonHumanHosts name="unprotectedAnimals">
+                    <mosqRelativeEntoAvailability value="1.0"/>
+                    <mosqProbBiting value="0.95"/>
+                    <mosqProbFindRestSite value="0.95"/>
+                    <mosqProbResting value="0.99"/>
+                </nonHumanHosts>
+            </anopheles>
+            <nonHumanHosts name="unprotectedAnimals" number="1.0"/>
+        </vector>
+    </entomology>
+    <parasiteGenetics samplingMode="tracking">
+        <!-- Define name/freq/fitness of the locus/alleles defined in the drugPD code -->
+        <locus name="x">
+            <allele fitness="1" initialFrequency="0.9" name="sensitive"/>
+            <allele fitness="1" initialFrequency="0.1" name="resistant"/>
+        </locus>
+    </parasiteGenetics>
+    <diagnostics>
+        <diagnostic name="RDT" units="Other">
+            <stochastic dens_50="50" specificity="0.942"/>
+        </diagnostic>
+        <diagnostic name="microscopy" units="Other">
+            <stochastic dens_50="20" specificity="1"/>
+        </diagnostic>
+        <diagnostic name="PCR" units="Other">
+            <stochastic dens_50="2" specificity="1"/>
+        </diagnostic>
+    </diagnostics>
+    <pharmacology>
+        <treatments>
+            <schedule name="ACT">
+                <medicate drug="DH" hour="0" mg="4"/>
+                <medicate drug="PPQ" hour="0" mg="18"/>
+                <medicate drug="DH" hour="24" mg="4"/>
+                <medicate drug="PPQ" hour="24" mg="18"/>
+                <medicate drug="DH" hour="48" mg="4"/>
+                <medicate drug="PPQ" hour="48" mg="18"/>
+            </schedule>
+            <dosages name="ACT">
+                <multiply by="kg"/>
+            </dosages>
+        </treatments>
+        <drugs>
+            <drug abbrev="PPQ">
+                <PD>
+                    <phenotype name="sensitive">
+                        <restriction onLocus="x" toAllele="sensitive"/>
+                        <max_killing_rate>3.45</max_killing_rate>
+                        <IC50 mean="0.0208" distr="lognormal" CV="0.0"/>
+                        <slope>6</slope>
+                    </phenotype>
+                    <phenotype name="resistant">
+                        <restriction onLocus="x" toAllele="resistant"/>
+                        <max_killing_rate>3.45</max_killing_rate>
+                        <IC50 mean="0.0208" distr="lognormal" CV="0.0"/>
+                        <slope>6</slope>
+                    </phenotype>
+                </PD>
+                <PK>
+                    <negligible_concentration>0.005</negligible_concentration>
+                    <k  mean="0.6242774566473989" />
+                    <m_exponent>0.25</m_exponent>
+                    <k_a mean="11.16"/>
+                    <vol_dist mean="173" />
+                    <compartment2>
+                        <k12 mean="8.46242774566474"/>
+                        <k21 mean="3.3058064516129035"/>
+                    </compartment2>
+                </PK>
+            </drug>
+            <drug abbrev="DH">
+                <PD>
+                    <phenotype name="sensitive">
+                        <restriction onLocus="x" toAllele="sensitive"/>
+                        <max_killing_rate>27.6</max_killing_rate>
+                        <IC50 mean="0.009" distr="lognormal" CV="0.0"/>       
+                        <slope>4</slope>
+                    </phenotype>
+                    <phenotype name="resistant">
+                        <restriction onLocus="x" toAllele="resistant"/>
+                        <max_killing_rate>27.6</max_killing_rate>
+                        <IC50 mean="0.009" distr="lognormal" CV="0.0"/>       
+                        <slope>4</slope>
+                    </phenotype>
+                </PD>
+                <PK>
+                    <negligible_concentration>1e-17</negligible_concentration>
+                    <k mean="25.4" /> 
+                    <m_exponent>0.0</m_exponent>
+                    <vol_dist mean="1.49" />
+                </PK>
+            </drug>
+        </drugs>
+    </pharmacology>
+  <model>
+    <ModelName name="molineaux_original"/>
+    <!-- Output should be unchanged if the following values are used -->
+    <!--
+    <ModelOptions>
+      <option name="MOLINEAUX_WITHIN_HOST_MODEL" value="true"/>
+      <option name="MOLINEAUX_PAIRWISE_SAMPLE" value="true"/>
+      <option name="MAX_DENS_CORRECTION" value="true"/>
+      <option name="INNATE_MAX_DENS" value="true"/>
+      <option name="INDIRECT_MORTALITY_FIX" value="false"/>
+      <option name="HEALTH_SYSTEM_MEMORY_FIX" value="false"/>
+    </ModelOptions>
+    -->
+    <clinical healthSystemMemory="0">
+      <NeonatalMortality diagnostic="microscopy"/>
+    </clinical>
+    <human>
+      <availabilityToMosquitoes>
+        <group lowerbound="0.0" value="0.225940909648"/>
+        <group lowerbound="1.0" value="0.286173633441"/>
+        <group lowerbound="2.0" value="0.336898395722"/>
+        <group lowerbound="3.0" value="0.370989854675"/>
+        <group lowerbound="4.0" value="0.403114915112"/>
+        <group lowerbound="5.0" value="0.442585112522"/>
+        <group lowerbound="6.0" value="0.473839351511"/>
+        <group lowerbound="7.0" value="0.512630464378"/>
+        <group lowerbound="8.0" value="0.54487872702"/>
+        <group lowerbound="9.0" value="0.581527755812"/>
+        <group lowerbound="10.0" value="0.630257580698"/>
+        <group lowerbound="11.0" value="0.663063362714"/>
+        <group lowerbound="12.0" value="0.702417432755"/>
+        <group lowerbound="13.0" value="0.734605377277"/>
+        <group lowerbound="14.0" value="0.788908765653"/>
+        <group lowerbound="15.0" value="0.839587932303"/>
+        <group lowerbound="20.0" value="1.0"/>
+        <group lowerbound="20.0" value="1.0"/>
+      </availabilityToMosquitoes>
+      <weight multStdDev="0.14">
+        <group lowerbound="0.0" value="13.9856718"/>
+        <group lowerbound="1.0" value="18.30372108"/>
+        <group lowerbound="2.0" value="21.745749"/>
+        <group lowerbound="3.0" value="24.25753512"/>
+        <group lowerbound="4.0" value="26.06595444"/>
+        <group lowerbound="5.0" value="28.48868784"/>
+        <group lowerbound="6.0" value="30.84202788"/>
+        <group lowerbound="7.0" value="33.48638244"/>
+        <group lowerbound="8.0" value="35.20335432"/>
+        <group lowerbound="9.0" value="37.19394024"/>
+        <group lowerbound="10.0" value="40.1368962"/>
+        <group lowerbound="11.0" value="42.00539916"/>
+        <group lowerbound="12.0" value="44.53731348"/>
+        <group lowerbound="13.0" value="46.77769728"/>
+        <group lowerbound="14.0" value="49.48396092"/>
+        <group lowerbound="15.0" value="54.36"/>
+        <group lowerbound="20.0" value="60.0"/>
+        <group lowerbound="20.0" value="60.0"/>
+      </weight>
+    </human>
+    <computationParameters iseed="0"/>
+    <!-- Output should be unchanged if the following values are used -->
+    <!--
+    <parameters interval="5" latentp="15d">
+      <parameter name="'-ln(1-Sinf)'" number="1" value="0.050736"/>
+      <parameter name="Estar" number="2" value="0.03247"/>
+      <parameter name="Simm" number="3" value="0.153741"/>
+      <parameter name="Xstar_p" number="4" value="1609.836243"/>
+      <parameter name="gamma_p" number="5" value="1.650241"/>
+      <parameter name="sigma2i" number="6" value="1.082696"/>
+      <parameter name="CumulativeYstar" number="7" value="1865464.660703"/>
+      <parameter name="CumulativeHstar" number="8" value="1765.283962"/>
+      <parameter name="'-ln(1-alpha_m)'" number="9" value="2.702352"/>
+      <parameter name="decay_m" number="10" value="1.526271"/>
+      <parameter name="Ystar2" number="13" value="4259.530005"/>
+      <parameter name="alpha" number="14" value="553373.45094"/>
+      <parameter name="Density bias (non Garki)" number="15" value="0.510558"/>
+      <parameter name="        sigma2        " number="16" value="0.05"/>
+      <parameter name="log oddsr CF community" number="17" value="0.548263"/>
+      <parameter name="Indirect risk cofactor" number="18" value="0.007721"/>
+      <parameter name="Non-malaria infant mortality" number="19" value="47.967295"/>
+      <parameter name="Density bias (Garki)" number="20" value="2.601878"/>
+      <parameter name="Severe Malaria Threshhold" number="21" value="3411970.636451"/>
+      <parameter name="Immunity Penalty" number="22" value="1"/>
+      <parameter name="Immune effector decay" number="23" value="0"/>
+      <parameter name="comorbidity intercept" number="24" value="0.011939"/>
+      <parameter name="Ystar half life" number="25" value="0.401293"/>
+      <parameter name="Ystar1" number="26" value="0.796334"/>
+      <parameter name="Asexual immunity decay" number="27" value="0"/>
+      <parameter name="Ystar0" number="28" value="28.120561"/>
+      <parameter name="critical age for comorbidity" number="30" value="0.151984"/>
+    </parameters>
+    -->
+  </model>
+</om:scenario>
