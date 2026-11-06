@@ -51,7 +51,6 @@ struct  CMHostData {
 struct CMDTOut {
     CMDTOut() : treated(false), screened(false) {}
     explicit CMDTOut(bool t) : treated(t), screened(false) {}
-    CMDTOut(bool t, bool s): treated(t), screened(s) {}
     bool treated;       // true iff some blood-stage treatment was administered
     bool screened;  // true iff some diagnostic was used
 };
