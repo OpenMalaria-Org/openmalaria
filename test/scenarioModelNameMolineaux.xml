@@ -245,7 +245,7 @@
         </drugs>
     </pharmacology>
   <model>
-    <ModelName name="molineaux_original"/>
+    <ModelName name="molineaux"/>
     <!-- Output should be unchanged if the following values are used -->
     <!--
     <ModelOptions>

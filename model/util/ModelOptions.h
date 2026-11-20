@@ -316,11 +316,11 @@ namespace OM { namespace util {
 
     /*
     * Returns a bitset representing the model options used by the named
-    * "molineaux_original" model.
+    * "molineaux" model.
     *
     * Turns on some but not all of the legacy default options.
     */
-    static std::bitset<NUM_OPTIONS> getMolineauxOriginalModelOptions();
+    static std::bitset<NUM_OPTIONS> getMolineauxNamedModelOptions();
 
     /*
     * Returns a bitset representing the default model options used when no named

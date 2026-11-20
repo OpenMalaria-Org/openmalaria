@@ -161,9 +161,9 @@ public:
             {
                 initialiseParamsBaseModel();
             }
-            else if (namedModelToUse == util::ModelNames::molineaux_original)
+            else if (namedModelToUse == util::ModelNames::molineaux)
             {
-                initialiseParamsMolineauxOriginalModel();
+                initialiseParamsMolineauxNamedModel();
             }
             else
             {
@@ -325,13 +325,13 @@ private:
 
     /*
     * Initialises some hardcoded values for some parameters, encapsulating the parameter values
-    * that make up the "molineaux_original" model.
+    * that make up the "molineaux" named model.
     *
     * Note that, unlike the base model, this model does not set values for parameters 11
     * (sigma2_0) and 12 (Xstar_v).  Those parameters are only required by model options which
     * this named model does not turn on.
     */
-    void initialiseParamsMolineauxOriginalModel()
+    void initialiseParamsMolineauxNamedModel()
     {
         initParam(  1, 0.050736 ); // '-ln(1-Sinf)'
         initParam(  2, 0.03247 ); // Estar
