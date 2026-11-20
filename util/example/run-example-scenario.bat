@@ -1,9 +1,9 @@
 REM This file is part of OpenMalaria.
 REM 
-REM Copyright (C) 2005-2025 Swiss Tropical and Public Health Institute
+REM Copyright (C) 2005-2026 Swiss Tropical and Public Health Institute
 REM Copyright (C) 2005-2015 Liverpool School Of Tropical Medicine
-REM Copyright (C) 2020-2025 University of Basel
-REM Copyright (C) 2025 The Kids Research Institute Australia
+REM Copyright (C) 2020-2026 University of Basel
+REM Copyright (C) 2025-2026 The Kids Research Institute Australia
 REM
 REM OpenMalaria is free software; you can redistribute it and/or modify
 REM it under the terms of the GNU General Public License as published by

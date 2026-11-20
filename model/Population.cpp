@@ -136,17 +136,17 @@ void registerContinousPopulationCallbacks()
     for( double ubound : ctsDemogAgeGroups )
         ctsDemogTitle << "\thost % ≤ " << ubound;
 
-    mon::Continuous.registerCallback( "hosts", "\thosts", &ctsHosts );
-    mon::Continuous.registerCallback( "host demography", ctsDemogTitle.str(), &ctsHostDemography);
-    mon::Continuous.registerCallback( "recent births", "\trecent births", &ctsRecentBirths);
-    mon::Continuous.registerCallback( "patent hosts", "\tpatent hosts", &ctsPatentHosts);
-    mon::Continuous.registerCallback( "immunity h", "\timmunity h", &ctsImmunityh);
-    mon::Continuous.registerCallback( "immunity Y", "\timmunity Y", &ctsImmunityY);
-    mon::Continuous.registerCallback( "median immunity Y", "\tmedian immunity Y", &ctsMedianImmunityY);
-    mon::Continuous.registerCallback( "human age availability", "\thuman age availability", &ctsMeanAgeAvailEffect);
-    mon::Continuous.registerCallback( "ITN coverage", "\tITN coverage", &ctsITNCoverage);
-    mon::Continuous.registerCallback( "IRS coverage", "\tIRS coverage", &ctsIRSCoverage);
-    mon::Continuous.registerCallback( "GVI coverage", "\tGVI coverage", &ctsGVICoverage);
+    mon::Continuous::registerCallback( "hosts", "\thosts", &ctsHosts );
+    mon::Continuous::registerCallback( "host demography", ctsDemogTitle.str(), &ctsHostDemography);
+    mon::Continuous::registerCallback( "recent births", "\trecent births", &ctsRecentBirths);
+    mon::Continuous::registerCallback( "patent hosts", "\tpatent hosts", &ctsPatentHosts);
+    mon::Continuous::registerCallback( "immunity h", "\timmunity h", &ctsImmunityh);
+    mon::Continuous::registerCallback( "immunity Y", "\timmunity Y", &ctsImmunityY);
+    mon::Continuous::registerCallback( "median immunity Y", "\tmedian immunity Y", &ctsMedianImmunityY);
+    mon::Continuous::registerCallback( "human age availability", "\thuman age availability", &ctsMeanAgeAvailEffect);
+    mon::Continuous::registerCallback( "ITN coverage", "\tITN coverage", &ctsITNCoverage);
+    mon::Continuous::registerCallback( "IRS coverage", "\tIRS coverage", &ctsIRSCoverage);
+    mon::Continuous::registerCallback( "GVI coverage", "\tGVI coverage", &ctsGVICoverage);
 }
 
 void ctsHosts (Population &population, ostream& stream){
@@ -256,4 +256,3 @@ void ctsGVICoverage (Population &population, ostream& stream){
 }
 
 }
-

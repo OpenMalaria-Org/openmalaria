@@ -139,12 +139,11 @@ void VaccineComponent::deploy(Host::Human& human, mon::Deploy::Method method, Va
 {
     bool administered = human.vaccine.possiblyVaccinate( human, id(), vaccLimits );
     if( administered && VaccineComponent::reportComponent == id() ){
-        mon::reportEventMHD( mon::MHD_VACCINATIONS, human, method );
+        mon::recordDeploy(mon::measure("nMassVaccinations"), mon::measure("nEPIVaccinations"), human, method);
     }
-    if( type == Vaccine::PEV ) mon::reportEventMHD( mon::MHD_PEV, human, method );
-    else if( type == Vaccine::BSV ) mon::reportEventMHD( mon::MHD_BSV, human, method );
-    else if( type == Vaccine::TBV ) mon::reportEventMHD( mon::MHD_TBV, human, method );
-    else assert( false );
+    assert(type == Vaccine::PEV || type == Vaccine::BSV || type == Vaccine::TBV);
+    if (method == mon::Deploy::TREAT)
+        mon::recordEvent(mon::measure("nTreatDeployments"), human);
 }
 
 Component::Type VaccineComponent::componentType() const
@@ -208,6 +207,14 @@ PerEffectPerHumanVaccine::PerEffectPerHumanVaccine( LocalRng& rng, ComponentId i
     component( id ), numDosesAdministered(0)
 {
     hetSample = params.decayFunc->hetSample(rng);
+}
+
+void PerEffectPerHumanVaccine::checkpointHet(ostream& stream) {
+    VaccineComponent::getParams(component).decayFunc->checkpointSample(hetSample, stream);
+}
+
+void PerEffectPerHumanVaccine::checkpointHet(istream& stream) {
+    VaccineComponent::getParams(component).decayFunc->checkpointSample(hetSample, stream);
 }
 
 double PerHumanVaccine::getFactor( Vaccine::Types type, uint32_t genotype) const {

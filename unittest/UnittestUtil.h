@@ -38,7 +38,6 @@
 #include "Host/WithinHost/WHFalciparum.h"
 #include "Host/WithinHost/Infection/MolineauxInfection.h"
 #include "Host/WithinHost/Genotypes.h"
-#include "mon/management.h"
 
 #include "schema/scenario.h"
 

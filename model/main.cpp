@@ -31,7 +31,8 @@
 #include "util/XMLChecker.h"
 
 #include "mon/Continuous.h"
-#include "mon/management.h"
+#include "mon/init.h"
+#include "mon/Monitoring.h"
 
 #include "interventions/InterventionManager.h"
 #include "Clinical/ClinicalModel.h"
@@ -44,7 +45,6 @@
 #include <cerrno>
 
 namespace OM {
-    using mon::Continuous;
     using interventions::InterventionManager;
     using Transmission::TransmissionModel;
 }
@@ -85,7 +85,7 @@ void run(Population &population, TransmissionModel &transmission, SimTime humanW
 
         // Monitoring. sim::now() gives time of end of last step,
         // and is when reporting happens in our time-series.
-        Continuous.update( population );
+        mon::Continuous::update( population );
         if( sim::intervDate() == mon::nextSurveyDate() ){
             for(Host::Human &human : population.humans)
                 Host::summarize(human, surveyOnlyNewEp);
@@ -178,7 +178,7 @@ int main(int argc, char* argv[])
         // 3) elements depending on other elements; dependencies on (1) are not mentioned:
         // Transmission model initialisation depends on Transmission::PerHost and
         // genotypes (both from Human, from Population::init()) and
-        // mon::AgeGroup (from Surveys.init()):
+        // monitoring age groups (from Surveys.init()):
         // Note: PerHost dependency can be postponed; it is only used to set adultAge
         size_t popSize = scenario->getDemography().getPopSize();
 
@@ -227,7 +227,7 @@ int main(int argc, char* argv[])
 
         if (startedFromCheckpoint)
         {
-            Continuous.init(scenario->getMonitoring(), true);
+            mon::Continuous::init(scenario->getMonitoring(), true);
             readCheckpoint(checkpointFileName, endTime, estEndTime, *population, *transmission);
 
             /** Calculate ento availability percentiles **/
@@ -235,7 +235,7 @@ int main(int argc, char* argv[])
         }
         else
         {
-            Continuous.init(scenario->getMonitoring(), false);
+            mon::Continuous::init(scenario->getMonitoring(), false);
             population->createInitialHumans();
             transmission->init2(population->humans);
             

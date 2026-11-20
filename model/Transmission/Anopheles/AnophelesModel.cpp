@@ -946,12 +946,12 @@ void AnophelesModel::summarize(size_t species) const
     // the last time step values at sim::now() and four previos were set.
     // One plus last, plus (0 mod N_v_length) to avoid negatives:
     int end = sim::now() + 1 + N_v_length;
-    mon::reportStatMSF(mon::MVF_LAST_NV0, species, getLastN_v0());
-    mon::reportStatMSF(mon::MVF_LAST_NV, species, sum1(N_v, end, N_v_length));
+    mon::recordStat(mon::measure("Vector_Nv0"), getLastN_v0(), species);
+    mon::recordStat(mon::measure("Vector_Nv"), sum1(N_v, end, N_v_length), species);
     for (size_t g = 0; g < Genotypes::N(); ++g)
     {
-        mon::reportStatMSGF(mon::MVF_LAST_OV, species, g, sum3(O_v_i, g, end, N_v_length) + sum3(O_v_l, g, end, N_v_length));
-        mon::reportStatMSGF(mon::MVF_LAST_SV, species, g, sum3(S_v_i, g, end, N_v_length) + sum3(S_v_l, g, end, N_v_length));
+        mon::recordStat(mon::measure("Vector_Ov"), sum3(O_v_i, g, end, N_v_length) + sum3(O_v_l, g, end, N_v_length), species, g);
+        mon::recordStat(mon::measure("Vector_Sv"), sum3(S_v_i, g, end, N_v_length) + sum3(S_v_l, g, end, N_v_length), species, g);
     }
 }
 

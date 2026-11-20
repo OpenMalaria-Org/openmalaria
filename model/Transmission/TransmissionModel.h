@@ -35,7 +35,7 @@
 #include "Host/WithinHost/WHInterface.h"
 #include "Host/WithinHost/Genotypes.h"
 #include "mon/Continuous.h"
-#include "mon/info.h"
+#include "mon/Monitoring.h"
 #include "util/StreamValidator.h"
 #include "util/CommandLine.h"
 #include "util/vectors.h"
@@ -142,11 +142,10 @@ protected:
         // Set VACCINE_GENOTYPE option
         opt_vaccine_genotype = util::ModelOptions::option (util::VACCINE_GENOTYPE);
 
-        using mon::Continuous;
-        Continuous.registerCallback("input EIR", "\tinput EIR", std::bind(&TransmissionModel::ctsCbInputEIR, this, _1));
-        Continuous.registerCallback("simulated EIR", "\tsimulated EIR", std::bind(&TransmissionModel::ctsCbSimulatedEIR, this, _1));
-        Continuous.registerCallback("human infectiousness", "\thuman infectiousness", std::bind(&TransmissionModel::ctsCbKappa, this, _1));
-        Continuous.registerCallback("num transmitting humans", "\tnum transmitting humans", std::bind(&TransmissionModel::ctsCbNumTransmittingHumans, this, _1));
+        mon::Continuous::registerCallback("input EIR", "\tinput EIR", std::bind(&TransmissionModel::ctsCbInputEIR, this, _1));
+        mon::Continuous::registerCallback("simulated EIR", "\tsimulated EIR", std::bind(&TransmissionModel::ctsCbSimulatedEIR, this, _1));
+        mon::Continuous::registerCallback("human infectiousness", "\thuman infectiousness", std::bind(&TransmissionModel::ctsCbKappa, this, _1));
+        mon::Continuous::registerCallback("num transmitting humans", "\tnum transmitting humans", std::bind(&TransmissionModel::ctsCbNumTransmittingHumans, this, _1));
     }
 
 public:
@@ -170,18 +169,18 @@ public:
      * Overriding functions should call this base version too. */
     virtual void summarize()
     {
-        mon::reportStatMF(mon::MVF_NUM_TRANSMIT, laggedKappa[sim::moduloSteps(sim::now(), laggedKappa.size())]);
-        mon::reportStatMF(mon::MVF_ANN_AVG_K, _annualAverageKappa);
+        mon::recordStat(mon::measure("nTransmit"), laggedKappa[sim::moduloSteps(sim::now(), laggedKappa.size())]);
+        mon::recordStat(mon::measure("annAvgK"), _annualAverageKappa);
 
         if (!mon::isReported()) return; // cannot use counters below when not reporting
 
         double duration = sim::inSteps(sim::now() - lastSurveyTime);
         if (duration > 0.0)
         {
-            mon::reportStatMF(mon::MVF_INPUT_EIR, surveyInputEIR / duration);
-            mon::reportStatMF(mon::MVF_SIM_EIR, surveySimulatedEIR / duration);
-            mon::reportStatMF(mon::MVF_SIM_EIR_INTRODUCED, surveySimulatedEIR_i / duration);
-            mon::reportStatMF(mon::MVF_SIM_EIR_INDIGENOUS, surveySimulatedEIR_l / duration);
+            mon::recordStat(mon::measure("inputEIR"), surveyInputEIR / duration);
+            mon::recordStat(mon::measure("simulatedEIR"), surveySimulatedEIR / duration);
+            mon::recordStat(mon::measure("simulatedEIR_Introduced"), surveySimulatedEIR_i / duration);
+            mon::recordStat(mon::measure("simulatedEIR_Indigenous"), surveySimulatedEIR_l / duration);
         }
 
         surveyInputEIR = 0.0;
@@ -387,9 +386,9 @@ protected:
         _sumAnnualKappa &stream;
         tsAdultEIR &stream;
         surveyInputEIR &stream;
+        surveySimulatedEIR &stream;
         surveySimulatedEIR_i &stream;
         surveySimulatedEIR_l &stream;
-        surveySimulatedEIR &stream;
         lastSurveyTime &stream;
         adultAge &stream;
         numTransmittingHumans &stream;

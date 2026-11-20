@@ -73,11 +73,6 @@ public:
      */
     bool isDead( SimTime age );
     
-    /// Returns true if the human has died.
-    inline bool isDead() const {
-        return doomed > NOT_DOOMED;
-    }
-    
     /** Run main part of the model: determine the sickness status and any
      * treatment for the human.
      * 

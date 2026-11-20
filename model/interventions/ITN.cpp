@@ -538,7 +538,7 @@ ITNComponent::ITNComponent( ComponentId id, const scnXml::ITNDescription& elt,
 
 void ITNComponent::deploy( Host::Human& human, mon::Deploy::Method method, VaccineLimits )const{
     human.perHostTransmission.deployComponent( human.rng, *this );
-    mon::reportEventMHD( mon::MHD_ITN, human, method );
+    mon::recordDeploy(mon::measure("nMassITNs"), mon::measure("nEPI_ITNs"), human, method);
 }
 
 Component::Type ITNComponent::componentType() const{
@@ -724,7 +724,7 @@ void HumanITN::checkpoint( ostream& stream ){
     initialInsecticide & stream;
     holeRate & stream;
     ripRate & stream;
-    insecticideDecayHet & stream;
+    ITNComponent::componentsByIndex[m_id.id]->insecticideDecay->checkpointSample(insecticideDecayHet, stream);
 }
 HumanITN::HumanITN( istream& stream, ComponentId id ) : PerHostInterventionData( id )
 {
@@ -735,7 +735,7 @@ HumanITN::HumanITN( istream& stream, ComponentId id ) : PerHostInterventionData(
     initialInsecticide & stream;
     holeRate & stream;
     ripRate & stream;
-    insecticideDecayHet & stream;
+    ITNComponent::componentsByIndex[m_id.id]->insecticideDecay->checkpointSample(insecticideDecayHet, stream);
 }
 
 } }

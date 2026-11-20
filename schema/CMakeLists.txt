@@ -2,10 +2,10 @@
 
 # This file is part of OpenMalaria.
 # 
-# Copyright (C) 2005-2025 Swiss Tropical and Public Health Institute
+# Copyright (C) 2005-2026 Swiss Tropical and Public Health Institute
 # Copyright (C) 2005-2015 Liverpool School Of Tropical Medicine
-# Copyright (C) 2020-2025 University of Basel
-# Copyright (C) 2025 The Kids Research Institute Australia
+# Copyright (C) 2020-2026 University of Basel
+# Copyright (C) 2025-2026 The Kids Research Institute Australia
 #
 # OpenMalaria is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -46,7 +46,7 @@ foreach (XSD_NAME ${SCHEMA_NAMES})
     COMMAND ${XSD_EXECUTABLE} cxx-tree
         --std c++11
         --type-naming ucc --function-naming java
-        --namespace-map http://openmalaria.org/schema/scenario_49=scnXml
+        --namespace-map http://openmalaria.org/schema/scenario_50=scnXml
 #         --generate-serialization
         --generate-doxygen
         --generate-intellisense

@@ -2,10 +2,10 @@
 
 # This file is part of OpenMalaria.
 # 
-# Copyright (C) 2005-2025 Swiss Tropical and Public Health Institute
+# Copyright (C) 2005-2026 Swiss Tropical and Public Health Institute
 # Copyright (C) 2005-2015 Liverpool School Of Tropical Medicine
-# Copyright (C) 2020-2025 University of Basel
-# Copyright (C) 2025 The Kids Research Institute Australia
+# Copyright (C) 2020-2026 University of Basel
+# Copyright (C) 2025-2026 The Kids Research Institute Australia
 #
 # OpenMalaria is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -40,6 +40,7 @@ CLEAN=0         # Clean build/
 DEBUG=0
 TESTS=OFF       # Don't generate tests
 RUNTESTS=0      # Don't run tests
+BINARY=OFF      # Test survey output in binary mode
 JOBS=4          # 4 threads
 CREATERELEASE=0 # Create release ARTIFACT.zip:tar.gz
 ARTIFACT=       # default filename is RELEASE-VERSION
@@ -62,6 +63,7 @@ printHelp () {
     echo ""
     echo "Options:"
     echo "  -b, --branch=<name>"    "specify the branch (master)"
+    echo "      --binary"           "run tests with binary survey output (false)"
     echo "  -c, --clean"            "clean build folder (false)"
     echo "  -d, --debug"            "build in debug mode (false)"
     echo "  -t, --tests"            "run the tests (false)"
@@ -75,6 +77,7 @@ parseArguments () {
     for i in "$@"; do
         case $i in
             -b=*|--branch=*)    BRANCH="${i#*=}"; SWITCHBRANCH=1 && shift ;;
+            --binary)           BINARY=ON; TESTS=ON && shift ;;
             -c|--clean)         CLEAN=1 && shift ;;
             -d|--debug)         DEBUG=1 && shift ;;
             -t|--tests)         TESTS=ON && shift ;;
@@ -133,9 +136,9 @@ build () {
     cd build
     which cmake
     if [ $DEBUG -eq 1 ]; then
-        cmake -DOM_BOXTEST_ENABLE=$TESTS -DOM_CXXTEST_ENABLE=$TESTS .. && make -j$JOBS
+        cmake -DOM_BOXTEST_ENABLE=$TESTS -DOM_CXXTEST_ENABLE=$TESTS -DOM_BOXTEST_BINARY=$BINARY .. && make -j$JOBS
     else
-        cmake -DCMAKE_BUILD_TYPE=Release -DOM_BOXTEST_ENABLE=$TESTS -DOM_CXXTEST_ENABLE=$TESTS .. && make -j$JOBS
+        cmake -DCMAKE_BUILD_TYPE=Release -DOM_BOXTEST_ENABLE=$TESTS -DOM_CXXTEST_ENABLE=$TESTS -DOM_BOXTEST_BINARY=$BINARY .. && make -j$JOBS
     fi
     cd ..
 }

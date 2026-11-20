@@ -34,30 +34,23 @@ namespace scnXml{ class Monitoring; }
 namespace OM {
     class Population;
 namespace mon {
+namespace Continuous {
     
-    /** Class to deal with continuous output data.
+    /** Functions dealing with continuous output data.
      *
      * Requirements:
      *  (1) frequency of and which data is output should be controllable
      *  (2) format should be compatible with LiveGraph and (German) Excel.
      */
-    class ContinuousType {
-    public:
-        // frees memory
-        ~ContinuousType();        
-        
 	/** Load XML description of options. If resuming from a checkpoint,
 	 * append to output; if not, make sure it's not there (on boinc we
 	 * assume we shouldn't overwrite existing files for security reasons).
 	 * 
 	 * Callbacks should be registered before init() is called. */
 	void init (const scnXml::Monitoring& monitoring, bool isCheckpoint);
-        
-        /// Checkpointing
-        template<class S>
-        void operator& (S& stream) {
-            checkpoint (stream);
-        }
+
+    void checkpoint(ostream& stream);
+    void checkpoint(istream& stream);
         
 	/** Register a callback function which produces output.
 	 *
@@ -80,11 +73,8 @@ namespace mon {
 	/// Generate time-step's output. Called at beginning of time step.
         /// Passed population since some callbacks use this to generate output.
 	void update (Population &population);
-        
-    private:
-        void checkpoint(ostream& stream);
-        void checkpoint(istream& stream);
-    };
-    extern ContinuousType Continuous;
-} }
+
+} // namespace Continuous
+} // namespace mon
+} // namespace OM
 #endif

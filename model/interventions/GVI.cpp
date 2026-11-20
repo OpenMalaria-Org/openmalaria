@@ -64,7 +64,7 @@ GVIComponent::GVIComponent( ComponentId id, const scnXml::GVIDescription& elt,
 
 void GVIComponent::deploy( Host::Human& human, mon::Deploy::Method method, VaccineLimits )const{
     human.perHostTransmission.deployComponent(human.rng, *this);
-    mon::reportEventMHD( mon::MHD_GVI, human, method );
+    mon::recordDeploy(mon::measure("nMassGVI"), mon::measure("nCtsGVI"), human, method);
 }
 
 Component::Type GVIComponent::componentType()const{ return Component::GVI; }
@@ -145,12 +145,12 @@ double HumanGVI::relFecundity(size_t speciesIndex) const{
 
 void HumanGVI::checkpoint( ostream& stream ){
     deployTime & stream;
-    decayHet & stream;
+    GVIComponent::componentsByIndex[m_id.id]->decay->checkpointSample(decayHet, stream);
 }
 HumanGVI::HumanGVI( istream& stream, ComponentId id ) : PerHostInterventionData( id )
 {
     deployTime & stream;
-    decayHet & stream;
+    GVIComponent::componentsByIndex[m_id.id]->decay->checkpointSample(decayHet, stream);
 }
 
 } }

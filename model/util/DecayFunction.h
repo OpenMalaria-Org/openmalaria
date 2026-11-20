@@ -48,7 +48,8 @@ public:
     DecayFunction(const DecayFunction& other) : 
         increasing(other.increasing),
         initialEfficacy(other.initialEfficacy),
-        het(other.het ? other.het->clone() : nullptr) {}
+        het(other.het ? other.het->clone() : nullptr),
+        hetFactor(other.hetFactor) {}
 
     virtual ~DecayFunction() {}
 
@@ -76,7 +77,11 @@ public:
     }
     
     /** Generate a DecayFunction value from an existing sample. */
-    virtual unique_ptr<DecayFunction> hetSample(double hetFactor) const =0;
+    unique_ptr<DecayFunction> hetSample(double factor) const {
+        unique_ptr<DecayFunction> sample = makeHetSample(factor);
+        sample->hetFactor = factor;
+        return sample;
+    }
 
     /** Say you have a population of objects which each have two states:
      * decayed and not decayed. If you want to use a DecayFunction to model
@@ -97,16 +102,18 @@ public:
 
     virtual double compute(double ageDays) const = 0;
 
-    /// Checkpointing
-    template<class S>
-    void operator& (S& stream) {
-        // timeFactorHet & stream;
-    }
+    /** Checkpoint a sampled copy, recreating it from this configured function. */
+    void checkpointSample(const unique_ptr<DecayFunction>& sample, ostream& stream) const;
+    void checkpointSample(unique_ptr<DecayFunction>& sample, istream& stream) const;
 
 private:
     bool increasing;
     double initialEfficacy;
     std::unique_ptr<util::Sampler> het;
+
+protected:
+    virtual unique_ptr<DecayFunction> makeHetSample(double factor) const = 0;
+    double hetFactor = 0.0;
 };
 
 } }

@@ -236,25 +236,24 @@ VectorModel::VectorModel(vector<double> initEIR, int interventionMode, vector<st
         ctsRR << "\tres req(" << name << ")";
     }
 
-    using mon::Continuous;
-    Continuous.registerCallback("N_v0", ctsNv0.str(), std::bind( &VectorModel::ctsCbN_v0, this, _1));
-    Continuous.registerCallback("P_A", ctsPA.str(), std::bind( &VectorModel::ctsCbP_A, this, _1));
-    Continuous.registerCallback("P_Amu", ctsPAmu.str(), std::bind( &VectorModel::ctsCbP_Amu, this, _1));
-    Continuous.registerCallback("P_A1", ctsPA1.str(), std::bind( &VectorModel::ctsCbP_A1, this, _1));
-    Continuous.registerCallback("P_Ah", ctsPAh.str(), std::bind( &VectorModel::ctsCbP_Ah, this, _1));
-    Continuous.registerCallback("P_df", ctsPdf.str(), std::bind( &VectorModel::ctsCbP_df, this, _1));
-    Continuous.registerCallback("P_dif", ctsPdif.str(), std::bind( &VectorModel::ctsCbP_dif, this, _1));
-    Continuous.registerCallback("N_v", ctsNv.str(), std::bind( &VectorModel::ctsCbN_v, this, _1));
-    Continuous.registerCallback("O_v", ctsOv.str(), std::bind( &VectorModel::ctsCbO_v, this, _1));
-    Continuous.registerCallback("S_v", ctsSv.str(), std::bind( &VectorModel::ctsCbS_v, this, _1));
+    mon::Continuous::registerCallback("N_v0", ctsNv0.str(), std::bind( &VectorModel::ctsCbN_v0, this, _1));
+    mon::Continuous::registerCallback("P_A", ctsPA.str(), std::bind( &VectorModel::ctsCbP_A, this, _1));
+    mon::Continuous::registerCallback("P_Amu", ctsPAmu.str(), std::bind( &VectorModel::ctsCbP_Amu, this, _1));
+    mon::Continuous::registerCallback("P_A1", ctsPA1.str(), std::bind( &VectorModel::ctsCbP_A1, this, _1));
+    mon::Continuous::registerCallback("P_Ah", ctsPAh.str(), std::bind( &VectorModel::ctsCbP_Ah, this, _1));
+    mon::Continuous::registerCallback("P_df", ctsPdf.str(), std::bind( &VectorModel::ctsCbP_df, this, _1));
+    mon::Continuous::registerCallback("P_dif", ctsPdif.str(), std::bind( &VectorModel::ctsCbP_dif, this, _1));
+    mon::Continuous::registerCallback("N_v", ctsNv.str(), std::bind( &VectorModel::ctsCbN_v, this, _1));
+    mon::Continuous::registerCallback("O_v", ctsOv.str(), std::bind( &VectorModel::ctsCbO_v, this, _1));
+    mon::Continuous::registerCallback("S_v", ctsSv.str(), std::bind( &VectorModel::ctsCbS_v, this, _1));
 
     // availability to mosquitoes relative to other humans, excluding age factor
-    Continuous.registerCallback("alpha", ctsAlpha.str(), std::bind( &VectorModel::ctsCbAlpha, this, _1, _2));
-    Continuous.registerCallback("P_B", ctsPB.str(), std::bind( &VectorModel::ctsCbP_B, this, _1, _2));
-    Continuous.registerCallback("P_C*P_D", ctsPCD.str(), std::bind( &VectorModel::ctsCbP_CD, this, _1, _2));
+    mon::Continuous::registerCallback("alpha", ctsAlpha.str(), std::bind( &VectorModel::ctsCbAlpha, this, _1, _2));
+    mon::Continuous::registerCallback("P_B", ctsPB.str(), std::bind( &VectorModel::ctsCbP_B, this, _1, _2));
+    mon::Continuous::registerCallback("P_C*P_D", ctsPCD.str(), std::bind( &VectorModel::ctsCbP_CD, this, _1, _2));
 
-    Continuous.registerCallback("resource availability", ctsRA.str(), std::bind( &VectorModel::ctsCbResAvailability, this, _1));
-    Continuous.registerCallback("resource requirements", ctsRR.str(), std::bind( &VectorModel::ctsCbResRequirements, this, _1));
+    mon::Continuous::registerCallback("resource availability", ctsRA.str(), std::bind( &VectorModel::ctsCbResAvailability, this, _1));
+    mon::Continuous::registerCallback("resource requirements", ctsRR.str(), std::bind( &VectorModel::ctsCbResRequirements, this, _1));
 }
 
 VectorModel::~VectorModel() {}
@@ -372,8 +371,6 @@ SimTime VectorModel::initIterate()
 void VectorModel::calculateEIR(Host::Human &human, double ageYears, vector<double> &EIR_i, vector<double> &EIR_l) const
 {
 
-    auto ag = human.monitoringAgeGroup.i();
-    auto cs = human.getCohortSet();
     PerHost &host = human.perHostTransmission;
     host.update(human);
     if(simulationMode == transientEIRknown)
@@ -388,7 +385,8 @@ void VectorModel::calculateEIR(Host::Human &human, double ageYears, vector<doubl
              *
              * See comment in AnophelesModel::advancePeriod for method. */
             double eir = species[i]->getInterventionEIR() * host.relativeAvailabilityAge(ageYears) * host.entoAvailabilityHetVecItv(i);
-            mon::reportStatMACSGF(mon::MVF_INOCS, ag, cs, i, 0, eir);
+            mon::recordStat(mon::measure("innoculationsPerAgeGroup"), human, eir);
+            mon::recordStat(mon::measure("innoculationsPerVector"), human, eir, i);
             // cout << host.availBite(i) << endl;
             // cout << "species: " << eir << " " << host.entoAvailabilityHetVecItv(i) << " " << host.entoAvailabilityHetVecItv(i) * (1000*0.00112608) << endl;
             EIR_l[0] += eir;
@@ -399,7 +397,7 @@ void VectorModel::calculateEIR(Host::Human &human, double ageYears, vector<doubl
         // double eir = initialisationEIR[sim::moduloYearSteps(sim::ts0())] * host.relativeAvailabilityHetAge(ageYears);
 
         // cout << "global: " << eir << " " <<  endl;
-        // mon::reportStatMACGF(mon::MVF_INOCS, ag, cs, 0, eir);
+        // mon::recordStat(mon::measure("innoculationsPerAgeGroup"), human, eir);
         // EIR.assign(1, eir);
 
         EIR_i.assign(1, 0.0);
@@ -412,7 +410,8 @@ void VectorModel::calculateEIR(Host::Human &human, double ageYears, vector<doubl
              *
              * See comment in AnophelesModel::advancePeriod for method. */
             double eir = species[i]->getInitPartialEIR() * host.relativeAvailabilityAge(ageYears) * host.entoAvailabilityHetVecItv(i);
-            mon::reportStatMACSGF(mon::MVF_INOCS, ag, cs, i, 0, eir);
+            mon::recordStat(mon::measure("innoculationsPerAgeGroup"), human, eir);
+            mon::recordStat(mon::measure("innoculationsPerVector"), human, eir, i);
             // cout << host.availBite(i) << endl;
             // cout << "species: " << eir << " " << host.entoAvailabilityHetVecItv(i) << " " << host.entoAvailabilityHetVecItv(i) * (1000*0.00112608) << endl;
             EIR_l[0] += eir;
@@ -442,7 +441,8 @@ void VectorModel::calculateEIR(Host::Human &human, double ageYears, vector<doubl
             {
                 double eir_i = partialEIR_i[g] * entoFactor;
                 double eir_l = partialEIR_l[g] * entoFactor;
-                mon::reportStatMACSGF(mon::MVF_INOCS, ag, cs, i, g, eir_i + eir_l);
+                mon::recordStat(mon::measure("innoculationsPerAgeGroup"), human, eir_i + eir_l, 0, g);
+                mon::recordStat(mon::measure("innoculationsPerVector"), human, eir_i + eir_l, i, g);
                 EIR_i[g] += eir_i;
                 EIR_l[g] += eir_l;
             }

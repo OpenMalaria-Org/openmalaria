@@ -71,55 +71,55 @@ void Episode::report () {
     if (state & Episode::MALARIA) {
         // Malarial fevers: report bout
         if (state & Episode::COMPLICATED) {
-            mon::reportMSACI( mon::MHE_SEVERE_EPISODES, surveyPeriod, ageGroup, cohortSet, 1 );
+            mon::recordEvent(mon::measure("nSevere"), surveyPeriod, ageGroup, cohortSet);
             if (state & Episode::SEVERE) {
-                mon::reportMSACI( mon::MHE_SEVERE_EPISODES_WITHOUT_COMORBIDITIES, surveyPeriod, ageGroup, cohortSet, 1 );
+                mon::recordEvent(mon::measure("nSevereWithoutComorbidities"), surveyPeriod, ageGroup, cohortSet);
             }
         } else { // UC or UC2
-            mon::reportMSACI( mon::MHE_UNCOMPLICATED_EPISODES, surveyPeriod, ageGroup, cohortSet, 1 );
+            mon::recordEvent(mon::measure("nUncomp"), surveyPeriod, ageGroup, cohortSet);
             if(infectionType == WithinHost::InfectionOrigin::Indigenous)
-                mon::reportMSACI( mon::MHE_UNCOMPLICATED_EPISODES_INDIGENOUS, surveyPeriod, ageGroup, cohortSet, 1 );
+                mon::recordEvent(mon::measure("nUncomp_Indigenous"), surveyPeriod, ageGroup, cohortSet);
             else if(infectionType == WithinHost::InfectionOrigin::Introduced)
-                mon::reportMSACI( mon::MHE_UNCOMPLICATED_EPISODES_INTRODUCED, surveyPeriod, ageGroup, cohortSet, 1 );
+                mon::recordEvent(mon::measure("nUncomp_Introduced"), surveyPeriod, ageGroup, cohortSet);
             else
-                mon::reportMSACI( mon::MHE_UNCOMPLICATED_EPISODES_IMPORTED, surveyPeriod, ageGroup, cohortSet, 1 );
+                mon::recordEvent(mon::measure("nUncomp_Imported"), surveyPeriod, ageGroup, cohortSet);
         }
 
         // Report outcomes of malarial fevers
         if (state & Episode::EVENT_IN_HOSPITAL) {
             if (state & Episode::DIRECT_DEATH) {
-                mon::reportMSACI( mon::MHO_DIRECT_DEATHS, surveyPeriod, ageGroup, cohortSet, 1 );
-                mon::reportMSACI( mon::MHO_HOSPITAL_DEATHS, surveyPeriod, ageGroup, cohortSet, 1 );
+                mon::recordEvent(mon::measure("nDirDeaths"), surveyPeriod, ageGroup, cohortSet);
+                mon::recordEvent(mon::measure("nHospitalDeaths"), surveyPeriod, ageGroup, cohortSet);
                 if (state & Episode::EVENT_FIRST_DAY){
-                    mon::reportMSACI( mon::MHO_FIRST_DAY_DEATHS, surveyPeriod, ageGroup, cohortSet, 1 );
-                    mon::reportMSACI( mon::MHO_HOSPITAL_FIRST_DAY_DEATHS, surveyPeriod, ageGroup, cohortSet, 1 );
+                    mon::recordEvent(mon::measure("Clinical_FirstDayDeaths"), surveyPeriod, ageGroup, cohortSet);
+                    mon::recordEvent(mon::measure("Clinical_HospitalFirstDayDeaths"), surveyPeriod, ageGroup, cohortSet);
                 }
             }
             else if (state & Episode::SEQUELAE) {
-                mon::reportMSACI( mon::MHO_SEQUELAE, surveyPeriod, ageGroup, cohortSet, 1 );
-                mon::reportMSACI( mon::MHO_HOSPITAL_SEQUELAE, surveyPeriod, ageGroup, cohortSet, 1 );
+                mon::recordEvent(mon::measure("nSeq"), surveyPeriod, ageGroup, cohortSet);
+                mon::recordEvent(mon::measure("nHospitalSeqs"), surveyPeriod, ageGroup, cohortSet);
             }
             else if (state & Episode::RECOVERY){
-                mon::reportMSACI( mon::MHO_HOSPITAL_RECOVERIES, surveyPeriod, ageGroup, cohortSet, 1 );
+                mon::recordEvent(mon::measure("nHospitalRecovs"), surveyPeriod, ageGroup, cohortSet);
             }
         } else {
             if (state & Episode::DIRECT_DEATH) {
-                mon::reportMSACI( mon::MHO_DIRECT_DEATHS, surveyPeriod, ageGroup, cohortSet, 1 );
+                mon::recordEvent(mon::measure("nDirDeaths"), surveyPeriod, ageGroup, cohortSet);
                 if (state & Episode::EVENT_FIRST_DAY){
-                    mon::reportMSACI( mon::MHO_FIRST_DAY_DEATHS, surveyPeriod, ageGroup, cohortSet, 1 );
+                    mon::recordEvent(mon::measure("Clinical_FirstDayDeaths"), surveyPeriod, ageGroup, cohortSet);
                 }
             }
             else if (state & Episode::SEQUELAE){
-                mon::reportMSACI( mon::MHO_SEQUELAE, surveyPeriod, ageGroup, cohortSet, 1 );
+                mon::recordEvent(mon::measure("nSeq"), surveyPeriod, ageGroup, cohortSet);
             }
             // Don't care about out-of-hospital recoveries
         }
     } else if (state & Episode::SICK) {
         // Report non-malarial fever and outcomes
-        mon::reportMSACI( mon::MHE_NON_MALARIA_FEVERS, surveyPeriod, ageGroup, cohortSet, 1 );
+        mon::recordEvent(mon::measure("nNMFever"), surveyPeriod, ageGroup, cohortSet);
 
         if (state & Episode::DIRECT_DEATH) {
-            mon::reportMSACI( mon::MHO_NMF_DEATHS, surveyPeriod, ageGroup, cohortSet, 1 );
+            mon::recordEvent(mon::measure("nNmfDeaths"), surveyPeriod, ageGroup, cohortSet);
         }
     }
 }

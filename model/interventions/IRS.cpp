@@ -68,7 +68,7 @@ IRSComponent::IRSComponent( ComponentId id, const scnXml::IRSDescription& elt,
 
 void IRSComponent::deploy( Host::Human& human, mon::Deploy::Method method, VaccineLimits )const{
     human.perHostTransmission.deployComponent(human.rng, *this);
-    mon::reportEventMHD( mon::MHD_IRS, human, method );
+    mon::recordDeploy(mon::measure("nMassIRS"), mon::measure("nCtsIRS"), human, method);
 }
 
 Component::Type IRSComponent::componentType()const{ return Component::IRS; }
@@ -284,13 +284,13 @@ double HumanIRS::relFecundity(size_t speciesIndex) const{
 void HumanIRS::checkpoint( ostream& stream ){
     deployTime & stream;
     initialInsecticide & stream;
-    insecticideDecayHet & stream;
+    IRSComponent::componentsByIndex[m_id.id]->insecticideDecay->checkpointSample(insecticideDecayHet, stream);
 }
 HumanIRS::HumanIRS( istream& stream, ComponentId id ) : PerHostInterventionData( id )
 {
     deployTime & stream;
     initialInsecticide & stream;
-    insecticideDecayHet & stream;
+    IRSComponent::componentsByIndex[m_id.id]->insecticideDecay->checkpointSample(insecticideDecayHet, stream);
 }
 
 } }

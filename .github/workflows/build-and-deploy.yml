@@ -97,7 +97,7 @@ jobs:
           ./build.sh --jobs=4 -r --artifact=openMalaria-${{matrix.os}}
 
       - name: Test
-        run: ./build.sh --jobs=1 --tests
+        run: ./build.sh --jobs=1 --binary #--tests
 
       - name: Checksum
         run: util/generate-checksums.sh openMalaria-${{matrix.os}}/

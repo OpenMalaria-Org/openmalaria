@@ -28,6 +28,7 @@
 /* if you get compile errors like "version.h not found", run CMake first */
 #include "util/version.h"
 
+#include <filesystem>
 #include <sstream>
 #include <iostream>
 #include <cassert>
@@ -36,6 +37,7 @@ namespace OM { namespace util {
 	bitset<CommandLine::NUM_OPTIONS> CommandLine::options;
 	string CommandLine::resourcePath;
 	string CommandLine::outputName;
+	CommandLine::OutputFormat CommandLine::outputFormat = CommandLine::OutputFormat::TXT;
 	string CommandLine::ctsoutName;
 	string CommandLine::checkpointFileName;
 
@@ -44,6 +46,17 @@ namespace OM { namespace util {
 		if (i >= argc)
 			throw cmd_exception ("Expected an argument following the last option");
 		return string(argv[i]);
+	}
+
+	void resolveOutputName(string& name, CommandLine::OutputFormat format, bool compressed) {
+		string extension = format == CommandLine::OutputFormat::BIN ? ".bin" : ".txt";
+		if (compressed) extension.append(".gz");
+		if (name == "") name = "output";
+		if (!filesystem::path(name).has_extension()) {
+			name.append(extension);
+		} else if (!name.ends_with(extension)) {
+			throw cmd_exception("Output filename \"" + name + "\" must end in \"" + extension + "\"");
+		}
 	}
 
 	string CommandLine::lookupResource (const string& path) {
@@ -64,6 +77,7 @@ namespace OM { namespace util {
 		bool cloHelp = false, cloVersion = false, cloError = false;
 		string scenarioFile = "";
 		outputName = "";
+		outputFormat = OutputFormat::TXT;
 		ctsoutName = "";
 #	ifdef OM_STREAM_VALIDATOR
 		string sVFile;
@@ -98,6 +112,15 @@ namespace OM { namespace util {
 						throw cmd_exception ("--output argument may only be given once");
 					}
 					outputName = parseNextArg (argc, argv, i);
+				} else if (clo == "output-format") {
+					string format = parseNextArg (argc, argv, i);
+					if (format == "txt") {
+						outputFormat = OutputFormat::TXT;
+					} else if (format == "bin") {
+						outputFormat = OutputFormat::BIN;
+					} else {
+						throw cmd_exception ("--output-format must be txt or bin");
+					}
 				} else if (clo == "compress-output") {
 					options.set (COMPRESS_OUTPUT);
 				} else if (clo == "ctsout") {
@@ -111,7 +134,7 @@ namespace OM { namespace util {
 					}
 					string name = parseNextArg (argc, argv, i);
 					(scenarioFile = "scenario").append(name).append(".xml");
-					(outputName = "output").append(name).append(".txt");
+					(outputName = "output").append(name);
 					(ctsoutName = "ctsout").append(name).append(".txt");
 				} else if (clo == "validate-only") {
 					options.set (SKIP_SIMULATION);
@@ -191,7 +214,7 @@ namespace OM { namespace util {
 	    			}
 	    			string name = parseNextArg (argc, argv, i);
 	    			(scenarioFile = "scenario").append(name).append(".xml");
-	    			(outputName = "output").append(name).append(".txt");
+				    (outputName = "output").append(name);
 	    			(ctsoutName = "ctsout").append(name).append(".txt");
 	    		} else if (clo[j] == 'c') {
 	    			options.set (CHECKPOINT);
@@ -235,11 +258,14 @@ namespace OM { namespace util {
 		<< "			working directory). Not used for output files."<<endl
 		<< " -s --scenario file.xml	Uses file.xml as the scenario. If not given, scenario.xml is used." << endl
 		<< "			If path is relative (doesn't start '/'), --resource-path is used."<<endl
-		<< " -o --output file.txt	Uses file.txt as output file name. If not given, output.txt is used." << endl
+		<< " -o --output file	Uses file as output file name. The selected extension is added if omitted." << endl
+		<< "			An explicit extension must match the format and compression options." << endl
+		<< "    --output-format txt|bin" << endl
+		<< "			Select main survey output format." << endl
 		<< "    --ctsout file.txt	Uses file.txt as ctsout file name. If not given, ctsout.txt is used." << endl
-		<< " -n --name NAME		Equivalent to --scenario scenarioNAME.xml --output outputNAME.txt \\"<<endl
+		<< " -n --name NAME		Equivalent to --scenario scenarioNAME.xml --output outputNAME \\"<<endl
 		<< "			--ctsout ctsoutNAME.txt" <<endl
-		<< " -z --compress-output	Compress output with gzip (writes output.txt.gz)." << endl
+		<< " -z --compress-output	Compress output with gzip and use a .gz extension." << endl
 		<< "    --validate-only	Initialise and validate scenario, but don't run simulation." << endl
 		<< "    --no-deprecation-warnings" << endl
 		<< "			OpenMalaria warn about the use of features deemed error-prone and where" << endl
@@ -289,9 +315,7 @@ namespace OM { namespace util {
 	if (scenarioFile == ""){
 		scenarioFile = "scenario.xml";
 	}
-	if (outputName == ""){
-		outputName = "output.txt";
-	}
+	resolveOutputName(outputName, outputFormat, options.test(COMPRESS_OUTPUT));
 	if (ctsoutName == ""){
 		ctsoutName = "ctsout.txt";
 	}

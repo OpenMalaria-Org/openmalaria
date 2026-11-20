@@ -1,5 +1,5 @@
 cache:
-    - 'C:\cygwin64\var\cache\setup'
+    - 'C:\cygwin\var\cache\setup'
 
 os: Visual Studio 2022
 
@@ -9,9 +9,7 @@ clone_folder: c:\projects\openmalaria
 
 # Run install scripts
 install:
-  # Workaround (update CygWin)
-  - appveyor DownloadFile "http://www.cygwin.com/setup-x86_64.exe" -FileName C:\cygwin64\setup-x86_64.exe
-  - C:\cygwin64\setup-x86_64.exe -q --no-desktop --no-shortcuts --no-startmenu --upgrade-also -P cmake,make,python3,zlib-devel,libgsl-devel,xsd,libxerces-c-devel
+  - C:\cygwin\setup-x86_64.exe -q -l C:\cygwin\var\cache\setup --no-desktop --no-shortcuts --no-startmenu -P cmake,make,python3,zlib-devel,libgsl-devel,xsd,libxerces-c-devel
   # - C:\cygwin64\bin\bash -lc "echo $HOME"
   # - C:\cygwin64\bin\bash -lc "appveyor DownloadFile http://rawgit.com/transcode-open/apt-cyg/master/apt-cyg -FileName apt-cyg"
   # - C:\cygwin64\bin\bash -lc "install apt-cyg /bin"
@@ -21,11 +19,11 @@ install:
 
 build_script:
   - C:\cygwin64\bin\bash -lc "git config --global --add safe.directory /cygdrive/c/projects/openmalaria"
-  - C:\cygwin64\bin\bash -lc "cd /cygdrive/c/projects/openmalaria && ./build.sh --jobs=4 -r --artifact=openMalaria-windows"
+  - C:\cygwin64\bin\bash -lc "cd /cygdrive/c/projects/openmalaria && ./build.sh --jobs=2 -r --artifact=openMalaria-windows"
 
 # Discover and run tests (or test_script)
 test_script:
-  - C:\cygwin64\bin\bash -lc "cd /cygdrive/c/projects/openmalaria && ./build.sh --jobs=1 --tests"
+  - C:\cygwin64\bin\bash -lc "cd /cygdrive/c/projects/openmalaria && ./build.sh --jobs=1 --binary" #--tests"
 
 # Package artifacts
 artifacts:
@@ -35,7 +33,6 @@ artifacts:
 deploy:
   force_update: true
   provider: GitHub
-  description: "OpenMalaria build for Windows"
   auth_token:
     secure: H6XDjpkpbS8cfYxfGwOwEDBQEuAqnIeDtnG3eHuqTf6gdOjge80AFM2h5iaqTLcw
   artifact: openMalaria-windows.zip
