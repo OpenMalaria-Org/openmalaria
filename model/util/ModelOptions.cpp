@@ -125,6 +125,23 @@ namespace OM { namespace util {
         return allOptionsOff;
     }
 
+    std::bitset<NUM_OPTIONS> ModelOptions::getMolineauxNamedModelOptions()
+    {
+        bitset<NUM_OPTIONS> optSet;
+
+        // Without these calls, both these model options would be off.
+        // These calls are written here just to make it explicit that it is very intentional that both of these model options are turned off.
+        optSet.reset (HEALTH_SYSTEM_MEMORY_FIX);
+        optSet.reset (INDIRECT_MORTALITY_FIX);
+
+        optSet.set (MOLINEAUX_WITHIN_HOST_MODEL);
+        optSet.set (MOLINEAUX_PAIRWISE_SAMPLE);
+        optSet.set (MAX_DENS_CORRECTION);
+        optSet.set (INNATE_MAX_DENS);
+
+        return optSet;
+    }
+
     std::bitset<NUM_OPTIONS> ModelOptions::getLegacyDefaultModelOptions()
     {
         bitset<NUM_OPTIONS> defaultOptSet;
@@ -156,6 +173,10 @@ namespace OM { namespace util {
         {
             // This completely discards any legacy model options set above.
             options = getBaseModelOptions();
+        }
+        else if (namedModelToUse == util::ModelNames::molineaux)
+        {
+            options = getMolineauxNamedModelOptions();
         }
         else
         {
