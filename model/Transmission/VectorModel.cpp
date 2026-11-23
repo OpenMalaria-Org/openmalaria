@@ -455,6 +455,7 @@ void VectorModel::vectorUpdate(const vector<Host::Human> &population)
 {
     const size_t nGenotypes = WithinHost::Genotypes::N();
     std::vector<double> probTransmission_i, probTransmission_l;
+    std::vector<double> tbvFac(nGenotypes);
     std::vector<double> sum_avail(speciesIndex.size());
     std::vector<double> sigma_df(speciesIndex.size());
     std::vector<double> sigma_dff(speciesIndex.size());
@@ -468,20 +469,24 @@ void VectorModel::vectorUpdate(const vector<Host::Human> &population)
         probTransmission_l.assign(nGenotypes, 0.0);
         whm.probTransmissionToMosquito(probTransmission_i, probTransmission_l);
 
+        // NOTE: calculate availability relative to age at end of time step;
+        // not my preference but consistent with TransmissionModel::getEIR().
+        // TODO: even stranger since probTransmission comes from the previous time step
+        const double ageFactor = host.relativeAvailabilityAge(sim::inYears(human.age(sim::ts1())));
+        for (size_t g = 0; g < nGenotypes; ++g)
+            tbvFac[g] = human.vaccine.getFactor(interventions::Vaccine::TBV, opt_vaccine_genotype? g : 0);
+
         for (size_t s = 0; s < speciesIndex.size(); ++s)
         {
-            // NOTE: calculate availability relative to age at end of time step;
-            // not my preference but consistent with TransmissionModel::getEIR().
-            // TODO: even stranger since probTransmission comes from the previous time step
-            const double avail = host.entoAvailabilityFull(s, sim::inYears(human.age(sim::ts1())));
+            // same as host.entoAvailabilityFull(s, age)
+            const double avail = host.entoAvailabilityHetVecItv(s) * ageFactor;
             sum_avail[s] += avail;
             const double df = avail * host.probMosqBiting(s) * host.probMosqResting(s);
             sigma_df[s] += df;
             for (size_t g = 0; g < nGenotypes; ++g)
             {
-                const double tbvFac = human.vaccine.getFactor(interventions::Vaccine::TBV, opt_vaccine_genotype? g : 0);
-                sigma_dif_i[s][g] += df * probTransmission_i[g] * tbvFac;
-                sigma_dif_l[s][g] += df * probTransmission_l[g] * tbvFac;
+                sigma_dif_i[s][g] += df * probTransmission_i[g] * tbvFac[g];
+                sigma_dif_l[s][g] += df * probTransmission_l[g] * tbvFac[g];
             }
             sigma_dff[s] += df * host.relMosqFecundity(s);
         }
