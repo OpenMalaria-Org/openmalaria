@@ -1,4 +1,4 @@
-#/bin/bash
+#!/bin/bash
 
 # This file is part of OpenMalaria.
 # 
@@ -38,6 +38,7 @@ SWITCHBRANCH=0
 # options
 CLEAN=0         # Clean build/
 DEBUG=0
+PGO=0           # Profile-guided optimisation
 TESTS=OFF       # Don't generate tests
 RUNTESTS=0      # Don't run tests
 BINARY=OFF      # Test survey output in binary mode
@@ -66,6 +67,7 @@ printHelp () {
     echo "      --binary"           "run tests with binary survey output (false)"
     echo "  -c, --clean"            "clean build folder (false)"
     echo "  -d, --debug"            "build in debug mode (false)"
+    echo "  -p, --pgo"              "build with profile-guided optimisation (false)"
     echo "  -t, --tests"            "run the tests (false)"
     echo "  -r, --release"          "generate the release artifcat (false)"
     echo "  -a, --artifact=<name>"  "specify the artifcat name (openMalaria-VERSION)"
@@ -80,6 +82,7 @@ parseArguments () {
             --binary)           BINARY=ON; TESTS=ON && shift ;;
             -c|--clean)         CLEAN=1 && shift ;;
             -d|--debug)         DEBUG=1 && shift ;;
+            -p|--pgo)           PGO=1 && shift ;;
             -t|--tests)         TESTS=ON && shift ;;
             -r|--release)       CREATERELEASE=1 && shift ;;
             -a=*|--artifact=*)  ARTIFACT=${i#*=} && shift ;;
@@ -137,6 +140,8 @@ build () {
     which cmake
     if [ $DEBUG -eq 1 ]; then
         cmake -DOM_BOXTEST_ENABLE=$TESTS -DOM_CXXTEST_ENABLE=$TESTS -DOM_BOXTEST_BINARY=$BINARY .. && make -j$JOBS
+    elif [ $PGO -eq 1 ]; then
+        JOBS=$JOBS ../util/pgo-build.sh . -DOM_BOXTEST_ENABLE=$TESTS -DOM_CXXTEST_ENABLE=$TESTS -DOM_BOXTEST_BINARY=$BINARY
     else
         cmake -DCMAKE_BUILD_TYPE=Release -DOM_BOXTEST_ENABLE=$TESTS -DOM_CXXTEST_ENABLE=$TESTS -DOM_BOXTEST_BINARY=$BINARY .. && make -j$JOBS
     fi

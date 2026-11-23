@@ -94,7 +94,7 @@ jobs:
           echo "Path: ${{ github.workspace }}"
           cd ${{ github.workspace }}
           uname -a
-          ./build.sh --jobs=4 -r --artifact=openMalaria-${{matrix.os}}
+          ./build.sh --jobs=4 --pgo -r --artifact=openMalaria-${{matrix.os}}
 
       - name: Test
         run: ./build.sh --jobs=1 --binary #--tests
