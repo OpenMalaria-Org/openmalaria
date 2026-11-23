@@ -58,9 +58,6 @@ jobs:
           - os: macos-15
             compiler: clang
 
-          - os: macos-14
-            compiler: clang
-
     steps:
       - uses: actions/checkout@v3
 
