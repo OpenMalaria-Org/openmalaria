@@ -171,8 +171,8 @@ public:
 
     virtual void calculateEIR(Host::Human &human, double ageYears, vector<double> &EIR_i, vector<double> &EIR_l) const
     {
-        EIR_i.resize(1);
-        EIR_l.resize(1); // no support for per-genotype tracking in this model (possible, but we're lazy)
+        EIR_i.assign(1, 0.0);
+        EIR_l.assign(1, 0.0); // no support for per-genotype tracking in this model (possible, but we're lazy)
         // where the full model, with estimates of human mosquito transmission is in use, use this:
         if (simulationMode == forcedEIR) { EIR_l[0] = initialisationEIR[sim::moduloYearSteps(sim::ts0())]; }
         else if (simulationMode == transientEIRknown)
