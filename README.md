@@ -16,7 +16,7 @@ Also find our code on zenodo, with DOI-references:
 
 
 Schema documentation for the XML input files can be found
-[on this website](https://swisstph.github.io/openmalaria/)
+[on this website](https://openmalaria-org.github.io/openmalaria/)
 or in the `schema` folder (both past releases and development version).
 
 You can download the latest build here:
