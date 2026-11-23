@@ -1,0 +1,8 @@
+# Branches checked by .github/workflows/perf-identical.yml: <branch> [build.sh args]
+# Each is built and its outputs byte-compared against its merge-base with main.
+bs_perf/a1-eir-scratch
+bs_perf/a2-ylag-scratch
+bs_perf/a3-kappa-hoist
+bs_perf/b-population-compaction
+bs_perf/c-vector-hoist
+bs_perf/de-lto-pgo --pgo
