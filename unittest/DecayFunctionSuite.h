@@ -151,6 +151,95 @@ public:
                           const std::runtime_error &e, e.what(), errMsg );
     }
     
+    void testValues () {
+        dfElt.setFunction( "values" );
+        dfElt.getDecay().clear();
+        scnXml::Values list;
+        list.push_back( 1.0 );
+        list.push_back( 0.5 );
+        list.push_back( 0.25 );
+        dfElt.setValues( list );
+        df = DecayFunction::makeObject( dfElt, "DecayFunctionSuite" );
+        unique_ptr<DecayFunction> dHet = df->hetSample(m_rng);
+        // One value per time step, starting with the step of deployment, and
+        // the same value for the whole of that time step:
+        TS_ASSERT_APPROX( dHet->eval( sim::zero() ), 1.0 );
+        TS_ASSERT_APPROX( dHet->eval( sim::oneDay() ), 1.0 );
+        TS_ASSERT_APPROX( dHet->eval( sim::fromTS(1) ), 0.5 );
+        TS_ASSERT_APPROX( dHet->eval( sim::fromTS(2) ), 0.25 );
+        // Once the list is exhausted there is no effect
+        TS_ASSERT_APPROX( dHet->eval( sim::fromTS(3) ), 0.0 );
+        TS_ASSERT_APPROX( dHet->eval( sim::fromYearsI(5) ), 0.0 );
+        // This function cannot be inverted into an age of decay
+        TS_ASSERT_EQUALS( df->sampleAgeOfDecay(m_rng), sim::future() );
+
+        // Negative values are allowed: emergenceReduction multiplies emergence
+        // by 1 - value, so -1 would double it. initialEfficacy scales the series.
+        list.clear();
+        list.push_back( -1.0 );
+        dfElt.setValues( list );
+        df = DecayFunction::makeObject( dfElt, "DecayFunctionSuite" );
+        TS_ASSERT_APPROX( df->hetSample(m_rng)->eval( sim::zero() ), -1.0 );
+        dfElt.setInitialEfficacy( 0.5 );
+        df = DecayFunction::makeObject( dfElt, "DecayFunctionSuite" );
+        TS_ASSERT_APPROX( df->hetSample(m_rng)->eval( sim::zero() ), -0.5 );
+        dfElt.setInitialEfficacy( 1.0 );
+    }
+    
+    void testValuesBad () {
+        dfElt.setFunction( "values" );
+        dfElt.getDecay().clear();
+        scnXml::Values list;
+        list.push_back( 0.5 );
+        dfElt.setValues( list );
+        TS_ASSERT_THROWS_NOTHING( df = DecayFunction::makeObject( dfElt, "DecayFunctionSuite" ) );
+
+        // Nothing to return
+        scnXml::Values empty;
+        dfElt.setValues( empty );
+        TS_ASSERT_THROWS( df = DecayFunction::makeObject( dfElt, "DecayFunctionSuite" ),
+                          const std::runtime_error& );
+        dfElt.setValues( list );
+
+        // increasing and CV would silently do nothing useful
+        dfElt.setIncreasing( true );
+        TS_ASSERT_THROWS( df = DecayFunction::makeObject( dfElt, "DecayFunctionSuite" ),
+                          const std::runtime_error& );
+        dfElt.setIncreasing( false );
+        dfElt.setCV( 0.5 );
+        TS_ASSERT_THROWS( df = DecayFunction::makeObject( dfElt, "DecayFunctionSuite" ),
+                          const std::runtime_error& );
+        dfElt.setCV( 0.0 );
+
+        // Nested decay functions are not used by this function
+        scnXml::DecayFunction inner( "constant" );
+        dfElt.getDecay().push_back( inner );
+        TS_ASSERT_THROWS( df = DecayFunction::makeObject( dfElt, "DecayFunctionSuite" ),
+                          const std::runtime_error& );
+        dfElt.getDecay().clear();
+
+        // Values above 1 (or scaled above 1) are accepted: consumers that
+        // compute 1 - value will go negative, which is a run-time concern
+        scnXml::Values big;
+        big.push_back( 1.5 );
+        dfElt.setValues( big );
+        TS_ASSERT_THROWS_NOTHING( df = DecayFunction::makeObject( dfElt, "DecayFunctionSuite" ) );
+        TS_ASSERT_APPROX( df->hetSample(m_rng)->eval( sim::zero() ), 1.5 );
+        dfElt.setValues( list );
+        dfElt.setInitialEfficacy( 3.0 );    // 3.0 * 0.5 = 1.5, likewise allowed
+        TS_ASSERT_THROWS_NOTHING( df = DecayFunction::makeObject( dfElt, "DecayFunctionSuite" ) );
+        TS_ASSERT_APPROX( df->hetSample(m_rng)->eval( sim::zero() ), 1.5 );
+        dfElt.setInitialEfficacy( 1.0 );
+
+        // Not a number
+        scnXml::Values nan;
+        nan.push_back( std::numeric_limits<double>::quiet_NaN() );
+        dfElt.setValues( nan );
+        TS_ASSERT_THROWS( df = DecayFunction::makeObject( dfElt, "DecayFunctionSuite" ),
+                          const std::runtime_error& );
+        dfElt.setValues( list );
+    }
+
 private:
     LocalRng m_rng;
     scnXml::DecayFunction dfElt;

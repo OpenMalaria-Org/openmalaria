@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- This file is part of OpenMalaria.
+Copyright © 2005-2026 Swiss Tropical and Public Health Institute
+Copyright © 2005-2015 Liverpool School Of Tropical Medicine
+Copyright © 2020-2026 University of Basel
+Copyright © 2025 The Kids Research Institute Australia
+
+OpenMalaria is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public Licence as published by
+the Free Software Foundation; either version 2 of the Licence, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public Licence for more details.
+
+You should have received a copy of the GNU General Public Licence
+along with this program; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor,
+Boston, MA 02110-1301, USA. -->
+<om:scenario xmlns:om="http://openmalaria.org/schema/scenario_50" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="valuesDecay" schemaVersion="50" xsi:schemaLocation="http://openmalaria.org/schema/scenario_50 scenario_current.xsd">
+    <!-- Test of the "values" decay function: emergenceReduction with one
+    value per time step. Based on the example scenario, with a small
+    population and a short survey period.
+    
+    The output must be byte-identical to scenarioChangeEmergence, which
+    applies the equivalent factor series (1 - value) via the
+    changeEmergence intervention: a series of values v is equivalent to a
+    series of emergence factors 1 - v. -->
+    <demography maximumAgeYrs="90" name="Ifakara" popSize="100">
+        <ageGroup lowerbound="0">
+            <group poppercent="3.474714994" upperbound="1"/>
+            <group poppercent="12.76004028" upperbound="5"/>
+            <group poppercent="14.52151394" upperbound="10"/>
+            <group poppercent="12.75565434" upperbound="15"/>
+            <group poppercent="10.836323739" upperbound="20"/>
+            <group poppercent="8.393312454" upperbound="25"/>
+            <group poppercent="7.001421452" upperbound="30"/>
+            <group poppercent="5.800587654" upperbound="35"/>
+            <group poppercent="5.102136612" upperbound="40"/>
+            <group poppercent="4.182561874" upperbound="45"/>
+            <group poppercent="3.339409351" upperbound="50"/>
+            <group poppercent="2.986112356" upperbound="55"/>
+            <group poppercent="2.555766582" upperbound="60"/>
+            <group poppercent="2.332763433" upperbound="65"/>
+            <group poppercent="1.77400255" upperbound="70"/>
+            <group poppercent="1.008525491" upperbound="75"/>
+            <group poppercent="0.74167341" upperbound="80"/>
+            <group poppercent="0.271863401" upperbound="85"/>
+            <group poppercent="0.161614642" upperbound="90"/>
+        </ageGroup>
+    </demography>
+
+    <monitoring name="monthly surveys" startDate="1970-01-01">
+        <SurveyOptions>
+            <option name="nHost"/>          <!-- id 0 -->
+            <option name="nInfect"/>        <!-- id 1 -->
+            <option name="nPatent"/>        <!-- id 3 -->
+            <option name="totalInfs"/>      <!-- id 6 -->
+            <option name="totalPatentInf"/> <!-- id 8 -->
+            <option name="nTreatments1"/>   <!-- id 11 -->
+            <option name="nTreatments2"/>   <!-- id 12 -->
+            <option name="nTreatments3"/>   <!-- id 13 -->
+            <option name="nUncomp"/>        <!-- id 14 -->
+            <option name="nSevere"/>        <!-- id 15 -->
+            <option name="nSeq"/>           <!-- id 16 -->
+            <option name="nIndDeaths"/>     <!-- id 18 -->
+            <option name="nDirDeaths"/>     <!-- id 19 -->
+            <option name="inputEIR"/>       <!-- id 35 -->
+            <option name="simulatedEIR"/>   <!-- id 36 -->
+        </SurveyOptions>
+
+        <surveys diagnostic="deterministic">
+            <surveyTime repeatStep="14d" repeatEnd="1974-01-01">1972-01-01</surveyTime> 
+        </surveys>
+        <ageGroup lowerbound="0">
+            <group upperbound="0.5"/>
+            <group upperbound="1"/>
+            <group upperbound="5"/>
+            <group upperbound="15"/>
+            <group upperbound="100"/>
+        </ageGroup>
+    </monitoring>
+
+    <!-- A series of 16 values, one per time step, from deployment on day 730:
+    suppression (0.5, 0.75), enhancement (v=-0.25 and v=-1 double to triple
+    emergence), a full stop (v=1), partial recovery and a return to no effect
+    once the series is exhausted (v=0 is the last value, matching the state
+    after exhaustion). The equivalent factor series is 1 - v. -->
+    <interventions name="values decay function test">
+        <vectorPop>
+        <intervention name="reduce emergence">
+            <description>
+                <anopheles mosquito="gambiae_ss">
+                    <emergenceReduction initial="1">
+                        <decay function="values" values="0.5 0.75 -0.25 1 0.25 0.9 -1 0.5 0.1 0.7 0.4 0.55 0.8 0 0.35 0.6"/>
+                    </emergenceReduction>
+                </anopheles>
+            </description>
+            <timed>
+                <deploy time="730d"/>
+            </timed>
+        </intervention>
+    </vectorPop>
+    </interventions>
+
+    <healthSystem>
+        <DecisionTree5Day name="example name">
+            <pSeekOfficialCareUncomplicated1 value="0.04"/>
+            <pSelfTreatUncomplicated value="0.0"/>
+            <pSeekOfficialCareUncomplicated2 value="0.04"/>
+            <pSeekOfficialCareSevere value="0.48"/>
+            <treeUCOfficial>
+                <caseType>
+                    <firstLine>
+                        <treatSimple durationLiver="0" durationBlood="1t"/>
+                    </firstLine>
+                    <secondLine>
+                        <treatSimple durationLiver="0" durationBlood="1t"/>
+                    </secondLine>
+                </caseType>
+            </treeUCOfficial>
+            <treeUCSelfTreat>
+                <noTreatment/>
+            </treeUCSelfTreat>
+            <cureRateSevere value="1.0"/>
+            <treatmentSevere>
+                <clearInfections stage="blood" timesteps="1t"/>
+            </treatmentSevere>
+        </DecisionTree5Day>
+        <CFR>
+            <group lowerbound="0" value="0.09189"/>
+            <group lowerbound="0.25" value="0.0810811"/>
+            <group lowerbound="0.75" value="0.0648649"/>
+            <group lowerbound="1.5" value="0.0689189"/>
+            <group lowerbound="2.5" value="0.0675676"/>
+            <group lowerbound="3.5" value="0.0297297"/>
+            <group lowerbound="4.5" value="0.0459459"/>
+            <group lowerbound="7.5" value="0.0945946"/>
+            <group lowerbound="12.5" value="0.1243243"/>
+            <group lowerbound="15" value="0.1378378"/>
+        </CFR>
+        <pSequelaeInpatient interpolation="none">
+            <group lowerbound="0.0" value="0.0132"/>
+            <group lowerbound="5.0" value="0.005"/>
+        </pSequelaeInpatient>
+    </healthSystem>
+
+    <entomology mode="dynamic" name="Namawala" scaledAnnualEIR="20">
+        <vector>
+            <anopheles mosquito="gambiae_ss">
+                <seasonality annualEIR="24.826144381650714" input="EIR">
+                    <fourierSeries EIRRotateAngle="0">
+                        <coeffic a="-1.0313715140024822" b="0.5474993785222372"/>
+                        <coeffic a="-0.005155722300211589" b="-0.19769509633382162"/>
+                    </fourierSeries>
+                </seasonality>
+                <mosq>
+                    <mosqRestDuration value="3"/>
+                    <extrinsicIncubationPeriod value="11"/>
+                    <mosqLaidEggsSameDayProportion value="0.313"/>
+                    <mosqSeekingDuration value="0.33"/>
+                    <mosqSurvivalFeedingCycleProbability value="0.623"/>
+                    <availability/>
+                    <mosqProbBiting mean="0.95" variance="0"/>
+                    <mosqProbFindRestSite mean="0.95" variance="0"/>
+                    <mosqProbResting mean="0.99" variance="0"/>
+                    <mosqProbOvipositing value="0.88"/>
+                    <mosqHumanBloodIndex value="0.939"/>
+                </mosq>
+                <nonHumanHosts name="unprotectedAnimals">
+                    <mosqRelativeEntoAvailability value="1.0"/>
+                    <mosqProbBiting value="0.95"/>
+                    <mosqProbFindRestSite value="0.95"/>
+                    <mosqProbResting value="0.99"/>
+                </nonHumanHosts>
+            </anopheles>
+            <nonHumanHosts name="unprotectedAnimals" number="1.0"/>
+        </vector>
+    </entomology>
+
+    <diagnostics>
+        <diagnostic name="deterministic">
+            <deterministic minDensity="40"/>
+        </diagnostic>
+    </diagnostics>
+
+    <model>
+        <ModelName name="base"></ModelName>
+        <ModelOptions>
+            <option name="USE_EXACT_NV0_SOLVER" value="true"/>
+        </ModelOptions>
+
+        <clinical healthSystemMemory="30d">
+            <NeonatalMortality diagnostic="deterministic"/>
+        </clinical>
+
+        <human>
+            <availabilityToMosquitoes>
+                <group lowerbound="0.0" value="0.225940909648"/>
+                <group lowerbound="1.0" value="0.286173633441"/>
+                <group lowerbound="2.0" value="0.336898395722"/>
+                <group lowerbound="3.0" value="0.370989854675"/>
+                <group lowerbound="4.0" value="0.403114915112"/>
+                <group lowerbound="5.0" value="0.442585112522"/>
+                <group lowerbound="6.0" value="0.473839351511"/>
+                <group lowerbound="7.0" value="0.512630464378"/>
+                <group lowerbound="8.0" value="0.54487872702"/>
+                <group lowerbound="9.0" value="0.581527755812"/>
+                <group lowerbound="10.0" value="0.630257580698"/>
+                <group lowerbound="11.0" value="0.663063362714"/>
+                <group lowerbound="12.0" value="0.702417432755"/>
+                <group lowerbound="13.0" value="0.734605377277"/>
+                <group lowerbound="14.0" value="0.788908765653"/>
+                <group lowerbound="15.0" value="0.839587932303"/>
+                <group lowerbound="20.0" value="1.0"/>
+            </availabilityToMosquitoes>
+        </human>
+
+        <computationParameters iseed="1"/>
+   </model>
+</om:scenario>

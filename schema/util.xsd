@@ -153,6 +153,10 @@ Licence: GNU General Public Licence version 2 or later (see COPYING) -->
           emax: Emax * C(t)^slope / (C(t)^slope + IC50^slope),
           where C(t) = initialConcentration * f(t), and f(t) is the
           single nested decay function
+          
+          values: the value from the values attribute for the current time
+          step since deployment (one value per time step, starting with the
+          step of deployment), 0 once the list is exhausted
         </xs:documentation>
     <xs:appinfo>units:None;min:0;max:1;name:function;</xs:appinfo>
    </xs:annotation>
@@ -170,6 +174,7 @@ Licence: GNU General Public Licence version 2 or later (see COPYING) -->
      <xs:enumeration value="divides"/>
      <xs:enumeration value="multiplies"/>
      <xs:enumeration value="emax"/>
+     <xs:enumeration value="values"/>
     </xs:restriction>
    </xs:simpleType>
   </xs:attribute>
@@ -261,6 +266,40 @@ Licence: GNU General Public Licence version 2 or later (see COPYING) -->
           Units must match initialConcentration.
         </xs:documentation>
    </xs:annotation>
+  </xs:attribute>
+  <xs:attribute name="values" use="optional">
+   <xs:annotation>
+    <xs:documentation>
+          values: one value per time step, whitespace separated. The first
+          value applies to the time step of deployment, the second to the next
+          time step, and so on. Once all values have been used the decay
+          function returns 0, so the length of the list sets how long the
+          effect lasts. As with the other decay functions the value used is
+          scaled by initial and initialEfficacy.
+          
+          Any finite value is allowed. This function is generic, and what
+          range of values makes sense depends on the intervention that uses
+          it: an intervention that uses the value directly as a proportion
+          (survival, coverage) expects values between 0 and 1, while one that
+          subtracts it from 1 (such as emergenceReduction, which multiplies
+          emergence by 1 - value) uses negative values to express enhancement.
+          A value outside the range its consumer expects produces invalid
+          quantities (for example negative survival); that is checked at run
+          time, by the stream validator in debug builds or by the model's own
+          guards, not at load time.
+          
+          increasing, CV (heterogeneity) and nested decay elements are not
+          supported with this function, and L is not used: the sign of each
+          value expresses direction, and the values are indexed by time step
+          rather than by an age of decay, which this function does not have.
+          For the same reason it cannot describe the loss of individual items
+          (such as net attrition), only effects applied to a whole population.
+        </xs:documentation>
+    <xs:appinfo>units:dimensionless;min:-inf;max:inf;name:Values per time step;</xs:appinfo>
+   </xs:annotation>
+   <xs:simpleType>
+    <xs:list itemType="xs:double"/>
+   </xs:simpleType>
   </xs:attribute>
  </xs:complexType>
  <xs:complexType name="SampledValueN">
