@@ -264,6 +264,7 @@ public:
         double sumWt_kappa = 0.0;
         double sumWeight = 0.0;
         numTransmittingHumans = 0;
+        vector<double> probTransGenotype_i, probTransGenotype_l;
 
         for (const Host::Human &human : population)
         {
@@ -272,8 +273,9 @@ public:
             const double avail = human.perHostTransmission.relativeAvailabilityHetAge(sim::inYears(human.age(sim::ts1())));
             sumWeight += avail;
 
-            vector<double> probTransGenotype_i(WithinHost::Genotypes::N());
-            vector<double> probTransGenotype_l(WithinHost::Genotypes::N());
+            // re-zero per human: probTransmissionToMosquito may return without writing these
+            probTransGenotype_i.assign(WithinHost::Genotypes::N(), 0.0);
+            probTransGenotype_l.assign(WithinHost::Genotypes::N(), 0.0);
             const double pTransmit = human.withinHostModel->probTransmissionToMosquito(probTransGenotype_i, probTransGenotype_l);
 
             double riskTrans = 0.0;
