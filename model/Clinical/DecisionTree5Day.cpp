@@ -46,7 +46,7 @@ void DecisionTree5Day::setHealthSystem(const scnXml::HSDT5Day& hsDescription){
     accessUCSelfTreat[FirstLine] = hsDescription.getPSelfTreatUncomplicated().getValue();
     accessUCSelfTreat[SecondLine] = 0.0;
     accessUCAny[FirstLine] = accessUCOfficial1 + accessUCSelfTreat[FirstLine];
-    accessUCAny[SecondLine] = accessUCOfficial1 + accessUCSelfTreat[SecondLine];
+    accessUCAny[SecondLine] = accessUCOfficial2 + accessUCSelfTreat[SecondLine];
     accessSevere = hsDescription.getPSeekOfficialCareSevere().getValue();
     
     if( accessUCOfficial1 < 0.0 || accessUCSelfTreat[FirstLine] < 0.0 || accessUCAny[FirstLine] > 1.0 ||

@@ -142,7 +142,7 @@ unique_ptr<util::LognormalSampler> LognormalSampler::fromMeanVariance( double me
     // E(X) = exp(μ + σ² / 2)
     // Var(X) = exp(σ² + 2μ)(exp(σ²) - 1)
     // Var = (CV * mean)²
-    const double CV = variance / mean;
+    const double CV = sqrt(variance) / mean;
     const double a = 1 + (CV * CV);
     sampler->mu = log( mean / sqrt(a) );
     sampler->sigma = sqrt(log(a));

@@ -103,6 +103,7 @@ namespace Host {
             if( period > sim::zero() ){
                 now = mod_nn(now, period);
             }
+            if( now < rate[0].time ) return;
             if( rate[lastIndex].time > now ){
                 lastIndex = 0;  // gone round in a loop: back to start of period
             }
