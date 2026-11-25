@@ -403,6 +403,7 @@ public:
         initNvFromSv & stream;
         initOvFromSv & stream;
         emergenceReduction & stream;
+        emergenceChanges & stream;
         // interventionSurvival & stream;
         // EmergenceModel
         mosqEmergeRate & stream;
@@ -650,6 +651,10 @@ public:
 
     /** Description of intervention killing effects on emerging pupae */
     vector<util::SimpleDecayingValue> emergenceReduction;
+
+    /** changeEmergence interventions: a series of multipliers on the
+     * emergence rate, one factor per time step relative to deployment. */
+    vector<util::TimestepFactors> emergenceChanges;
 };
 
 }

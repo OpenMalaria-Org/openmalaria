@@ -27,6 +27,7 @@
 #include "UnittestUtil.h"
 #include "ExtraAsserts.h"
 #include "util/DecayFunction.h"
+#include "util/SimpleDecayingValue.h"
 
 using ::OM::util::DecayFunction;
 
@@ -149,6 +150,44 @@ public:
         string errMsg = "Emax function: IC50 must be > 0, got -1.000000";
         TS_ASSERT_THROWS_EQUALS( df = DecayFunction::makeObject( dfElt, "DecayFunctionSuite" ),
                           const std::runtime_error &e, e.what(), errMsg );
+    }
+    
+    void testTimestepFactors () {
+        // setUp(): time step is 5 days
+        OM::util::TimestepFactors f;
+        // Before any deployment there is no change:
+        TS_ASSERT_APPROX( f.current_factor( sim::zero() ), 1.0 );
+        TS_ASSERT_APPROX( f.current_factor( sim::fromDays(100) ), 1.0 );
+        
+        f.set( {0.5, 2.0, 1.0} );
+        f.deploy( sim::zero() );
+        TS_ASSERT_APPROX( f.current_factor( sim::zero() ), 0.5 );
+        TS_ASSERT_APPROX( f.current_factor( sim::fromDays(4) ), 0.5 );   // same step
+        TS_ASSERT_APPROX( f.current_factor( sim::fromDays(5) ), 2.0 );   // next step
+        TS_ASSERT_APPROX( f.current_factor( sim::fromDays(10) ), 1.0 );  // third value
+        TS_ASSERT_APPROX( f.current_factor( sim::fromDays(15) ), 1.0 );  // exhausted
+        TS_ASSERT_APPROX( f.current_factor( sim::fromDays(-5) ), 1.0 );  // before deploy
+        
+        // Re-deployment restarts the series, relative to the new time
+        // (the series becomes active on the step in which deployment happens):
+        f.deploy( sim::fromDays(100) );
+        TS_ASSERT_APPROX( f.current_factor( sim::fromDays(95) ), 1.0 );   // previous step
+        TS_ASSERT_APPROX( f.current_factor( sim::fromDays(100) ), 0.5 );
+        TS_ASSERT_APPROX( f.current_factor( sim::fromDays(105) ), 2.0 );
+        
+        // epsilon is a global multiplier for the values; it does not affect
+        // the window: the factor is still 1 before deployment and once the
+        // series is exhausted:
+        f.set( {0.5, 2.0}, 0.5 );
+        TS_ASSERT_APPROX( f.current_factor( sim::fromDays(100) ), 0.25 );
+        TS_ASSERT_APPROX( f.current_factor( sim::fromDays(105) ), 1.0 );   // 0.5 x 2.0
+        TS_ASSERT_APPROX( f.current_factor( sim::fromDays(110) ), 1.0 );   // exhausted
+        TS_ASSERT_APPROX( f.current_factor( sim::fromDays(95) ), 1.0 );    // before deploy
+        
+        // epsilon is not bounded and may be negative:
+        f.set( {0.5, 2.0}, -2.0 );
+        TS_ASSERT_APPROX( f.current_factor( sim::fromDays(100) ), -1.0 );
+        TS_ASSERT_APPROX( f.current_factor( sim::fromDays(105) ), -4.0 );
     }
     
 private:

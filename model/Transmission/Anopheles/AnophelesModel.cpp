@@ -402,12 +402,35 @@ bool AnophelesModel::initIterate() { return true; }
 void AnophelesModel::initVectorInterv(const scnXml::VectorSpeciesIntervention &elt, size_t instance)
 {
     if (emergenceReduction.size() <= instance) emergenceReduction.resize(instance + 1);
+    if (emergenceChanges.size() <= instance) emergenceChanges.resize(instance + 1);
 
     if (elt.getEmergenceReduction().present())
     {
         const scnXml::EmergenceReduction &elt2 = elt.getEmergenceReduction().get();
         if (elt2.getInitial() > 1.0) throw util::xml_scenario_error("emergenceReduction intervention: initial effect must be ≤ 1");
         emergenceReduction[instance].set(elt2.getInitial(), elt2.getDecay(), "emergenceReduction");
+    }
+    if (elt.getChangeEmergence().present())
+    {
+        const scnXml::ChangeEmergence &elt2 = elt.getChangeEmergence().get();
+        const std::vector<double> &values = elt2.getValues();
+        const double epsilon = elt2.getEpsilon();
+        if (values.empty())
+            throw util::xml_scenario_error("changeEmergence intervention: at least one value is required");
+        // epsilon scales every value; it is not bounded (in particular it may
+        // be negative, scaling suppression into enhancement), but must be
+        // finite:
+        if (!std::isfinite(epsilon))
+            throw util::xml_scenario_error("changeEmergence intervention: epsilon must be a finite number");
+        for (double factor : values) {
+            // Negative factors are accepted so that the series can drive the
+            // model beyond its physical range as a stress test: a negative
+            // factor makes the number of new adults negative, which the stream
+            // validator (debug builds) or the emergence fit will catch.
+            if (!std::isfinite(factor))
+                throw util::xml_scenario_error("changeEmergence intervention: factors must be finite numbers");
+        }
+        emergenceChanges[instance].set(values, epsilon);
     }
     if (probAdditionalDeathSugarFeedingIntervs.size() <= instance) probAdditionalDeathSugarFeedingIntervs.resize(instance + 1);
     if (seekingDeathRateIntervs.size() <= instance) seekingDeathRateIntervs.resize(instance + 1);
@@ -446,6 +469,8 @@ void AnophelesModel::deployVectorPopInterv(LocalRng &rng, size_t instance)
 {
     assert(instance < emergenceReduction.size());
     emergenceReduction[instance].deploy(rng, sim::now());
+    assert(instance < emergenceChanges.size());
+    emergenceChanges[instance].deploy(sim::now());  // no random number needed
     // do same as in above function (of EmergenceModel)
     assert(instance < seekingDeathRateIntervs.size() && instance < probDeathOvipositingIntervs.size());
     probAdditionalDeathSugarFeedingIntervs[instance].deploy(rng, sim::now());
@@ -698,6 +723,8 @@ void AnophelesModel::update(SimTime d0, double tsP_A, double tsP_Amu, double tsP
     double interventionSurvival = 1.0;
     for (size_t i = 0; i < emergenceReduction.size(); ++i)
         interventionSurvival *= 1.0 - emergenceReduction[i].current_value(sim::ts0());
+    for (size_t i = 0; i < emergenceChanges.size(); ++i)
+        interventionSurvival *= emergenceChanges[i].current_factor(sim::ts0());
 
     int d1 = d0 + 1; //sim::oneDay(); // end of step
 

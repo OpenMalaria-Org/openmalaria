@@ -2090,6 +2090,71 @@ Licence: GNU General Public Licence version 2 or later (see COPYING) -->
      </xs:attribute>
     </xs:complexType>
    </xs:element>
+   <xs:element name="changeEmergence" minOccurs="0">
+    <xs:annotation>
+     <xs:documentation>
+            Multiplicative change to emergence of pupa into adults, given as
+            one factor per time step (relative to the SimTimeStep of the
+            simulation), starting from the moment of deployment. The emergence
+            rate computed by OpenMalaria (after the warm-up period, with
+            density-dependence applied) is multiplied by the factor for the
+            current time step.
+            
+            A factor of 1 leaves emergence unchanged, 0 prevents all emergence
+            for that time step, and values greater than 1 increase emergence
+            correspondingly (factors are not bounded above). Factors must be
+            finite; negative factors are accepted only as stress tests, as a
+            negative number of new adults is not physical.
+            
+            Before the first deployment and once the series is exhausted, the
+            factor is 1 (no change); re-deployment restarts the series from
+            its first value. The series becomes active on the time step in
+            which the deployment happens.
+            
+            This effect multiplies with emergenceReduction and with other
+            deployments. Where emergenceReduction expresses the proportion of
+            emerging mosquitoes killed, 1 - factor, shaped over time by a
+            decay function, changeEmergence expresses the factor itself as an
+            explicit time series and needs no decay function: a series of
+            0.2 factors over a window reproduces, over the same window, the
+            suppression of emergenceReduction initial="0.8" combined with a
+            step decay covering the same duration.
+          </xs:documentation>
+     <xs:appinfo>units:dimensionless;min:-inf;max:inf;name:Emergence multiplier per time step;</xs:appinfo>
+    </xs:annotation>
+    <xs:complexType>
+     <xs:attribute name="values" use="required">
+      <xs:annotation>
+       <xs:documentation>
+                Whitespace-separated list of factors, one per time step after
+                deployment.
+              </xs:documentation>
+       <xs:appinfo>units:dimensionless;min:-inf;max:inf;name:Emergence multipliers</xs:appinfo>
+      </xs:annotation>
+      <xs:simpleType>
+       <xs:list itemType="xs:double"/>
+      </xs:simpleType>
+     </xs:attribute>
+     <xs:attribute name="epsilon" type="xs:double" use="optional" default="1">
+      <xs:annotation>
+       <xs:documentation>
+                Global multiplier applied to every value of the series: the
+                factor in effect is epsilon times the series value. It scales
+                the whole profile at once, which makes it the knob for a
+                calibration sweep over a fixed series. Unlike the initial
+                effect of interventions expressed as a reduction (which is
+                limited to at most 1), epsilon is not bounded in either
+                direction and may be negative; like the values themselves it
+                must be finite, and negative values are accepted only as
+                stress tests. Outside the series window the factor is 1
+                regardless of epsilon: epsilon scales the values, it does not
+                extend the effect.
+              </xs:documentation>
+       <xs:appinfo>units:dimensionless;min:-inf;max:inf;name:Global series multiplier</xs:appinfo>
+      </xs:annotation>
+     </xs:attribute>
+    </xs:complexType>
+   </xs:element>
    <xs:element name="probAdditionalDeathSugarFeeding" minOccurs="0">
     <xs:annotation>
      <xs:documentation>
