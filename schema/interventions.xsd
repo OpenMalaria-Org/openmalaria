@@ -128,6 +128,8 @@ Licence: GNU General Public Licence version 2 or later (see COPYING) -->
         <xs:documentation>
                   Rate of case importation, as a step function. Each value is
                   valid until replaced by the next value.
+                  For a non-periodic schedule, the rate is zero before the
+                  first specified time.
                 </xs:documentation>
         <xs:appinfo>name:Rate of importation</xs:appinfo>
        </xs:annotation>

@@ -146,7 +146,7 @@ namespace OM { namespace util {
         /**
          * Configure the log-normal distribution from a target mean and variance.
          *
-         * For variance > 0, this computes the equivalent CV = variance/mean and then
+         * For variance > 0, this computes the equivalent CV = sqrt(variance)/mean and then
          * derives μ and σ via the same formulas as in setMeanCV.
          *
          * If variance == 0, the distribution collapses to a point mass:
