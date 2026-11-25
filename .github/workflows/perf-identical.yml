@@ -1,0 +1,58 @@
+# Local-only (not for upstream): checks that each branch in util/perf/ci-targets.txt
+# produces byte-identical outputs to its merge-base with main, on every CI platform.
+# Runs when this branch is pushed; re-run from the Actions tab.
+name: perf identical outputs
+
+on:
+  push:
+    branches:
+      - 'bs_perf/f-tooling'
+  workflow_dispatch:
+
+jobs:
+  identical:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, ubuntu-22.04, ubuntu-24.04-arm, macos-15]
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: tools
+
+      - name: Install - Ubuntu
+        if: startsWith(matrix.os,'ubuntu')
+        run: |
+          sudo apt update
+          sudo apt install -y build-essential git cmake libgsl-dev libxerces-c-dev xsdcxx || true
+
+      - name: Install - MacOS
+        if: startsWith(matrix.os,'macos')
+        run: |
+          HOMEBREW_NO_AUTO_UPDATE=1 brew install coreutils gsl xerces-c xsd || true
+          HOMEBREW_NO_AUTO_UPDATE=1 brew link --overwrite xsd
+
+      - name: Build and compare
+        run: |
+          URL=https://github.com/${{ github.repository }}
+          G="python3 $PWD/tools/util/perf/golden.py"
+          fail=0
+          # build <dir> <ref> [build.sh args]: separate clones, as build.sh expects a plain .git dir
+          build () {
+            [ -x "$1/build/openMalaria" ] && return
+            git clone -q "$URL" "$1" && git -C "$1" checkout -q "$2" && (cd "$1" && ./build.sh --jobs=4 "${@:3}" > build.log 2>&1) || { tail -50 "$1/build.log"; return 1; }
+            $G run "$PWD/$1/build/openMalaria" "$PWD/$1" "out-$1" -j 4 > /dev/null
+          }
+          while read -r br args; do
+            case "$br" in ''|'#'*) continue ;; esac
+            rm -rf probe; git clone -q "$URL" probe && sha=$(git -C probe merge-base origin/main "origin/$br") || { echo "$br: not found"; fail=1; continue; }
+            name=$(echo "$br" | tr / -)
+            if build "base-$sha" "$sha" && build "$name" "origin/$br" $args && $G cmp "out-base-$sha" "out-$name"; then
+              echo "$br: IDENTICAL"
+            else
+              echo "$br: DIFFERENT or failed"; fail=1
+            fi
+          done < tools/util/perf/ci-targets.txt
+          exit $fail
