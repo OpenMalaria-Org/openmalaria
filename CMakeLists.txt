@@ -35,6 +35,13 @@ set(CMAKE_CXX_STANDARD 20)
 
 set (OM_STD_LIBS)
 
+# Link-time optimisation for Release builds (does not change results).
+include (CheckIPOSupported)
+check_ipo_supported (RESULT OM_IPO_SUPPORTED)
+if (OM_IPO_SUPPORTED AND NOT DEFINED CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELEASE)
+  set (CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELEASE ON)
+endif ()
+
 if (NOT MSVC)
   # We almost always want optimisations enabled:
   set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O2")

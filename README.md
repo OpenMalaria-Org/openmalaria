@@ -58,6 +58,18 @@ ctest -j4
 For testing and development, ideally use debug builds (which enable some
 asserts to do with simulation time usage).
 
+For production runs use a Release build (`-DCMAKE_BUILD_TYPE=Release`, as
+`build.sh` does; this gives `-O3` and link-time optimisation). For a further
+speedup (around 10%, varies by scenario), build with profile-guided
+optimisation (GCC or Clang), as release binaries are:
+
+```
+./build.sh --pgo        # or: util/pgo-build.sh <build-dir>
+```
+
+This produces results identical to a normal Release build. Avoid
+`-march=native` and `-ffast-math`: they can change floating-point results.
+
 Code subdirectories:
 =============
 |- dir    -|- description -|
