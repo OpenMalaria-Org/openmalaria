@@ -245,7 +245,8 @@ void update(Human &human, Transmission::TransmissionModel& transmission)
     double age1 = sim::inYears(human.age(sim::ts1()));
 
     // age1 used only in PerHost::relativeAvailabilityAge(); difference to age0 should be minor
-    vector<double> EIR_per_genotype_i, EIR_per_genotype_l;
+    // Reused scratch (avoids per-human allocation); calculateEIR implementations assign() both fully.
+    static thread_local vector<double> EIR_per_genotype_i, EIR_per_genotype_l;
     transmission.getEIR(human, age0, age1, EIR_per_genotype_i, EIR_per_genotype_l);
 
     double EIR_i = util::vectors::sum(EIR_per_genotype_i);
