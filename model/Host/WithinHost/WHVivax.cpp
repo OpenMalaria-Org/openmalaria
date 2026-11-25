@@ -331,11 +331,15 @@ WHVivax::~WHVivax(){
 
 double WHVivax::probTransmissionToMosquito(vector<double> &probTransGenotype_i, vector<double> &probTransGenotype_l)const{
     assert( WithinHost::Genotypes::N() == 1 );
+    probTransGenotype_i[0] = 0.0;
+    probTransGenotype_l[0] = 0.0;
     for(auto inf = infections.begin();
          inf != infections.end(); ++inf)
     {
         if( inf->isPatent() ){
             // we have gametocytes from at least one brood
+            // Vivax currently treats all transmission as local (see getInfectionOrigin).
+            probTransGenotype_l[0] = probBloodStageInfectiousToMosq;
             return probBloodStageInfectiousToMosq;
         }
     }

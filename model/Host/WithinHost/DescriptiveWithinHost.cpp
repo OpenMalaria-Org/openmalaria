@@ -123,7 +123,6 @@ void DescriptiveWithinHostModel::update(Host::Human &human, LocalRng& rng, int &
     nNewInfs_l = min(nNewInfs_l,MAX_INFECTIONS-numInfs);
     nNewInfs_i = min(nNewInfs_i,MAX_INFECTIONS-numInfs-nNewInfs_l);
 
-    numInfs += nNewInfs_i;
     assert( numInfs>=0 && numInfs<=MAX_INFECTIONS );
     for( int i=0; i<nNewInfs_i; ++i ) {
         uint32_t genotype = Genotypes::sampleGenotype(rng, genotype_weights_i);
@@ -138,9 +137,10 @@ void DescriptiveWithinHostModel::update(Host::Human &human, LocalRng& rng, int &
         else if (opt_vaccine_genotype == false)
             infections.push_back(new DescriptiveInfection (rng, genotype, InfectionOrigin::Introduced));
     }
+    nNewInfs_i = static_cast<int>(infections.size()) - numInfs;
+    numInfs += nNewInfs_i;
     assert( numInfs == static_cast<int>(infections.size()) );
 
-    numInfs += nNewInfs_l;
     assert( numInfs>=0 && numInfs<=MAX_INFECTIONS );
     for( int i=0; i<nNewInfs_l; ++i ) {
         uint32_t genotype = Genotypes::sampleGenotype(rng, genotype_weights_l);
@@ -155,6 +155,8 @@ void DescriptiveWithinHostModel::update(Host::Human &human, LocalRng& rng, int &
         else if (opt_vaccine_genotype == false)
             infections.push_back(new DescriptiveInfection (rng, genotype, InfectionOrigin::Indigenous));
     }
+    nNewInfs_l = static_cast<int>(infections.size()) - numInfs;
+    numInfs += nNewInfs_l;
     assert( numInfs == static_cast<int>(infections.size()) );
 
     updateImmuneStatus ();

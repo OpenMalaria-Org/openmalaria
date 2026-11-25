@@ -42,6 +42,7 @@ set (OM_CXXTEST_HEADERS
   CMDecisionTreeSuite.h
   AgeGroupInterpolationSuite.h
   DecayFunctionSuite.h
+  SamplerSuite.h
   PennyInfectionSuite.h
   MolineauxInfectionSuite.h
   #MosqLifeCycleSuite.h
@@ -49,6 +50,7 @@ set (OM_CXXTEST_HEADERS
   PkPdComplianceSuite.h
   ChaChaSuite.h
   XoshiroSuite.h
+  ClinicalAccessSuite.h
 )
 
 add_custom_command (OUTPUT tests.cpp
