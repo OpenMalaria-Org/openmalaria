@@ -217,7 +217,10 @@ double WHFalciparum::probTransmissionToMosquito(vector<double> &probTransGenotyp
     const size_t n = Genotypes::N();
 
     // Sum lagged densities across genotypes:
-    vector<double> y_lag_g_i(n), y_lag_g_l(n);
+    // Reused scratch (avoids per-call allocation); compute_y_lag overwrites all n elements.
+    static thread_local vector<double> y_lag_g_i, y_lag_g_l;
+    y_lag_g_i.resize(n);
+    y_lag_g_l.resize(n);
     const double y_lag_sum_i = compute_y_lag(m_y_lag_i, y_lag_len, y_lag_g_i);
     const double y_lag_sum_l = compute_y_lag(m_y_lag_l, y_lag_len, y_lag_g_l);
     const double y_lag_sum = y_lag_sum_i + y_lag_sum_l;
