@@ -83,7 +83,11 @@ void Population::update()
     // size is assumed to be the _actual and exact_ population size by other code.
     int cumPop = 0;
 
-    for (auto it = humans.begin(); it != humans.end();) {
+    // Stable in-place compaction (single pass instead of O(n) erase per removal).
+    // Removed humans are destroyed later than before; their only destructor side
+    // effect is Episode::report() adding 1.0 to monitoring counts, which is order-independent.
+    auto out = humans.begin();
+    for (auto it = humans.begin(); it != humans.end(); ++it) {
         bool isDead = it->isDead();
 
         // if (Actual number of people so far > target population size for this age)
@@ -93,12 +97,13 @@ void Population::update()
         bool outmigrate = cumPop >= AgeStructure::targetCumPop(sim::inSteps(it->age(sim::ts1())), size);
         
         if( isDead || outmigrate ){
-            it = humans.erase (it);
             continue;
         }
+        if (out != it) *out = std::move(*it);
+        ++out;
         ++cumPop;
-        ++it;
     } // end of per-human updates
+    humans.erase(out, humans.end());
 
     // increase population size to targetPop
     recentBirths += (size - cumPop);
